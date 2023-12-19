@@ -1,8 +1,8 @@
 import typer
 from typing import Optional
 from typing_extensions import Annotated
-from commands.chat import exec_chat
-from commands.config import exec_config
+from fridacli.commands.chat import exec_chat
+from fridacli.commands.config import exec_config
 
 
 frida_cli = typer.Typer()
