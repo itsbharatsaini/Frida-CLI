@@ -1,10 +1,20 @@
 import os
-from dotenv import load_dotenv
-from interface.styles import add_styletags_to_string
+from typing import Dict
+from fridacli.interface.styles import add_styletags_to_string
 
-# API env variables
-load_dotenv()
-LLMOPS_FRIDACLI_API_KEY = os.getenv("LLMOPS_FRIDACLI_API_KEY")
+
+def get_config_vars(path: str) -> Dict:
+    """"""
+    config_variables = {}
+    with open(path, "r") as file:
+        for line in file:
+            key, value = line.strip().split("=")
+            config_variables[key] = value
+    return config_variables
+
+
+# Config env variables
+configfile_path = f"{os.environ.get('HOME')}/.fridacli"
 
 # Chatbot env variables
 BOT_NAME = "Frida"
