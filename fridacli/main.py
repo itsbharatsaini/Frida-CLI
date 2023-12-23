@@ -20,7 +20,7 @@ def chat(
 @frida_cli.command()
 def config(list: Optional[bool] = False):
     """Command to list or configure API keys."""
-    exec_config(list=list)
+    exec_config(list_option=list)
 
 
 if __name__ == "__main__":
