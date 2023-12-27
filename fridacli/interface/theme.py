@@ -17,6 +17,7 @@ AQUAMARINE = "rgb(0,235,159)"
 console_theme = Theme(
     {
         "info": f"{GRAY}",
+        "system": f"{GRAY}",
         "bot": f"{CYAN}",
         "user": f"{AQUAMARINE}",
         "command": f"{ORANGE} bold",
@@ -25,6 +26,7 @@ console_theme = Theme(
         "warning": f"{YELLOW} italic",
         "error": f"{RED} italic",
         "success": f"{GREEN} italic",
+        "path": f"{BLUE_1} italic",
         "link": f"{BLUE_1} italic",
         "highlight": f"{PINK} bold",
         "code": f"bold white on {DARK_GRAY}",
