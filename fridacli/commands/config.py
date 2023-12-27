@@ -1,11 +1,15 @@
 import os
 from fridacli.config.env_vars import configfile_path
 from fridacli.interface.styles import add_styletags_to_string
+from fridacli.interface.Console import Console
 from fridacli.chatbot.predefined_phrases import (
     ERROR_MISSING_CONFIGFILE,
+    CONFIGFILE_OVERWRITE,
     success_configfile_create,
     success_configfile_update,
 )
+
+console = Console()
 
 
 def print_config_list() -> None:
@@ -17,22 +21,32 @@ def print_config_list() -> None:
         )
         with open(configfile_path, "r") as file_content:
             config_output += file_content.read()
-        print(config_output)
+        console.print(config_output, bottom=0)
     else:
-        print(ERROR_MISSING_CONFIGFILE)
+        console.print(ERROR_MISSING_CONFIGFILE, alignment="center")
 
 
 def configurate_api_keys() -> None:
     """Configure the API keys and write them to the configuration file."""
     new_configfile = not os.path.exists(configfile_path)
-    api_key = input("Enter your Softtek SKD API key: ")
+    if not new_configfile:
+        if not console.confirm(CONFIGFILE_OVERWRITE):
+            return
+
+    api_key = console.input("Enter your Softtek SKD API key:", top=1)
     config_input = f"LLMOPS_FRIDACLI_API_KEY={api_key}"
     command = f"echo {config_input} > {configfile_path}"
     os.system(command)
-    print(
+
+    success_message = (
         success_configfile_create(configfile_path)
         if new_configfile
         else success_configfile_update(configfile_path)
+    )
+    console.print(
+        success_message,
+        style="system",
+        alignment="center",
     )
 
 
