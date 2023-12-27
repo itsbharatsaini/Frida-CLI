@@ -1,13 +1,14 @@
 import os
-from fridacli.config.env_vars import configfile_path
-from fridacli.interface.styles import add_styletags_to_string
-from fridacli.interface.console import Console
+
 from fridacli.chatbot.predefined_phrases import (
-    ERROR_MISSING_CONFIGFILE,
     CONFIGFILE_OVERWRITE,
+    ERROR_MISSING_CONFIGFILE,
     success_configfile_create,
     success_configfile_update,
 )
+from fridacli.config.env_vars import configfile_path
+from fridacli.interface.console import Console
+from fridacli.interface.styles import add_styletags_to_string
 
 console = Console()
 

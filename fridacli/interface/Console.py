@@ -1,9 +1,9 @@
-from rich.theme import Theme
 from rich.console import Console as RichConsole
 from rich.padding import Padding
+from rich.theme import Theme
 
-from fridacli.interface.theme import console_theme
 from fridacli.interface.styles import add_styletags_to_string
+from fridacli.interface.theme import console_theme
 
 
 class Console:
