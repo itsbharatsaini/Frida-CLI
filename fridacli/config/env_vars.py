@@ -19,3 +19,12 @@ def get_config_vars(path: str) -> Dict:
             key, value = line.strip().split("=")
             config_variables[key] = value
     return config_variables
+
+
+def get_username() -> str:
+    """Returns the name of the current user."""
+    try:
+        username = os.getlogin()
+    except OSError:
+        username = "user"
+    return username
