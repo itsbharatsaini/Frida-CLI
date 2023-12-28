@@ -7,7 +7,7 @@ from fridacli.interface.theme import console_theme
 
 
 class Console:
-    """"""
+    """A wrapper class for the Rich Console class that provides additional features and simplifies usage"""
 
     def __init__(self, theme: Theme = console_theme) -> None:
         self.__console = RichConsole(theme=theme)
@@ -23,7 +23,7 @@ class Console:
         right: int = 0,
         streaming: bool = False,
     ) -> None:
-        """"""
+        """Prints a message to the console applying a style, a padding, an alignment and an end"""
         self.__console.print(
             Padding(message, (top, left, bottom, right)),
             style=style,
@@ -39,7 +39,7 @@ class Console:
         top: int = 0,
         bottom: int = 0,
     ) -> str:
-        """"""
+        """Prompts the user for input and returns the user's response."""
         if top > 0:
             print("\n" * (top - 1))
         formatted_input = f"{(prefix + ': ') if prefix else ''}{message}"
@@ -57,7 +57,7 @@ class Console:
         bottom: int = 0,
         warning: bool = False,
     ) -> bool:
-        """"""
+        """Asks the user for confirmation and returns `True` if the user confirms, `False` otherwise."""
         confirm_options = {"accept": ("y", "yes", ""), "reject": ("n", "no")}
         valid_inputs = add_styletags_to_string(
             "\[y/n]", style="error" if warning else "option"
@@ -68,13 +68,18 @@ class Console:
             message=formatted_input, top=top, bottom=bottom
         ).lower()
 
-        if user_response in confirm_options["reject"]:
+        if user_response in confirm_options["accept"]:
+            return True
+        elif user_response in confirm_options["reject"]:
             print()
+            return False
+        else:
+            return self.confirm(message, style=style, warning=True)
 
-        return (
-            True
-            if user_response in confirm_options["accept"]
-            else False
-            if user_response in confirm_options["reject"]
-            else self.confirm(message, style=style, warning=True)
+    def notification(self, message: str):
+        """Display a notification message centered and gray in text color."""
+        self.print(
+            message,
+            style="system",
+            alignment="center",
         )
