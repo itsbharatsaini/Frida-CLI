@@ -1,6 +1,8 @@
 import typer
+
 from typing import Optional
 from typing_extensions import Annotated
+
 from fridacli.commands.chat import exec_chat
 from fridacli.commands.config import exec_config
 
