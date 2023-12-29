@@ -2,7 +2,7 @@
 
 Package that provides **configuration variables** and functions for the rest of the system packages.
 
-## environment variables
+## Environment variables
 
 Module that **configures the CLI application** by using functions and constant strings. This module does things like:
 
