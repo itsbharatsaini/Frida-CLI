@@ -16,8 +16,8 @@ AQUAMARINE = "rgb(0,235,159)"
 # Frida's default console theme
 console_theme = Theme(
     {
-        "info": f"{GRAY}",
         "system": f"{GRAY}",
+        "process": f"{GRAY} italic",
         "bot": f"{CYAN}",
         "user": f"{AQUAMARINE}",
         "command": f"{ORANGE} bold",

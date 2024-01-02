@@ -1,7 +1,9 @@
 from rich.console import Console as RichConsole
 from rich.padding import Padding
+from rich.panel import Panel
 from rich.theme import Theme
 
+from fridacli.chatbot.predefined_phrases import INTERRUPT_CHAT, WELCOME_PANEL_MESSAGE
 from fridacli.interface.styles import add_styletags_to_string
 from fridacli.interface.theme import console_theme
 
@@ -42,7 +44,7 @@ class Console:
         """Prompts the user for input and returns the user's response."""
         if top > 0:
             print("\n" * (top - 1))
-        formatted_input = f"{(prefix + ': ') if prefix else ''}{message}"
+        formatted_input = f"{(prefix + ':') if prefix else ''}{message}"
         self.__console.print(formatted_input, style=style, end=" ")
         user_response = input()
         if bottom > 0:
@@ -76,10 +78,23 @@ class Console:
         else:
             return self.confirm(message, style=style, warning=True)
 
-    def notification(self, message: str):
+    def notification(self, message: str) -> None:
         """Display a notification message centered and gray in text color."""
         self.print(
             message,
             style="system",
             alignment="center",
+        )
+
+    def start_panel(
+        self,
+        message: str = WELCOME_PANEL_MESSAGE,
+        title: str = "FRIDA CLI",
+        subtitle: str = INTERRUPT_CHAT,
+    ) -> None:
+        """Displays a stylized rich panel with a message, a title and a subtitle."""
+        self.print(
+            Panel(message, title=title, subtitle=subtitle, padding=(1, 2)),
+            left=10,
+            right=10,
         )
