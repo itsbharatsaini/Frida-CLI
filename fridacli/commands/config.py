@@ -3,19 +3,21 @@ import os
 from fridacli.chatbot.predefined_phrases import (
     CONFIGFILE_OVERWRITE,
     ERROR_MISSING_CONFIGFILE,
+    message_config_file_path,
     success_configfile_create,
     success_configfile_update,
 )
 from fridacli.config.env_vars import config_file_exists, config_file_path
 from fridacli.interface.console import Console
-from fridacli.interface.styles import add_styletags_to_string
+
 
 console = Console()
+
 
 # ========= frida config --list =========
 
 
-def read_config_file(path: str) -> str:
+def read_config_file(path: str = config_file_path) -> str:
     """Read the contents of a configuration file and returns it."""
     with open(path, "r") as file_content:
         configfile_content = file_content.read()
@@ -25,8 +27,8 @@ def read_config_file(path: str) -> str:
 def print_config_list() -> None:
     """Print the contents of the configuration file."""
     if config_file_exists():
-        config_output = f"Configuration file path: {add_styletags_to_string(config_file_path,style='path')}"
-        config_output += "\n" + read_config_file(config_file_path)
+        config_output = message_config_file_path(config_file_path)
+        config_output += "\n" + read_config_file()
         console.print(config_output)
     else:
         console.notification(ERROR_MISSING_CONFIGFILE)
@@ -35,7 +37,7 @@ def print_config_list() -> None:
 # ========= frida config =========
 
 
-def write_config_to_file(api_key: str, path: str) -> None:
+def write_config_to_file(api_key: str, path: str = config_file_path) -> None:
     """Write the configuration file with the API key."""
     config_input = f"LLMOPS_FRIDACLI_API_KEY={api_key}"
     command = f"echo {config_input} > {path}"
@@ -51,7 +53,7 @@ def configurate_api_keys() -> None:
             return
 
     api_key = console.input("Enter your Softtek SKD API key:", top=1)
-    write_config_to_file(api_key, config_file_path)
+    write_config_to_file(api_key)
 
     success_message = (
         success_configfile_create(config_file_path)

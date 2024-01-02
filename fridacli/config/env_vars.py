@@ -6,12 +6,12 @@ config_file_path = f"{os.environ.get('HOME')}/.fridacli"
 BOT_NAME = "Frida"
 
 
-def config_file_exists() -> bool:
+def config_file_exists(path: str = config_file_path) -> bool:
     """Check if the configuration file already exists."""
-    return os.path.exists(config_file_path)
+    return os.path.exists(path)
 
 
-def get_config_vars(path: str) -> Dict:
+def get_config_vars(path: str = config_file_path) -> Dict:
     """Retrieve configuration variables from a given configuration file."""
     config_variables = {}
     with open(path, "r") as file:

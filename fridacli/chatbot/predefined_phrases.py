@@ -1,6 +1,7 @@
 from fridacli.config.env_vars import BOT_NAME
 from fridacli.interface.styles import add_styletags_to_string
 
+# Chat session's bot messages
 START_MESSAGE = "Hello! How may I help you?"
 INTERRUPT_CHAT = f"Press {add_styletags_to_string('Ctrl+C','operation')} (keyboard interrupt) to exit the chat"
 WELCOME_SUBTITLE = add_styletags_to_string(
@@ -12,6 +13,10 @@ WELCOME_SUBTITLE = add_styletags_to_string(
     style="info",
 )
 CONFIGFILE_OVERWRITE = f"A {add_styletags_to_string('.fridacli',style='code')} configuration file already exists. Do you want to overwrite it?"
+
+message_config_file_path = (
+    lambda path: f"Configuration file path: {add_styletags_to_string(path,style='path')}"
+)
 
 # Error messages
 ERROR_STR = "This is not a coding related question, is there anything else I can assist you with?"
