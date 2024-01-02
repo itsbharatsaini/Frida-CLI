@@ -4,8 +4,8 @@ from fridacli.interface.styles import add_styletags_to_string
 # Chat session's bot messages
 START_MESSAGE = "Hello! How may I help you?"
 INTERRUPT_CHAT = f"Press {add_styletags_to_string('Ctrl+C','operation')} (keyboard interrupt) to exit the chat"
-WELCOME_SUBTITLE = add_styletags_to_string(
-    "This is your personal "
+WELCOME_PANEL_MESSAGE = add_styletags_to_string(
+    "Welcome to your personal "
     + add_styletags_to_string(f"{BOT_NAME} AI assistant", "bot")
     + ", you can ask any coding related question directly in the command line or type "
     + add_styletags_to_string("!help", "command")
