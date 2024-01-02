@@ -2,7 +2,7 @@
 
 Package that contains the source **code executed as commands** by the `frida` CLI application.
 
-## Chat callbacks
+## Chat subcommands
 
 Module that contains the **functions executed as subcommands** in a chat session created with the `frida chat` command. This module contains the main features that are executable inside a chat session with the AI assistant, such as:
 
