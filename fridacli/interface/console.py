@@ -104,7 +104,7 @@ class Console:
             alignment="center",
         )
 
-    def start_panel(
+    def print_panel(
         self,
         message: str = WELCOME_PANEL_MESSAGE,
         title: str = "FRIDA CLI",

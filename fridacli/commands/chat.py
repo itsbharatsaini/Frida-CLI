@@ -17,7 +17,7 @@ def get_command_parts(command_string: str):
 def chat_session(username: str) -> None:
     """"""
     chatting = True
-    console.start_panel()
+    console.print_panel()
     while chatting:
         try:
             user_input = console.input(prefix=username, style="user")
@@ -34,11 +34,12 @@ def chat_session(username: str) -> None:
                 command, command_args = get_command_parts(user_input)
 
             else:
-                console.response(
+                response_test = (
                     "Bot Response.\n"
                     + "```python\nprint('Hello world')\n"
-                    + "```\nHola `mundo` ;D",
+                    + "```\nHola `mundo` ;D"
                 )
+                console.response(response_test, streaming=True)
 
         except KeyboardInterrupt:
             print()
