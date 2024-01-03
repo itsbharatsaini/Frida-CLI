@@ -34,7 +34,11 @@ def chat_session(username: str) -> None:
                 command, command_args = get_command_parts(user_input)
 
             else:
-                console.print("Bot Response.", style="bot")
+                console.response(
+                    "Bot Response.\n"
+                    + "```python\nprint('Hello world')\n"
+                    + "```\nHola `mundo` ;D",
+                )
 
         except KeyboardInterrupt:
             print()
