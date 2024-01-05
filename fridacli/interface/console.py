@@ -12,12 +12,12 @@ from typing import Dict, Optional, Union
 
 from fridacli.chatbot.predefined_phrases import INTERRUPT_CHAT, WELCOME_PANEL_MESSAGE
 from fridacli.config.env_vars import BOT_NAME
-from fridacli.interface.styles import add_styletags_to_string
+from fridacli.interface.styles import print_padding
 from fridacli.interface.theme import (
     console_theme,
     user_input_style,
     user_input_style_active_project,
-    password_style,
+    basic_style,
 )
 
 
@@ -70,9 +70,7 @@ class Console:
         bottom: int = 0,
     ) -> str:
         """Prompts the user for input and returns the user's response."""
-        if top > 0:
-            print("\n" * (top - 1))
-
+        print_padding(padding=top)
         user_response = inquirer.text(
             message=f"{message}:",
             style=style,
@@ -80,60 +78,46 @@ class Console:
             qmark=prefix,
             amark=prefix,
         ).execute()
-
-        if bottom > 0:
-            print("\n" * (bottom - 1))
+        print_padding(padding=bottom)
         return str(user_response)
 
     def password(
         self,
         message: str = "",
-        style: InquirerPyStyle = password_style,
+        style: InquirerPyStyle = basic_style,
         prefix: str = "",
         top: int = 0,
         bottom: int = 0,
     ) -> str:
         """Returns an user input stylized in a password format like a string."""
-        if top > 0:
-            print("\n" * (top - 1))
-
+        print_padding(padding=top)
         password = inquirer.secret(
             message=f"{message}:",
             style=style,
             qmark=prefix,
             amark=prefix,
         ).execute()
-
-        if bottom > 0:
-            print("\n" * (bottom - 1))
+        print_padding(padding=bottom)
         return str(password)
 
     def confirm(
         self,
         message: str,
-        style: str = "system",
+        style: InquirerPyStyle = basic_style,
+        prefix: str = "",
         top: int = 1,
         bottom: int = 0,
-        warning: bool = False,
     ) -> bool:
         """Asks the user for confirmation and returns `True` if the user confirms, `False` otherwise."""
-        confirm_options = {"accept": ("y", "yes", ""), "reject": ("n", "no")}
-        valid_inputs = add_styletags_to_string(
-            "\[y/n]", style="error" if warning else "option"
-        )
-
-        formatted_input = f"{message} {valid_inputs}"
-        user_response = self.input(
-            message=formatted_input, top=top, bottom=bottom
-        ).lower()
-
-        if user_response in confirm_options["accept"]:
-            return True
-        elif user_response in confirm_options["reject"]:
-            print()
-            return False
-        else:
-            return self.confirm(message, style=style, warning=True)
+        print_padding(padding=top)
+        confirm: bool = inquirer.confirm(
+            message=message,
+            style=style,
+            qmark=prefix,
+            amark=prefix,
+        ).execute()
+        print_padding(padding=bottom + (1 if not confirm else 0))
+        return confirm
 
     def notification(self, message: str) -> None:
         """Display a notification message centered and gray in text color."""
@@ -211,16 +195,11 @@ class Console:
                 time.sleep(0.04)
 
         if streaming:
-            if top > 0:
-                print("\n" * (top - 1))
-
+            print_padding(padding=top)
             self.__console.print(f"{prefix}:", style=style, end=" ")
-
             for character in message:
                 process_character(character)
-
-            if bottom > 0:
-                print("\n" * bottom)
+            print_padding(padding=(bottom + 1))
         else:
             formatted_output = f"{(prefix + ':') if prefix else ''} {message}"
             self.print(Markdown(formatted_output), style=style)

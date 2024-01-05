@@ -2,6 +2,7 @@ from InquirerPy import get_style
 from rich.theme import Theme
 
 # FridaCLI's Color palette
+WHITE = "#F6F0ED"
 GRAY = "#646568"
 DARK_GRAY = "#222222"
 RED = "#eb002c"
@@ -14,20 +15,21 @@ BLUE_2 = "#5600eb"
 PINK = "#eb00eb"
 AQUAMARINE = "#00eb9f"
 color_palette = {
-    "system": f"{GRAY}",
-    "process": f"{GRAY} italic",
     "bot": f"{CYAN}",
-    "user": f"{AQUAMARINE}",
     "command": f"{ORANGE} bold",
+    "code": f"bold white on {DARK_GRAY}",
+    "error": f"{RED} italic",
+    "highlight": f"{PINK} bold",
+    "info": f"{GRAY}",
+    "link": f"{BLUE_1} italic",
     "option": f"{YELLOW}",
     "operation": f"{BLUE_2} bold",
-    "warning": f"{YELLOW} italic",
-    "error": f"{RED} italic",
-    "success": f"{GREEN} italic",
     "path": f"{BLUE_1} bold",
-    "link": f"{BLUE_1} italic",
-    "highlight": f"{PINK} bold",
-    "code": f"bold white on {DARK_GRAY}",
+    "process": f"{GRAY} italic",
+    "success": f"{GREEN} italic",
+    "system": f"{WHITE}",
+    "user": f"{AQUAMARINE}",
+    "warning": f"{YELLOW} italic",
 }
 
 # Frida's default Rich console theme
@@ -35,9 +37,9 @@ console_theme = Theme(color_palette)
 
 # Inquirer user input styles
 user_style = color_palette["user"]
-folder_style = color_palette["system"]
+folder_style = color_palette["info"]
 open_folder_style = color_palette["path"]
-password_style = color_palette["system"]
+password_style = color_palette["info"]
 user_input_style = get_style(
     {
         "questionmark": folder_style,
@@ -58,8 +60,10 @@ user_input_style_active_project = get_style(
         "answer": user_style,
     }
 )
-password_style = get_style(
+basic_style = get_style(
     {
+        "question": WHITE,
+        "answered_question": WHITE,
         "input": password_style,
         "answer": password_style,
     }

@@ -12,7 +12,9 @@ WELCOME_PANEL_MESSAGE = add_styletags_to_string(
     + " to see the available commands.",
     style="info",
 )
-CONFIGFILE_OVERWRITE = f"A {add_styletags_to_string('.fridacli',style='code')} configuration file already exists. Do you want to overwrite it?"
+CONFIGFILE_OVERWRITE = (
+    "A configuration file already exists. Do you want to overwrite it?"
+)
 
 message_config_file_path = (
     lambda path: f"Configuration file path: {add_styletags_to_string(path,style='path')}"
