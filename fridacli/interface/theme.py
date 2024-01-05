@@ -37,6 +37,7 @@ console_theme = Theme(color_palette)
 user_style = color_palette["user"]
 folder_style = color_palette["system"]
 open_folder_style = color_palette["path"]
+password_style = color_palette["system"]
 user_input_style = get_style(
     {
         "questionmark": folder_style,
@@ -55,5 +56,11 @@ user_input_style_active_project = get_style(
         "answered_question": user_style,
         "input": user_style,
         "answer": user_style,
+    }
+)
+password_style = get_style(
+    {
+        "input": password_style,
+        "answer": password_style,
     }
 )

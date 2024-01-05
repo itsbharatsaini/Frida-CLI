@@ -52,7 +52,7 @@ def configurate_api_keys() -> None:
         if not overwrite:
             return
 
-    api_key = console.input("Enter your Softtek SKD API key:", top=1)
+    api_key = console.password("Enter your Softtek SKD API key", top=1)
     write_config_to_file(api_key)
 
     success_message = (

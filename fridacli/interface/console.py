@@ -17,6 +17,7 @@ from fridacli.interface.theme import (
     console_theme,
     user_input_style,
     user_input_style_active_project,
+    password_style,
 )
 
 
@@ -83,6 +84,29 @@ class Console:
         if bottom > 0:
             print("\n" * (bottom - 1))
         return str(user_response)
+
+    def password(
+        self,
+        message: str = "",
+        style: InquirerPyStyle = password_style,
+        prefix: str = "",
+        top: int = 0,
+        bottom: int = 0,
+    ) -> str:
+        """Returns an user input stylized in a password format like a string."""
+        if top > 0:
+            print("\n" * (top - 1))
+
+        password = inquirer.secret(
+            message=f"{message}:",
+            style=style,
+            qmark=prefix,
+            amark=prefix,
+        ).execute()
+
+        if bottom > 0:
+            print("\n" * (bottom - 1))
+        return str(password)
 
     def confirm(
         self,
