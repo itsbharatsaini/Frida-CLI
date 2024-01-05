@@ -1,34 +1,59 @@
+from InquirerPy import get_style
 from rich.theme import Theme
 
-# FridaCLI's Colour palette
-GRAY = "rgb(100,101,104)"
+# FridaCLI's Color palette
+GRAY = "#646568"
 DARK_GRAY = "#222222"
-RED = "rgb(235,0,44)"
-GREEN = "rgb(150,235,0)"
-YELLOW = "rgb(235,235,0)"
-ORANGE = "rgb(235,129,0)"
-CYAN = "rgb(0,235,235)"
-BLUE_1 = "rgb(0,129,235)"
-BLUE_2 = "rgb(86,0,235)"
-PINK = "rgb(235,0,235)"
-AQUAMARINE = "rgb(0,235,159)"
+RED = "#eb002c"
+GREEN = "#96eb00"
+YELLOW = "#ebeb00"
+ORANGE = "#eb8100"
+CYAN = "#00ebeb"
+BLUE_1 = "#0081eb"
+BLUE_2 = "#5600eb"
+PINK = "#eb00eb"
+AQUAMARINE = "#00eb9f"
+color_palette = {
+    "system": f"{GRAY}",
+    "process": f"{GRAY} italic",
+    "bot": f"{CYAN}",
+    "user": f"{AQUAMARINE}",
+    "command": f"{ORANGE} bold",
+    "option": f"{YELLOW}",
+    "operation": f"{BLUE_2} bold",
+    "warning": f"{YELLOW} italic",
+    "error": f"{RED} italic",
+    "success": f"{GREEN} italic",
+    "path": f"{BLUE_1} bold",
+    "link": f"{BLUE_1} italic",
+    "highlight": f"{PINK} bold",
+    "code": f"bold white on {DARK_GRAY}",
+}
 
-# Frida's default console theme
-console_theme = Theme(
+# Frida's default Rich console theme
+console_theme = Theme(color_palette)
+
+# Inquirer user input styles
+user_style = color_palette["user"]
+folder_style = color_palette["system"]
+open_folder_style = color_palette["path"]
+user_input_style = get_style(
     {
-        "system": f"{GRAY}",
-        "process": f"{GRAY} italic",
-        "bot": f"{CYAN}",
-        "user": f"{AQUAMARINE}",
-        "command": f"{ORANGE} bold",
-        "option": f"{YELLOW}",
-        "operation": f"{BLUE_2} bold",
-        "warning": f"{YELLOW} italic",
-        "error": f"{RED} italic",
-        "success": f"{GREEN} italic",
-        "path": f"{BLUE_1} italic",
-        "link": f"{BLUE_1} italic",
-        "highlight": f"{PINK} bold",
-        "code": f"bold white on {DARK_GRAY}",
+        "questionmark": folder_style,
+        "answermark": folder_style,
+        "question": user_style,
+        "answered_question": user_style,
+        "input": user_style,
+        "answer": user_style,
+    }
+)
+user_input_style_active_project = get_style(
+    {
+        "questionmark": open_folder_style,
+        "answermark": open_folder_style,
+        "question": user_style,
+        "answered_question": user_style,
+        "input": user_style,
+        "answer": user_style,
     }
 )
