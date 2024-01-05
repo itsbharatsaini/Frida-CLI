@@ -20,3 +20,8 @@ def add_styletags_from_regex(string: str) -> str:
         string = re.sub(pattern, replacement, string)
 
     return string
+
+
+def print_padding(padding: int = 1):
+    if padding > 0:
+        print("\n" * (padding - 1))
