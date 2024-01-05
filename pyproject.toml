@@ -21,6 +21,7 @@ frida = "fridacli.main:frida_cli"
 python = "^3.10"
 innovation-stk = { git = "https://github.com/Fridaplatform/SofttekLLMSDK.git", rev = "1542f95f7b08d85d59d1669983e56ad05d3dddd9" }
 typer = { extras = ["all"], version = "^0.9.0" }
+inquirerpy = "^0.3.4"
 
 [build-system]
 requires = ["poetry-core"]
