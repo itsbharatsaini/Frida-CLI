@@ -1,3 +1,6 @@
+from InquirerPy import inquirer
+from InquirerPy.utils import InquirerPyStyle
+from prompt_toolkit.completion.base import Completer
 from rich.console import Console as RichConsole
 from rich.padding import Padding
 from rich.panel import Panel
@@ -5,11 +8,16 @@ from rich.theme import Theme
 from rich.markdown import Markdown
 
 import time
+from typing import Dict, Optional, Union
 
 from fridacli.chatbot.predefined_phrases import INTERRUPT_CHAT, WELCOME_PANEL_MESSAGE
 from fridacli.config.env_vars import BOT_NAME
 from fridacli.interface.styles import add_styletags_to_string
-from fridacli.interface.theme import console_theme
+from fridacli.interface.theme import (
+    console_theme,
+    user_input_style,
+    user_input_style_active_project,
+)
 
 
 class Console:
@@ -54,20 +62,27 @@ class Console:
     def input(
         self,
         message: str = "",
+        style: InquirerPyStyle = None,
+        completer: Optional[Union[Dict[str, Optional[str]], "Completer"]] = None,
         prefix: str = "",
-        style: str = "system",
         top: int = 0,
         bottom: int = 0,
     ) -> str:
         """Prompts the user for input and returns the user's response."""
         if top > 0:
             print("\n" * (top - 1))
-        formatted_input = f"{(prefix + ':') if prefix else ''}{message}"
-        self.__console.print(formatted_input, style=style, end=" ")
-        user_response = input()
+
+        user_response = inquirer.text(
+            message=f"{message}:",
+            style=style,
+            completer=completer,
+            qmark=prefix,
+            amark=prefix,
+        ).execute()
+
         if bottom > 0:
             print("\n" * (bottom - 1))
-        return user_response
+        return str(user_response)
 
     def confirm(
         self,
@@ -185,3 +200,20 @@ class Console:
         else:
             formatted_output = f"{(prefix + ':') if prefix else ''} {message}"
             self.print(Markdown(formatted_output), style=style)
+
+    def user_input(
+        self,
+        username: str,
+        current_dir: str,
+        open_folder: bool,
+        completer: Optional[Union[Dict[str, Optional[str]], "Completer"]] = None,
+    ) -> str:
+        """Wrapper function for the input method that provides
+        a stylized input with the user information."""
+        style = user_input_style_active_project if open_folder else user_input_style
+        return self.input(
+            prefix=f"({current_dir})",
+            message=username,
+            style=style,
+            completer=completer,
+        )
