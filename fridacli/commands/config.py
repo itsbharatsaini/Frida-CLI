@@ -7,8 +7,9 @@ from fridacli.chatbot.predefined_phrases import (
     success_configfile_create,
     success_configfile_update,
 )
-from fridacli.config.env_vars import config_file_exists, config_file_path
+from fridacli.config.env_vars import config_file_exists, HOME_PATH, config_file_path
 from fridacli.interface.console import Console
+from fridacli.interface.styles import format_path
 
 
 console = Console()
@@ -55,10 +56,11 @@ def configurate_api_keys() -> None:
     api_key = console.password("Enter your Softtek SKD API key", top=1)
     write_config_to_file(api_key)
 
+    formatted_path = format_path(config_file_path, HOME_PATH)
     success_message = (
-        success_configfile_create(config_file_path)
+        success_configfile_create(formatted_path)
         if new_configfile
-        else success_configfile_update(config_file_path)
+        else success_configfile_update(formatted_path)
     )
     console.notification(success_message)
 
