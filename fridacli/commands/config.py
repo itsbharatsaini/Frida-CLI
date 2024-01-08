@@ -7,12 +7,12 @@ from fridacli.chatbot.predefined_phrases import (
     success_configfile_create,
     success_configfile_update,
 )
-from fridacli.config.env_vars import config_file_exists, HOME_PATH, config_file_path
-from fridacli.interface.console import Console
+from fridacli.config.env_vars import config_file_exists, config_file_path, HOME_PATH
+from fridacli.interface.system_console import SystemConsole
 from fridacli.interface.styles import format_path
 
 
-console = Console()
+system = SystemConsole()
 
 
 # ========= frida config --list =========
@@ -28,11 +28,12 @@ def read_config_file(path: str = config_file_path) -> str:
 def print_config_list() -> None:
     """Print the contents of the configuration file."""
     if config_file_exists():
-        config_output = message_config_file_path(config_file_path)
+        formatted_config_file_path = format_path(config_file_path, HOME_PATH)
+        config_output = message_config_file_path(formatted_config_file_path)
         config_output += "\n" + read_config_file()
-        console.print(config_output)
+        system.print(config_output)
     else:
-        console.notification(ERROR_MISSING_CONFIGFILE)
+        system.notification(ERROR_MISSING_CONFIGFILE)
 
 
 # ========= frida config =========
@@ -49,11 +50,11 @@ def configurate_api_keys() -> None:
     """Configure the API keys and write them to the configuration file."""
     new_configfile = not config_file_exists()
     if not new_configfile:
-        overwrite = console.confirm(CONFIGFILE_OVERWRITE)
+        overwrite = system.confirm(CONFIGFILE_OVERWRITE)
         if not overwrite:
             return
 
-    api_key = console.password("Enter your Softtek SKD API key", top=1)
+    api_key = system.password("Enter your Softtek SKD API key", top=1)
     write_config_to_file(api_key)
 
     formatted_path = format_path(config_file_path, HOME_PATH)
@@ -62,7 +63,7 @@ def configurate_api_keys() -> None:
         if new_configfile
         else success_configfile_update(formatted_path)
     )
-    console.notification(success_message)
+    system.notification(success_message)
 
 
 # ========= config command =========

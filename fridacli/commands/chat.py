@@ -1,12 +1,26 @@
 import os
 
-from fridacli.chatbot.predefined_phrases import ERROR_MISSING_CONFIGFILE
+from fridacli.chatbot.predefined_phrases import (
+    ERROR_MISSING_CONFIGFILE,
+    INTERRUPT_CHAT,
+    WELCOME_PANEL_MESSAGE,
+)
 from fridacli.config.env_vars import config_file_exists, get_config_vars, get_username
 from fridacli.interface.bot_console import BotConsole
+from fridacli.interface.system_console import SystemConsole
 from fridacli.interface.console import Console
 
 
 console = Console()
+chatbot = BotConsole()
+system = SystemConsole()
+
+
+def start_panel() -> None:
+    """"""
+    system.print_panel(
+        message=WELCOME_PANEL_MESSAGE, title="FRIDA CLI", subtitle=INTERRUPT_CHAT
+    )
 
 
 def get_command_parts(command_string: str):
@@ -19,9 +33,8 @@ def get_command_parts(command_string: str):
 
 def chat_session(username: str) -> None:
     """"""
-    chatbot = BotConsole()
     chatting = True
-    console.print_panel()
+    start_panel()
     while chatting:
         try:
             current_dir = os.path.basename(os.getcwd())
