@@ -46,6 +46,17 @@ def write_config_to_file(api_key: str, path: str = config_file_path) -> None:
     os.system(command)
 
 
+def print_configuration_success(created_file: bool) -> None:
+    """Prints a success message for creating/updating a configuration file."""
+    formatted_path = format_path(config_file_path, HOME_PATH)
+    success_message = (
+        success_configfile_create(formatted_path)
+        if created_file
+        else success_configfile_update(formatted_path)
+    )
+    system.notification(success_message)
+
+
 def configurate_api_keys() -> None:
     """Configure the API keys and write them to the configuration file."""
     new_configfile = not config_file_exists()
@@ -53,17 +64,9 @@ def configurate_api_keys() -> None:
         overwrite = system.confirm(CONFIGFILE_OVERWRITE)
         if not overwrite:
             return
-
     api_key = system.password("Enter your Softtek SKD API key", top=1)
     write_config_to_file(api_key)
-
-    formatted_path = format_path(config_file_path, HOME_PATH)
-    success_message = (
-        success_configfile_create(formatted_path)
-        if new_configfile
-        else success_configfile_update(formatted_path)
-    )
-    system.notification(success_message)
+    print_configuration_success(created_file=new_configfile)
 
 
 # ========= config command =========
