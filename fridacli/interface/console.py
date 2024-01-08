@@ -8,11 +8,7 @@ from rich.theme import Theme
 from typing import Dict, Optional, Union
 
 from fridacli.interface.styles import print_padding
-from fridacli.interface.theme import (
-    console_theme,
-    user_input_style,
-    user_input_style_active_project,
-)
+from fridacli.interface.theme import console_theme
 
 
 class Console:
@@ -60,20 +56,3 @@ class Console:
         ).execute()
         print_padding(padding=bottom)
         return str(user_response)
-
-    def user_input(
-        self,
-        username: str,
-        current_dir: str,
-        open_folder: bool,
-        completer: Optional[Union[Dict[str, Optional[str]], "Completer"]] = None,
-    ) -> str:
-        """Wrapper function for the input method that provides
-        a stylized input with the user information."""
-        style = user_input_style_active_project if open_folder else user_input_style
-        return self.input(
-            prefix=f"({current_dir})",
-            message=username,
-            style=style,
-            completer=completer,
-        )
