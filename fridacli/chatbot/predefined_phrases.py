@@ -23,6 +23,9 @@ message_config_file_path = (
 # Error messages
 ERROR_STR = "This is not a coding related question, is there anything else I can assist you with?"
 ERROR_MISSING_CONFIGFILE = f"Missing configuration file. Execute {add_styletags_to_string('frida config', style='code')} to create it."
+ERROR_INVALID_COMMAND = lambda subcommand: (
+    f"Error: {add_styletags_to_string(subcommand, style='code')} command not found."
+)
 
 # Success messages
 success_configfile_create = (

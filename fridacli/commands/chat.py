@@ -3,6 +3,7 @@ from typing import Dict
 
 from fridacli.chatbot.predefined_phrases import (
     ERROR_MISSING_CONFIGFILE,
+    ERROR_INVALID_COMMAND,
     INTERRUPT_CHAT,
     WELCOME_PANEL_MESSAGE,
 )
@@ -45,7 +46,7 @@ def get_completions() -> Dict:
 def exec_subcommand(subcommand: str, *args):
     """"""
     if subcommand not in SUBCOMMANDS:
-        system.notification("ERROR")
+        system.notification(ERROR_INVALID_COMMAND(subcommand))
     else:
         SUBCOMMANDS[subcommand]["execute"](*args)
 
