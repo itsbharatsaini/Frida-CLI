@@ -1,22 +1,24 @@
-from fridacli.interface.styles import print_padding
+from fridacli.interface.system_console import SystemConsole
+from fridacli.config.env_vars import BOT_NAME
 
 
-def ls_subcommand():
+def ls_subcommand(*args, **kwargs):
     """"""
     pass
 
 
-def pwd_subcommand():
+def pwd_subcommand(*args, **kwargs):
     """"""
     pass
 
 
-def cd_subcommand():
+def cd_subcommand(*args, **kwargs):
     """"""
     pass
 
 
-def exit_subcommand() -> None:
+def exit_subcommand(*args, **kwargs) -> None:
     """"""
-    print_padding()
+    system_console: SystemConsole = kwargs["system_console"]
+    system_console.notification(f"{BOT_NAME}CLI Chat session ended")
     exit()

@@ -48,7 +48,7 @@ def exec_subcommand(subcommand: str, *args):
     if subcommand not in SUBCOMMANDS:
         system.notification(ERROR_INVALID_COMMAND(subcommand))
     else:
-        SUBCOMMANDS[subcommand]["execute"](*args)
+        SUBCOMMANDS[subcommand]["execute"](*args, system_console=system)
 
 
 def chat_session() -> None:
