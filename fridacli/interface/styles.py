@@ -1,5 +1,8 @@
+from rich.columns import Columns
+
 import os
 import re
+from typing import Iterable
 
 
 def add_styletags_to_string(string: str, style: str) -> str:
@@ -33,3 +36,19 @@ def format_path(path: str, dir: str = os.getcwd()) -> str:
     """Formats the given path and returns formatted as a relative path."""
     relative_path = os.path.relpath(path, f"{dir}/..")
     return relative_path.replace("\\", "/")
+
+
+def format_to_columns(iterables: Iterable):
+    """"""
+    columns_output = Columns(iterables, equal=True, expand=True)
+    return columns_output
+
+
+def file_list_with_styles(file_list: list) -> list:
+    """"""
+    return [
+        add_styletags_to_string(f"{element}/", "path")
+        if os.path.isdir(element)
+        else add_styletags_to_string(element, "info")
+        for element in file_list
+    ]
