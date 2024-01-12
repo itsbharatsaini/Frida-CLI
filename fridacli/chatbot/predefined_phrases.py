@@ -33,3 +33,7 @@ success_configfile_update = (
     lambda path: f"Configuration file {add_styletags_to_string(path, style='path')} "
     + f"{add_styletags_to_string(f'successfully updated', style='success')}."
 )
+
+chatbot_unauthorized = f"{add_styletags_to_string('Unauthorized', style='error')}: The provided API key is invalid or missing, Execute {add_styletags_to_string('frida config', style='code')} to update it."
+chatbot_badrequest = f"{add_styletags_to_string('Bad Request', style='error')}: Chatbot model not found, please update model name, Execute {add_styletags_to_string('frida config', style='code')} to update it."
+chatbot_error = f"{add_styletags_to_string('Bad Request', style='error')}: One or all of the configuration keys is invalid or missing, Execute {add_styletags_to_string('frida config', style='code')} to update it."

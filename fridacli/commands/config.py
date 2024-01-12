@@ -39,11 +39,12 @@ def print_config_list() -> None:
 # ========= frida config =========
 
 
-def write_config_to_file(api_key: str, path: str = config_file_path) -> None:
+def write_config_to_file(keys: dict, path: str = config_file_path) -> None:
     """Write the configuration file with the API key."""
-    config_input = f"LLMOPS_FRIDACLI_API_KEY={api_key}"
-    command = f"echo {config_input} > {path}"
-    os.system(command)
+    os.remove(path)
+    for key, value in keys.items():
+        command = f"echo {key}={value} >> {path}"
+        os.system(command)
 
 
 def print_configuration_success(created_file: bool) -> None:
@@ -64,8 +65,16 @@ def configurate_api_keys() -> None:
         overwrite = system.confirm(CONFIGFILE_OVERWRITE)
         if not overwrite:
             return
-    api_key = system.password("Enter your Softtek SKD API key", top=1)
-    write_config_to_file(api_key)
+
+    keys = {}
+    key = system.password("Enter your Softtek SKD API key", top=1)
+    keys["LLMOPS_API_KEY"] = key
+
+    key = system.password("Enter Chat Model Name", top=1)
+    keys["CHAT_MODEL_NAME"] = key
+
+    write_config_to_file(keys)
+
     print_configuration_success(created_file=new_configfile)
 
 
