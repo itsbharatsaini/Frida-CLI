@@ -1,8 +1,11 @@
 [tool.poetry]
 name = "fridacli"
-version = "0.1.0"
+version = "0.2.0"
 description = "AI cli assistant for peer programming developed by Softtek innovation team."
-authors = ["Alejandro Ubeto <142447560+alexUbeto@users.noreply.github.com>"]
+authors = [
+    "Alejandro Ubeto <alejandro.ubeto@softtek.com>",
+    "Onder Campos <onder.campos@softtek.com>",
+]
 readme = "README.md"
 packages = [
     { include = "fridacli" },
