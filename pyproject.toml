@@ -6,16 +6,19 @@ authors = [
     "Alejandro Ubeto <alejandro.ubeto@softtek.com>",
     "Onder Campos <onder.campos@softtek.com>",
 ]
+maintainers = ["Onder Campos <onder.campos@softtek.com>"]
 readme = "README.md"
-packages = [
-    { include = "fridacli" },
-    { include = "chatbot", from = "fridacli" },
-    { include = "chatfiles", from = "fridacli" },
-    { include = "commands", from = "fridacli" },
-    { include = "config", from = "fridacli" },
-    { include = "interface", from = "fridacli" },
-    { include = "prompts", from = "fridacli" },
+repository = "https://github.com/Fridaplatform/Frida-CLI"
+keywords = [
+    "cli",
+    "command-line",
+    "peer programming",
+    "ai",
+    "aiassistant",
+    "documentation",
+    "softtek",
 ]
+packages = [{ include = "fridacli" }]
 
 [tool.poetry.scripts]
 frida = "fridacli.main:frida_cli"
