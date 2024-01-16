@@ -41,7 +41,8 @@ def print_config_list() -> None:
 
 def write_config_to_file(keys: dict, path: str = config_file_path) -> None:
     """Write the configuration file with the API key."""
-    os.remove(path)
+    if config_file_exists():
+        os.remove(path)
     for key, value in keys.items():
         command = f"echo {key}={value} >> {path}"
         os.system(command)
