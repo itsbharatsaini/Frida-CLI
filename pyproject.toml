@@ -1,18 +1,24 @@
 [tool.poetry]
 name = "fridacli"
-version = "0.1.0"
+version = "0.2.0"
 description = "AI cli assistant for peer programming developed by Softtek innovation team."
-authors = ["Alejandro Ubeto <142447560+alexUbeto@users.noreply.github.com>"]
-readme = "README.md"
-packages = [
-    { include = "fridacli" },
-    { include = "chatbot", from = "fridacli" },
-    { include = "chatfiles", from = "fridacli" },
-    { include = "commands", from = "fridacli" },
-    { include = "config", from = "fridacli" },
-    { include = "interface", from = "fridacli" },
-    { include = "prompts", from = "fridacli" },
+authors = [
+    "Alejandro Ubeto <alejandro.ubeto@softtek.com>",
+    "Onder Campos <onder.campos@softtek.com>",
 ]
+maintainers = ["Onder Campos <onder.campos@softtek.com>"]
+readme = "README.md"
+repository = "https://github.com/Fridaplatform/Frida-CLI"
+keywords = [
+    "cli",
+    "command-line",
+    "peer programming",
+    "ai",
+    "aiassistant",
+    "documentation",
+    "softtek",
+]
+packages = [{ include = "fridacli" }]
 
 [tool.poetry.scripts]
 frida = "fridacli.main:frida_cli"
