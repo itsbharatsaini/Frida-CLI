@@ -1,16 +1,21 @@
-import logging
-from chatbot.predefined_phrases import chatbot_unauthorized, chatbot_badrequest, chatbot_error
-
-logging.basicConfig(level=logging.CRITICAL)
-
 from softtek_llm.models import SofttekOpenAI
 from softtek_llm.chatbots.chatbot import Chatbot
-from prompts.system import system_prompt
+
+import logging
+
+from chatbot.predefined_phrases import (
+    chatbot_unauthorized,
+    chatbot_badrequest,
+    chatbot_error,
+)
 from config.env_vars import get_config_vars
-
 from fridacli.interface.system_console import SystemConsole
+from prompts.system import system_prompt
 
+
+logging.basicConfig(level=logging.CRITICAL)
 system = SystemConsole()
+
 
 class ChatbotAgent:
     def __init__(self) -> None:
@@ -32,12 +37,16 @@ class ChatbotAgent:
             message = response.message.content
         except Exception as e:
             if e == "Unauthorized":
-                system.notification(chatbot_unauthorized)
+                error_message = chatbot_unauthorized
             elif (
-                type(e) is str and "Bad Request: The API deployment for this resource does not exist." in e 
+                type(e) is str
+                and "Bad Request: The API deployment for this resource does not exist."
+                in e
             ):
-                system.notification(chatbot_badrequest)
+                error_message = chatbot_badrequest
             else:
-                system.notification(chatbot_error)
+                error_message = chatbot_error
+
+            system.notification(error_message, bottom=0)
             return "An error has occurred, see the message above."
         return message
