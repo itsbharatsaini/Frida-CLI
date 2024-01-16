@@ -48,13 +48,9 @@ class SystemConsole(Console):
         print_padding(padding=bottom + (1 if not confirm else 0))
         return confirm
 
-    def notification(self, message: str) -> None:
+    def notification(self, message: str, top: int = 1, bottom: int = 1) -> None:
         """Display a notification message centered and gray in text color."""
-        self.print(
-            message,
-            style="system",
-            alignment="center",
-        )
+        self.print(message, style="system", alignment="center", top=top, bottom=bottom)
 
     def print_panel(
         self,
