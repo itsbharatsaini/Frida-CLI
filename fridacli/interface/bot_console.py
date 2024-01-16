@@ -79,7 +79,7 @@ class BotConsole(Console):
 
             else:
                 self._console.print(character, style=style, end="")
-                time.sleep(0.04)
+                time.sleep(0.02)
 
         if streaming:
             print_padding(padding=top)
