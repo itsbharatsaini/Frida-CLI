@@ -7,6 +7,7 @@ from fridacli.interface.styles import print_padding
 from fridacli.interface.theme import basic_style
 
 
+
 class SystemConsole(Console):
     """"""
 
@@ -54,6 +55,14 @@ class SystemConsole(Console):
             message,
             style="system",
             alignment="center",
+        )
+    def steps_notification(self, message: str) -> None:
+        self.print(
+            message,
+            style="system",
+            right=1,
+            top=0,
+            bottom=0
         )
 
     def print_panel(
