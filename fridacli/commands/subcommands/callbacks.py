@@ -1,3 +1,5 @@
+from typing import Dict
+
 from fridacli.commands.subcommands.basic_cli import (
     exit_subcommand,
     help_subcommand,
@@ -6,35 +8,36 @@ from fridacli.commands.subcommands.basic_cli import (
     cd_subcommand,
 )
 
-SUBCOMMANDS = {
+
+SUBCOMMANDS_CALLBACKS = {
     "!exit": {
-        "description": "Exit the chat",
-        "usage": "!exit",
         "completions": None,
         "execute": exit_subcommand,
     },
     "!help": {
-        "description": "List available commands",
-        "usage": "!exit",
         "completions": None,
         "execute": help_subcommand,
     },
     "!pwd": {
-        "description": "Shows the current directory",
-        "usage": "!pwd",
         "completions": None,
         "execute": pwd_subcommand,
     },
     "!ls": {
-        "description": "List or display the contents of a directory",
-        "usage": "!ls",
         "completions": None,
         "execute": ls_subcommand,
     },
     "!cd": {
-        "description": "Move to a specified directory",
-        "usage": "!cd",
         "completions": None,
         "execute": cd_subcommand,
     },
 }
+
+
+def get_completions() -> Dict:
+    """"""
+    completions = {
+        subcommand: command_info["completions"]
+        for subcommand, command_info in SUBCOMMANDS_CALLBACKS.items()
+        if "completions" in command_info
+    }
+    return completions

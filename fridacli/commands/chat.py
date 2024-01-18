@@ -1,5 +1,4 @@
 import os
-from typing import Dict
 
 from fridacli.chatbot.predefined_phrases import (
     ERROR_MISSING_CONFIGFILE,
@@ -8,7 +7,10 @@ from fridacli.chatbot.predefined_phrases import (
     WELCOME_PANEL_MESSAGE,
 )
 from fridacli.config.env_vars import config_file_exists, get_config_vars, get_username
-from fridacli.commands.chat_subcommands import SUBCOMMANDS
+from fridacli.commands.subcommands.callbacks import (
+    get_completions,
+    SUBCOMMANDS_CALLBACKS,
+)
 from fridacli.interface.bot_console import BotConsole
 from fridacli.interface.styles import print_padding
 from fridacli.interface.system_console import SystemConsole
@@ -33,22 +35,12 @@ def get_command_parts(command_string: str) -> tuple[str, list[str]]:
     return command, command_args
 
 
-def get_completions() -> Dict:
-    """"""
-    completions = {
-        subcommand: command_info["completions"]
-        for subcommand, command_info in SUBCOMMANDS.items()
-        if "completions" in command_info
-    }
-    return completions
-
-
 def exec_subcommand(subcommand: str, *args):
     """"""
-    if subcommand not in SUBCOMMANDS:
+    if subcommand not in SUBCOMMANDS_CALLBACKS:
         system.notification(ERROR_INVALID_COMMAND(subcommand))
     else:
-        SUBCOMMANDS[subcommand]["execute"](*args, system_console=system)
+        SUBCOMMANDS_CALLBACKS[subcommand]["execute"](*args, system_console=system)
 
 
 def chat_session() -> None:
