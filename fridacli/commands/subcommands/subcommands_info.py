@@ -17,12 +17,12 @@ SUBCOMMANDS_INFO = {
         "usage": "!pwd",
     },
     "!ls": {
-        "description": "List or display the contents of a directory",
-        "usage": "!ls",
+        "description": "List or display the contents of a directory (the current directory by default)",
+        "usage": "!ls <path>",
     },
     "!cd": {
-        "description": "Move to a specified directory",
-        "usage": "!cd",
+        "description": "Move to a specified directory (HOME directory by default)",
+        "usage": "!cd <path>",
     },
 }
 
