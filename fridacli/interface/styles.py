@@ -64,7 +64,7 @@ def format_to_table(
         show_header=show_header,
         box=box,
         expand=expand,
-        padding=(0, 3, 1 if padding else 0, 1),
+        padding=(1, 3, 0, 1),
         style=border_color,
     )
 

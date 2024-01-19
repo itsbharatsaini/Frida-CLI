@@ -5,7 +5,6 @@ from fridacli.interface.styles import (
     file_list_with_styles,
     format_to_columns,
     format_to_table,
-    print_padding,
 )
 from fridacli.config.env_vars import BOT_NAME
 from fridacli.commands.subcommands.subcommands_info import get_commands_df
@@ -22,7 +21,7 @@ def ls_subcommand(*args, **kwargs) -> None:
         return
     file_list = file_list_with_styles(sorted(os.listdir(root)))
     columns_output = format_to_columns(file_list)
-    system_console.print(columns_output)
+    system_console.print(columns_output, bottom=0)
 
 
 def pwd_subcommand(*args, **kwargs):
@@ -39,7 +38,6 @@ def cd_subcommand(*args, **kwargs) -> None:
         system_console.notification(ERROR_PATH_DOES_NOT_EXIST(new_directory))
         return
     os.chdir(new_directory)
-    print_padding()
 
 
 def help_subcommand(*args, **kwargs) -> None:
@@ -49,7 +47,7 @@ def help_subcommand(*args, **kwargs) -> None:
         subcommands_df, box=None, padding=True, expand=True, ratio=[1, 3, 1]
     )
     system_console: SystemConsole = kwargs["system_console"]
-    system_console.print(table_output, bottom=0, alignment="center")
+    system_console.print(table_output, top=0, bottom=0, alignment="center")
 
 
 def exit_subcommand(*args, **kwargs) -> None:
