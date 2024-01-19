@@ -6,6 +6,7 @@ from fridacli.chatbot.predefined_phrases import (
     INTERRUPT_CHAT,
     WELCOME_PANEL_MESSAGE,
 )
+from fridacli.chatfiles.file_manager import FileManager
 from fridacli.config.env_vars import config_file_exists, get_config_vars, get_username
 from fridacli.commands.subcommands.callbacks import (
     get_completions,
@@ -18,6 +19,7 @@ from fridacli.interface.user_console import UserConsole
 
 
 system = SystemConsole()
+file_manager = FileManager()
 
 
 def start_panel() -> None:
@@ -40,7 +42,10 @@ def exec_subcommand(subcommand: str, *args):
     if subcommand not in SUBCOMMANDS_CALLBACKS:
         system.notification(ERROR_INVALID_COMMAND(subcommand))
     else:
-        SUBCOMMANDS_CALLBACKS[subcommand]["execute"](*args, system_console=system)
+        SUBCOMMANDS_CALLBACKS[subcommand]["execute"](
+            *args, system_console=system, file_manager=file_manager
+        )
+        print_padding()
 
 
 def chat_session() -> None:
@@ -55,7 +60,9 @@ def chat_session() -> None:
             current_dir = os.path.basename(os.getcwd())
             completions = get_completions()
             user_input = user.user_input(
-                current_dir=current_dir, completer=completions, open_folder=False
+                current_dir=current_dir,
+                completer=completions,
+                open_folder=file_manager.get_folder_status(),
             )
             is_empty = len(user_input.replace(" ", "")) == 0
             is_command = user_input.startswith("!")
