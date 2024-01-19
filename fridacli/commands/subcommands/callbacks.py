@@ -7,6 +7,7 @@ from fridacli.commands.subcommands.basic_cli import (
     pwd_subcommand,
     cd_subcommand,
 )
+from fridacli.commands.subcommands.files_cli import open_subcommand, close_subcommand
 
 
 SUBCOMMANDS_CALLBACKS = {
@@ -29,6 +30,14 @@ SUBCOMMANDS_CALLBACKS = {
     "!cd": {
         "completions": None,
         "execute": cd_subcommand,
+    },
+    "!open": {
+        "completions": None,
+        "execute": open_subcommand,
+    },
+    "!close": {
+        "completions": None,
+        "execute": close_subcommand,
     },
 }
 
