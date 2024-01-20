@@ -7,7 +7,7 @@ from fridacli.chatfiles.path_utilities import (
 )
 from fridacli.config.env_vars import BOT_NAME
 from fridacli.commands.subcommands.subcommands_info import get_commands_df
-from fridacli.commands.subcommands.predefined_phrases import ERROR_PATH_DOES_NOT_EXIST
+from fridacli.predefined_phrases.chat_command import ERROR_PATH_DOES_NOT_EXIST
 from fridacli.interface.system_console import SystemConsole
 from fridacli.interface.styles import (
     file_list_with_styles,
