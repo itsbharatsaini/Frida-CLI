@@ -50,6 +50,10 @@ You can use your programming project as context for Frida by loading your files 
 !open <directory_path>
 ```
 
-By doing this you can **do peer programming with Frida** asking questions about the content of your source code files.
+By doing this you'll be able to **do peer programming with Frida** asking questions about the content of your source code files.
 
 You can aks her for recomendations for refactoring, documentation, error detection, bug solving or just ask her for about any programming related question.
+
+#### Chat commands
+
+As a CLI, Frida counts with many utilities powered by AI that you can use to enrich your experience. Execute `!help` to see the list of available in-chat commands or checkout the [in-chat commands]() documentation.
