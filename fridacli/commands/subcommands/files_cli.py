@@ -21,14 +21,14 @@ def open_subcommand(*args, **kwargs):
     file_manager: FileManager = kwargs.get("file_manager")
 
     if not args:
-        system_console.notification(WARNING_ARGUMENT_REQUIRED("path"))
+        system_console.notification(WARNING_ARGUMENT_REQUIRED("path"), bottom=0)
         return
 
     path_to_open = args[0]
     valid_path = check_valid_dir(path_to_open)
 
     if not valid_path:
-        system_console.notification(ERROR_PATH_DOES_NOT_EXIST(path_to_open))
+        system_console.notification(ERROR_PATH_DOES_NOT_EXIST(path_to_open), bottom=0)
         return
 
     active_folder = file_manager.get_folder_status()
@@ -47,7 +47,7 @@ def open_subcommand(*args, **kwargs):
     change_directory(path_to_open)
 
     formatted_path = get_relative_path(path_to_open)
-    system_console.notification(formatted_path)
+    system_console.notification(formatted_path, bottom=0)
 
 
 def close_subcommand(*args, **kwargs):

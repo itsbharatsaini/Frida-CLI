@@ -8,6 +8,7 @@ from fridacli.commands.subcommands.basic_cli import (
     cd_subcommand,
 )
 from fridacli.commands.subcommands.files_cli import open_subcommand, close_subcommand
+from fridacli.commands.subcommands.recipes_cli import angular_voyager
 
 
 SUBCOMMANDS_CALLBACKS = {
@@ -38,6 +39,10 @@ SUBCOMMANDS_CALLBACKS = {
     "!close": {
         "completions": None,
         "execute": close_subcommand,
+    },
+    "!angular_voyager": {
+        "completions": None,
+        "execute": angular_voyager,
     },
 }
 

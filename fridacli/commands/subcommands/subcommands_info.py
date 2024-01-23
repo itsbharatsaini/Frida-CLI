@@ -24,6 +24,10 @@ SUBCOMMANDS_INFO = {
         "description": "Move to a specified directory (HOME directory by default)",
         "usage": "!cd <path>",
     },
+    "!angular_voyager": {
+        "description": "Upgrade an Angular project from an older version to the latest release",
+        "usage": "!angular_voyager",
+    },
 }
 
 

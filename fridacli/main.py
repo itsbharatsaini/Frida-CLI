@@ -3,7 +3,6 @@ import typer
 from typing import Optional
 from typing_extensions import Annotated
 
-from fridacli.commands.chat import exec_chat
 from fridacli.commands.config import exec_config
 
 
@@ -16,6 +15,7 @@ def chat(
     tokens: Optional[bool] = False,
 ):
     """Command to chat with FridaCLI AI assistant."""
+    from fridacli.commands.chat import exec_chat
     exec_chat(path=path, tokens=tokens)
 
 

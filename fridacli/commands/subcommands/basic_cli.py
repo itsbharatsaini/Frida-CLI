@@ -37,7 +37,7 @@ def pwd_subcommand(*args, **kwargs):
     """"""
     system_console: SystemConsole = kwargs.get("system_console")
     project_path = get_current_dir()
-    system_console.notification(PWD_COMMAND_OUTPUT(project_path))
+    system_console.notification(PWD_COMMAND_OUTPUT(project_path), bottom=0)
     pass
 
 
@@ -47,7 +47,9 @@ def cd_subcommand(*args, **kwargs) -> None:
     directory_to_move = args[0] if args else get_home_path()
     valid_path = check_valid_dir(directory_to_move)
     if not valid_path:
-        system_console.notification(ERROR_PATH_DOES_NOT_EXIST(directory_to_move))
+        system_console.notification(
+            ERROR_PATH_DOES_NOT_EXIST(directory_to_move), bottom=0
+        )
         return
     change_directory(directory_to_move)
 

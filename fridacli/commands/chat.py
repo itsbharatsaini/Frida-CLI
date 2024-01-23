@@ -17,6 +17,7 @@ from fridacli.interface.styles import print_padding
 from fridacli.interface.system_console import SystemConsole
 from fridacli.interface.user_console import UserConsole
 
+from chatbot.chatbot import ChatbotAgent
 
 system = SystemConsole()
 file_manager = FileManager()
@@ -52,7 +53,9 @@ def chat_session() -> None:
     """"""
     chatting = True
     user = UserConsole(username=get_username())
-    chatbot = BotConsole()
+    chatbot_console = BotConsole()
+    chatbot_agent = ChatbotAgent()
+
     start_panel()
 
     while chatting:
@@ -78,12 +81,9 @@ def chat_session() -> None:
                 exec_subcommand(command, *command_args)
 
             else:
-                response_test = (
-                    "Bot Response.\n"
-                    + "```python\nprint('Hello world')\n"
-                    + "```\nHola `mundo` ;D"
-                )
-                chatbot.response(response_test, streaming=True)
+                response = chatbot_agent.chat(user_input)
+                chatbot_console.response(response, streaming=True)
+                
 
         except KeyboardInterrupt:
             exec_subcommand("!exit")
@@ -96,8 +96,5 @@ def exec_chat(path: str | None, tokens: bool):
         return
 
     system.print("Initializing...", style="process", bottom=0)
-
-    env_vars = get_config_vars()
-    api_key = env_vars["LLMOPS_FRIDACLI_API_KEY"]
 
     chat_session()
