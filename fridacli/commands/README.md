@@ -2,20 +2,14 @@
 
 Package that contains the source **code executed as commands** by the `frida` CLI application.
 
-## Chat subcommands
-
-Module that contains the **functions executed as subcommands** in a chat session created with the `frida chat` command. This module contains the main features that are executable inside a chat session with the AI assistant, such as:
-
-- Open a file directory and give the AI assistant context of its content.
-- Document an entire folder directory.
-- Display a tree view of the open directory.
-
 ## Chat command
+
+Module that contains the functions executed during the chat session loop of the `frida chat` command. This module handles the requests made to the **softtek SDK** and the execution of the **[chat subcommands]()** source code.
 
 This module is used in the CLI app main file by calling the function `exec_chat`.
 
 ## Config command
 
-Module that contains the source code executed by the `frida config` command. Contains functions that can **create, read and write over** the configuration file `.fridacli`.
+Module that contains the source code executed by the `frida config` command. Contains functions that can **create, read and overwrite** the configuration file `.fridacli`.
 
 This module is used in the CLI app main file by calling the function `exec_config`.
