@@ -12,3 +12,6 @@ WARNING_ARGUMENT_REQUIRED = (
 )
 CONFIRM_RELOAD_PROJECT = "Reload open project?"
 CONFIRM_OPEN_NEW_PROJECT = "Close current project and open new folder?"
+PWD_COMMAND_OUTPUT = (
+    lambda path: f"Current directory: {add_styletags_to_string(path, 'path')}"
+)

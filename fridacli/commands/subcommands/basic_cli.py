@@ -1,3 +1,4 @@
+from fridacli.chatfiles.file_manager import FileManager
 from fridacli.chatfiles.path_utilities import (
     change_directory,
     check_valid_dir,
@@ -7,7 +8,10 @@ from fridacli.chatfiles.path_utilities import (
 )
 from fridacli.config.env_vars import BOT_NAME
 from fridacli.commands.subcommands.subcommands_info import get_commands_df
-from fridacli.predefined_phrases.chat_command import ERROR_PATH_DOES_NOT_EXIST
+from fridacli.predefined_phrases.chat_command import (
+    ERROR_PATH_DOES_NOT_EXIST,
+    PWD_COMMAND_OUTPUT,
+)
 from fridacli.interface.system_console import SystemConsole
 from fridacli.interface.styles import (
     file_list_with_styles,
@@ -31,6 +35,9 @@ def ls_subcommand(*args, **kwargs) -> None:
 
 def pwd_subcommand(*args, **kwargs):
     """"""
+    system_console: SystemConsole = kwargs.get("system_console")
+    project_path = get_current_dir()
+    system_console.notification(PWD_COMMAND_OUTPUT(project_path))
     pass
 
 
