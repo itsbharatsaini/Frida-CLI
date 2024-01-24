@@ -46,7 +46,7 @@ class SystemConsole(Console):
             qmark=prefix,
             amark=prefix,
         ).execute()
-        print_padding(padding=bottom + (1 if not confirm else 0))
+        print_padding(padding=bottom)
         return confirm
 
     def notification(self, message: str, top: int = 1, bottom: int = 1) -> None:

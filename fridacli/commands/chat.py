@@ -1,13 +1,17 @@
 import os
-from typing import Dict
 
 from fridacli.chatbot.predefined_phrases import (
     ERROR_MISSING_CONFIGFILE,
+    ERROR_INVALID_COMMAND,
     INTERRUPT_CHAT,
     WELCOME_PANEL_MESSAGE,
 )
+from fridacli.chatfiles.file_manager import FileManager
 from fridacli.config.env_vars import config_file_exists, get_config_vars, get_username
-from fridacli.commands.chat_subcommands import SUBCOMMANDS
+from fridacli.commands.subcommands.callbacks import (
+    get_completions,
+    SUBCOMMANDS_CALLBACKS,
+)
 from fridacli.interface.bot_console import BotConsole
 from fridacli.interface.styles import print_padding
 from fridacli.interface.system_console import SystemConsole
@@ -16,6 +20,7 @@ from fridacli.interface.user_console import UserConsole
 from chatbot.chatbot import ChatbotAgent
 
 system = SystemConsole()
+file_manager = FileManager()
 
 
 def start_panel() -> None:
@@ -33,22 +38,15 @@ def get_command_parts(command_string: str) -> tuple[str, list[str]]:
     return command, command_args
 
 
-def get_completions() -> Dict:
-    """"""
-    completions = {
-        subcommand: command_info["completions"]
-        for subcommand, command_info in SUBCOMMANDS.items()
-        if "completions" in command_info
-    }
-    return completions
-
-
 def exec_subcommand(subcommand: str, *args):
     """"""
-    if subcommand not in SUBCOMMANDS:
-        system.notification("ERROR")
+    if subcommand not in SUBCOMMANDS_CALLBACKS:
+        system.notification(ERROR_INVALID_COMMAND(subcommand))
     else:
-        SUBCOMMANDS[subcommand]["execute"](*args)
+        SUBCOMMANDS_CALLBACKS[subcommand]["execute"](
+            *args, system_console=system, file_manager=file_manager
+        )
+        print_padding()
 
 
 def chat_session() -> None:
@@ -65,7 +63,9 @@ def chat_session() -> None:
             current_dir = os.path.basename(os.getcwd())
             completions = get_completions()
             user_input = user.user_input(
-                current_dir=current_dir, completer=completions, open_folder=False
+                current_dir=current_dir,
+                completer=completions,
+                open_folder=file_manager.get_folder_status(),
             )
             is_empty = len(user_input.replace(" ", "")) == 0
             is_command = user_input.startswith("!")
