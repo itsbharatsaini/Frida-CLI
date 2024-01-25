@@ -1,29 +1,27 @@
 # 📦Subcommands package
 
-Description.
+Module that contains the **code executed as [in-chat commands]()** in a chat session created with the `frida chat` command. This module contains the main features that are executable inside a chat session with the AI assistant.
 
-#### Basic CLI subcommands
+#### Callbacks
 
-##### `!pwd` command
+Module that contains a **reference to the source code** executed by every single **[in-chat command]()**. This module also handles the commands autocompletion options in order to import and use them within the `chat` command.
 
-##### `!cd` command
+#### Subcommands Info
 
-##### `!ls` command
+Module that contains the description and examples of usage of every single **[in-chat command]()**. This is the info used by the `!help` subcommand to print the available commands table.
 
-##### `!help` command
+#### Basic CLI
 
-##### `!exit` command
+Module with functionalities and source code executed by the basic subcommands such as:
 
-#### File Manager commands
+- `!exit`
+- `!help`
+- `!cd`
+- `!ls`
+- `!pwd`
 
-##### `!open` command
+#### Files CLI
 
-##### `!close` command
+Module with functionalities and source code executed by the `!open` and `!close` command that preprocess a the content of a specified directory.
 
-#### Recipes commands
-
-##### `!documentation` command
-
-##### `!readme` command
-
-##### `!angular_voyager` command
+#### Recipes CLI
