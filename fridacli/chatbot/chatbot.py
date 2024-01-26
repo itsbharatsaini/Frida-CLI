@@ -1,7 +1,8 @@
+import logging
+logging.basicConfig(level=logging.CRITICAL)
+
 from softtek_llm.models import SofttekOpenAI
 from softtek_llm.chatbots.chatbot import Chatbot
-
-import logging
 
 from chatbot.predefined_phrases import (
     chatbot_unauthorized,
@@ -13,7 +14,6 @@ from fridacli.interface.system_console import SystemConsole
 from prompts.system import system_prompt
 
 
-logging.basicConfig(level=logging.CRITICAL)
 system = SystemConsole()
 
 

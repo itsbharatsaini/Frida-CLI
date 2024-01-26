@@ -1,19 +1,23 @@
-from rich.markdown import Markdown
-
+import os
+import re
 import time
-
+import datetime
+from rich.markdown import Markdown
 from fridacli.config.env_vars import BOT_NAME
 from fridacli.interface.console import Console
 from fridacli.interface.styles import print_padding
 
 
 class BotConsole(Console):
-    """"""
+    """
+    Check if the bot respose has code included
+    """
 
     def __init__(self):
         super().__init__()
         self.__codeblock = ""
         self.__in_codeblock = False
+        self.code_files_dir = "tmp/"
 
     def get_codeblock(self) -> str:
         return self.__codeblock
