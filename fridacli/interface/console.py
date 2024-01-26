@@ -51,6 +51,7 @@ class Console:
             message=f"{message}:",
             style=style,
             completer=completer,
+            multicolumn_complete=True,
             qmark=prefix,
             amark=prefix,
         ).execute()

@@ -1,5 +1,11 @@
+from pandas import DataFrame
+from rich import box
+from rich.columns import Columns
+from rich.table import Table
+
 import os
 import re
+from typing import Iterable
 
 
 def add_styletags_to_string(string: str, style: str) -> str:
@@ -33,3 +39,55 @@ def format_path(path: str, dir: str = os.getcwd()) -> str:
     """Formats the given path and returns formatted as a relative path."""
     relative_path = os.path.relpath(path, f"{dir}/..")
     return relative_path.replace("\\", "/")
+
+
+def format_to_columns(iterables: Iterable):
+    """"""
+    columns_output = Columns(iterables, equal=True, expand=True)
+    return columns_output
+
+
+def format_to_table(
+    data: DataFrame,
+    title: str = None,
+    show_header: bool = True,
+    box=box.ROUNDED,
+    expand: bool = False,
+    padding: bool = False,
+    border_color: str = "",
+    text_color: str = None,
+    ratio: list = [],
+) -> Table:
+    """"""
+    table = Table(
+        title=title,
+        show_header=show_header,
+        box=box,
+        expand=expand,
+        padding=(1, 3, 0, 1),
+        style=border_color,
+    )
+
+    for iterator, column in enumerate(data.columns.to_list()):
+        column_ratio = ratio[iterator] if ratio else 0
+        table.add_column(column, ratio=column_ratio)
+
+    for i, row in data.iterrows():
+        row_data = list(map(str, row.tolist()))
+        if text_color:
+            row_data = [
+                add_styletags_to_string(element, text_color) for element in row_data
+            ]
+        table.add_row(*row_data)
+
+    return table
+
+
+def file_list_with_styles(file_list: list) -> list:
+    """"""
+    return [
+        add_styletags_to_string(f"{element}/", "path")
+        if os.path.isdir(element)
+        else add_styletags_to_string(element, "info")
+        for element in file_list
+    ]
