@@ -26,6 +26,21 @@ If you want to **remove a dependency** run this other command:
 poetry remove <dependency>
 ```
 
+You can update the **project metada** by modifying manually the `pyproject.toml` file. Just Update the info within the `[tool.poetry]` section:
+
+```python
+[tool.poetry]
+name = "<project name>"
+version = "version"
+description = "Project description."
+authors = ["Name <email>"]
+readme = "README.md"
+packages = [
+    { include = "fridacli" },
+    ...
+]
+```
+
 ## Build and testing
 
 #### Testing Frida package in your computer
