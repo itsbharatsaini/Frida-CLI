@@ -44,6 +44,8 @@ Now you can a chat session with your personal FridaCLI AI assitant by executing:
 frida chat
 ```
 
+![frida chat](assets/gifs/frida%20chat.gif)
+
 You can use your programming project as context for Frida by loading your files using the following subcommand:
 
 ```bash
@@ -57,3 +59,5 @@ You can aks her for recomendations for refactoring, documentation, error detecti
 #### Chat commands
 
 As a CLI, Frida counts with many utilities powered by AI that you can use to enrich your experience. Execute `!help` to see the list of available in-chat commands or checkout the [in-chat commands]() documentation.
+
+![!help command](assets/gifs/help%20command.gif)
