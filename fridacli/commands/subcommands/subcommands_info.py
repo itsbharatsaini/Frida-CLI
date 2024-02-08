@@ -28,6 +28,10 @@ SUBCOMMANDS_INFO = {
         "description": "Upgrade an Angular project from an older version to the latest release",
         "usage": "!angular_voyager",
     },
+    "!asp_voyager": {
+        "description": "Upgrade an asp project from an older version to the latest release",
+        "usage": "!asp_voyager",
+    },
 }
 
 

@@ -14,6 +14,8 @@ from fridacli.predefined_phrases.chat_command import (
     WARNING_ARGUMENT_REQUIRED,
 )
 
+from fridacli.interface.styles import add_styletags_to_string
+
 
 def open_subcommand(*args, **kwargs):
     """"""
@@ -43,11 +45,12 @@ def open_subcommand(*args, **kwargs):
         if system_console.confirm(confirm_message):
             close_subcommand(file_manager=file_manager)
 
-    file_manager.load_folder(path=path_to_open)
+    project_type, tree_str = file_manager.load_folder(path=path_to_open)
     change_directory(path_to_open)
 
     formatted_path = get_relative_path(path_to_open)
-    system_console.notification(formatted_path, bottom=0)
+    system_console.notification(f"{formatted_path} ({add_styletags_to_string(project_type, 'success')})", bottom=0)
+    system_console.steps_notification(tree_str)
 
 
 def close_subcommand(*args, **kwargs):

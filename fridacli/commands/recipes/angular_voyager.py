@@ -2,10 +2,11 @@ import os
 import re
 from fridacli.interface.system_console import SystemConsole
 import fridacli.commands.recipes.predefined_phrases as predefined_phrases
-from fridacli.commands.recipes.utilities.graph import Node, AdjNode, Graph
 
+
+""""""
 system = SystemConsole()
-graph = Graph()
+#graph = Graph()
 
 
 def exec_angular_voyager(path):
@@ -17,9 +18,9 @@ def exec_angular_voyager(path):
     if is_angular_proyect(path):
         system.steps_notification(predefined_phrases.ANGULAR_PROJECT_DETECTED)
         traverse_dir(path)
-        graph.construct()
-        print("nodes =", graph.get_nodes())
-        print("graph =", graph.get_graph())
+        #graph.construct()
+        #print("nodes =", graph.get_nodes())
+        #print("graph =", graph.get_graph())
         system.steps_notification(predefined_phrases.ANGULAR_PROJECT_GRAPH_CONSTRUCTED)
     else:
         system.steps_notification(predefined_phrases.ANGULAR_PROJECT_NOT_DETECTED(path))
@@ -141,19 +142,21 @@ def traverse_dir(path):
     - None
     """
     files_list = os.listdir(path)
-    node = Node(is_dir=is_dir(path), name=path, files_name=files_list)
-    traverse(path, node)
+    #node = Node(is_dir=is_dir(path), name=path, files_name=files_list)
+    #traverse(path, node)
 
 
 def traverse(path, node):
+    """
+    
     files_list = os.listdir(path)
     for file in files_list:
         new_path = os.path.join(path, file)
         is_dir_value = is_dir(new_path)
-        file_node = Node(is_dir=is_dir_value, name=new_path, parent=node)
-        node.add_adyecency(file_node)
+        #file_node = Node(is_dir=is_dir_value, name=new_path, parent=node)
+        #node.add_adyecency(file_node)
         if is_dir_value:
-            traverse(new_path, file_node)
+            #traverse(new_path, file_node)
         else:
             extension = file.split(".")[-1]
             if extension in ("js", "ts"):
@@ -162,3 +165,4 @@ def traverse(path, node):
                 imports = [calculate_id(i) for i in imports]
                 adj_node = AdjNode(id=id, raw_connections=imports)
                 graph.add_node(id, adj_node)
+    """
