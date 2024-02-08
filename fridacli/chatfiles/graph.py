@@ -1,4 +1,6 @@
-class Node:
+import os
+
+class Tree:
     """
     Node represents a node in a directory tree structure.
 
@@ -19,17 +21,29 @@ class Node:
         ExampleNode = Node(is_dir=True, name="example_directory", files_name=["file1.txt", "file2.txt"])
     """
 
-    def __init__(
-        self, is_dir: bool, name: str, files_name: list = [], parent=None
-    ) -> None:
-        self.is_dir = is_dir
-        self.name = name
-        if self.is_dir and len(files_name) > 0:
-            self.files = files_name
+    def __init__(self, path):
+        self.path = path
+        self.name = os.path.basename(path)
+        self.__children = []
+    
+    def add_children(self, node):
+        self.__children.append(node)
+    
+    def get_children(self):
+        return self.__children
+    
+    def print_directory(self, node=None, indent=''):
+        if node == None:
+            node = self
+        tree_string = f"{indent}+ {node.name}/\n"
 
-    def add_adyecency(self, node):
-        pass
+        for child in node.get_children():
+            if child.get_children():
+                tree_string += self.print_directory(child, indent + '  ')
+            else:
+                tree_string += f"{indent}- {child.name}\n"
 
+        return tree_string
 
 class AdjNode:
     """

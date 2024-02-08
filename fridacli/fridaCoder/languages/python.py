@@ -1,7 +1,9 @@
 import os
 import ast
+import subprocess
 from fridacli.fridaCoder.languages.languague import Language
 from typing_extensions import override
+from ..exceptionMessage import ExceptionMessage
 
 
 class Python(Language):
@@ -9,24 +11,81 @@ class Python(Language):
         super().__init__()
 
     @override
-    def run(self, file_name: None, file_extesion: None):
+    def run(self, path: None, file_extesion: str = None, file_exist: bool = False):
         preprocessed_code = ""
-        with open(f"{self.code_files_dir}/{file_name}.{file_extesion}", encoding='utf-8') as fl:
+        result_path = f"{self.result_files_dir}/{path}.txt"
+        code_path = f"{self.code_files_dir}/{path}.{file_extesion}"
+
+        if file_exist:
+            directory, old_filename = os.path.split(path)
+            file_name, file_extension = os.path.splitext(old_filename)
+            result_path = f"{self.result_files_dir}/{file_name}_tmp.txt"
+            code_path = path
+        result_status = None
+        with open(code_path, encoding="utf-8") as fl:
             code = fl.read()
             try:
-                preprocessed_code = self.__preprocess_code(code, file_name)
-                self.__execute_code(preprocessed_code)
-            except Exception as e :
+                os.makedirs(os.path.dirname(result_path), exist_ok=True)
+                preprocessed_code = code
+                if file_exist:
+                    result_status = self.__execute_existing_code(code_path, result_path)
+                else:
+                    preprocessed_code = self.__preprocess_code(code, result_path)
+                    result_status = self.__execute_code(preprocessed_code)
+            except Exception as e:
                 print(e)
-        return
-        
+        return self.__build_result(result_path, result_status)
 
-    def __execute_code(self, code):
-        exec(code, globals())
+    def __build_result(self, result_path, result_status):
+        if result_status == ExceptionMessage.EXEC_ERROR:
+            return (result_status, None)
+        result = self.__get_execution_result(result_path)
+        if result == None:
+            return (ExceptionMessage.GET_RESULT_ERROR, None)
+        return (ExceptionMessage.GET_RESULT_SUCCESS, result)
 
-    def __preprocess_code(self, code, file_name):
-        file_name = f"{self.result_files_dir}/{file_name}.txt"
-        os.makedirs(os.path.dirname(file_name), exist_ok=True)
+    def __execute_code(self, code: str):
+        try:
+            """
+            TODO:
+                When a funtion is exectuted and the is used in different blocks it can be used the problem
+                is that for diferent prompts shouldn't have the same funtion
+
+                Insted of globals() use another namespace to not compromise the exactution in runtime
+            """
+
+            exec(code, globals())
+            return ExceptionMessage.EXEC_SUCCESS
+        except:
+            return ExceptionMessage.EXEC_ERROR
+
+    def __execute_existing_code(self, code_path: str, result_path):
+        try:
+            """
+            TODO:
+                and also python3 or a posibility to change the variable name
+            """
+            result = subprocess.run(
+                ["python", code_path], capture_output=True, text=True
+            )
+            with open(result_path, "w") as f:
+                f.write(result.stdout)
+            return ExceptionMessage.EXEC_SUCCESS
+        except:
+            return ExceptionMessage.EXEC_ERROR
+
+    def __get_execution_result(self, file_name):
+        try:
+            with open(file_name, "r", encoding="utf-8") as f:
+                result = f.read()
+                return result
+        except:
+            return None
+
+    def __preprocess_code(self, code, path):
+        return self.__use_template(code, path)
+
+    def __use_template(self, code, file_name):
         code_lines = code.split("\n")
         code_lines = [f"            {c}" for c in code_lines]
         code = "\n".join(code_lines)
@@ -42,7 +101,7 @@ with open(r'{file_name}', 'w', encoding='utf-8') as file:
             file.write('ERROR\\n')
             file.write(traceback_str)
             
-        """     
+        """
         code_lines = code.split("\n")
         code_lines = [c for c in code_lines if c.strip() != ""]
         code = "\n".join(code_lines)
