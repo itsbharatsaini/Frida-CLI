@@ -8,8 +8,11 @@ from fridacli.commands.subcommands.basic_cli import (
     cd_subcommand,
 )
 from fridacli.commands.subcommands.files_cli import open_subcommand, close_subcommand
-from fridacli.commands.subcommands.recipes_cli import angular_voyager
-from fridacli.commands.subcommands.recipes_cli import asp_voyager
+from fridacli.commands.subcommands.recipes_cli import (
+    angular_voyager,
+    asp_voyager,
+    document,
+)
 
 
 SUBCOMMANDS_CALLBACKS = {
@@ -48,6 +51,10 @@ SUBCOMMANDS_CALLBACKS = {
     "!asp_voyager": {
         "completions": None,
         "execute": asp_voyager,
+    },
+    "!document": {
+        "completions": None,
+        "execute": document,
     },
 }
 

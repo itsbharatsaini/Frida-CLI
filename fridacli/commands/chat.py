@@ -5,39 +5,33 @@ from fridacli.chatbot.predefined_phrases import (
     INTERRUPT_CHAT,
     WELCOME_PANEL_MESSAGE,
 )
-from fridacli.chatfiles.file_manager import FileManager
 from fridacli.config.env_vars import config_file_exists, get_config_vars, get_username
 from fridacli.commands.subcommands.callbacks import (
     get_completions,
     SUBCOMMANDS_CALLBACKS,
 )
-from fridacli.interface.bot_console import BotConsole
 from fridacli.interface.styles import print_padding
-from fridacli.interface.system_console import SystemConsole
 from fridacli.interface.user_console import UserConsole
 
-from chatbot.chatbot import ChatbotAgent
-from fridacli.fridaCoder.frida_coder import FridaCoder
 from .predefined_phrases import (
     execution_result,
-    error_chat_prompt,
-    ERROR_CONFIRMATION_MESSAGE,
     LANG_NOT_FOUND,
     RUN_CONFIRMATION_MESSAGE,
     WRITE_CONFIRMATION_MESSAGE,
 )
 from fridacli.fridaCoder.exceptionMessage import ExceptionMessage
-
-system = SystemConsole()
-file_manager = FileManager()
-frida_coder = FridaCoder(file_manager)
-chatbot_agent = ChatbotAgent(file_manager)
-chatbot_console = BotConsole()
+from fridacli.common import (
+    system_console,
+    file_manager,
+    chatbot_agent,
+    chatbot_console,
+    frida_coder,
+)
 
 
 def start_panel() -> None:
     """"""
-    system.print_panel(
+    system_console.print_panel(
         message=WELCOME_PANEL_MESSAGE, title="FRIDA CLI", subtitle=INTERRUPT_CHAT
     )
 
@@ -53,15 +47,9 @@ def get_command_parts(command_string: str) -> tuple[str, list[str]]:
 def exec_subcommand(subcommand: str, *args):
     """"""
     if subcommand not in SUBCOMMANDS_CALLBACKS:
-        system.notification(ERROR_INVALID_COMMAND(subcommand))
+        system_console.notification(ERROR_INVALID_COMMAND(subcommand))
     else:
-        SUBCOMMANDS_CALLBACKS[subcommand]["execute"](
-            *args,
-            system_console=system,
-            file_manager=file_manager,
-            chatbot_agent=chatbot_agent,
-            chatbot_console=chatbot_console
-        )
+        SUBCOMMANDS_CALLBACKS[subcommand]["execute"](*args)
         print_padding()
 
 
@@ -109,7 +97,7 @@ def chat_session() -> None:
                             Add a way to check if the code is the same
                         """
                         if chatbot_agent.is_files_open():
-                            write_confirmation = system.confirm(
+                            write_confirmation = system_console.confirm(
                                 WRITE_CONFIRMATION_MESSAGE
                             )
                             if write_confirmation:
@@ -117,9 +105,9 @@ def chat_session() -> None:
                                     chatbot_agent.get_files_required()
                                 )[0]
                                 path = file_manager.get_file_path(first_file_required)
-                                frida_coder.write_code(path, code_block["code"])
+                                frida_coder.write_code_to_path(path, code_block["code"])
                         # Ask for confirmation to run the code
-                        run_confirmation = system.confirm(RUN_CONFIRMATION_MESSAGE)
+                        run_confirmation = system_console.confirm(RUN_CONFIRMATION_MESSAGE)
                         if run_confirmation:
                             code_result = frida_coder.run(
                                 code_block, list(chatbot_agent.get_files_required())
@@ -169,9 +157,9 @@ def chat_session() -> None:
 def exec_chat(path: str | None, tokens: bool):
     """"""
     if not config_file_exists():
-        system.notification(ERROR_MISSING_CONFIGFILE)
+        system_console.notification(ERROR_MISSING_CONFIGFILE)
         return
 
-    system.print("Initializing...", style="process", bottom=0)
+    system_console.print("Initializing...", style="process", bottom=0)
 
     chat_session()

@@ -11,6 +11,8 @@ from chatbot.predefined_phrases import (
     chatbot_unauthorized,
     chatbot_badrequest,
     chatbot_error,
+    chatbot_with_file_prompt,
+    chatbot_without_file_prompt,
 )
 from config.env_vars import get_config_vars
 from fridacli.interface.system_console import SystemConsole
@@ -50,6 +52,8 @@ In the example usage, we create a variable `my_string` with the value `"Hello, w
 Please let me know if you need the code in a different programming language.
 Create the necessary code in the comment in rest.py
 
+Change the funtion name in the class named my_function in file main.py to check_integer
+
 """
 
 system = SystemConsole()
@@ -63,8 +67,8 @@ class ChatbotAgent:
 
         self.__LLMOPS_API_KEY = env_vars["LLMOPS_API_KEY"]
         self.__CHAT_MODEL_NAME = env_vars["CHAT_MODEL_NAME"]
-        self.__file_manager = file_manager
         self.__files_required = set()
+        self.__file_manager = file_manager
         self.__build_model()
 
     def __build_model(self):
@@ -88,14 +92,7 @@ class ChatbotAgent:
             return bool(match)
 
         def generate_prompt(message):
-            return f"""Create a list of steps and generate the necessary code, if needed, to solve the following instruction. 
-If no programming language was specified, assume Python.
-Try to do it in only one block of code.
-\n{message}\n
-When returning fenced code blocks in Markdown, enable syntax highlighting by specifying the programming language name in 
-the same line right after the first three backticks.
-In the first line, add a comment with a brief description (4 words) of the code.
-"""
+            return chatbot_without_file_prompt(message)
 
         def generate_prompt_with_files(message, files_required):
             # Generate a prompt by incorporating the required files.
@@ -104,15 +101,7 @@ In the first line, add a comment with a brief description (4 words) of the code.
             If files are mentioned, provide the necessary code without explicitly opening the file.
             Endeavor to complete this task using only one block of code.
             """
-            lines = [
-                message,
-                "The files mentioned are:",
-                """
-Very important consideration:
-When returning fenced code blocks in Markdown, enable syntax highlighting by specifying the programming language name. 
-If the code within is intended for updating files, include the file name in a comment form like #filename.
-""",
-            ]
+            lines = [message, chatbot_with_file_prompt]
 
             for file in files_required:
                 lines.append(f"{file}:")
@@ -134,6 +123,8 @@ If the code within is intended for updating files, include the file name in a co
             if word in ["files", "file"]:
                 key_words = True
         # If files are not in the context but the is key words, they might be referring to files without specified formats.
+        if len(self.__file_manager.get_files()) == 0:
+            system.notification("NO PROJECT OPEN")
         if not self.is_files_open() and key_words:
             # TODO (IMPROVE) TWO SEARCHES NOT OPTIMAL
             # Get the files opened in dict format.

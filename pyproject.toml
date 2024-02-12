@@ -29,6 +29,7 @@ innovation-stk = { git = "https://github.com/Fridaplatform/SofttekLLMSDK.git", r
 typer = { extras = ["all"], version = "^0.9.0" }
 inquirerpy = "^0.3.4"
 textdistance = "^4.6.1"
+yaspin = "^3.0.1"
 
 [build-system]
 requires = ["poetry-core"]

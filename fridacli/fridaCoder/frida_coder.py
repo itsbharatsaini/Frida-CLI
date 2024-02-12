@@ -43,7 +43,8 @@ class FridaCoder:
             result_status = exec_result[:jump_point]
             status = (
                 ExceptionMessage.RESULT_ERROR
-                if exec_status == ExceptionMessage.EXEC_SUCCESS or exec_status == ExceptionMessage.GET_RESULT_SUCCESS
+                if exec_status == ExceptionMessage.EXEC_SUCCESS
+                or exec_status == ExceptionMessage.GET_RESULT_SUCCESS
                 and result_status == "ERROR"
                 else exec_status
             )
@@ -54,7 +55,8 @@ class FridaCoder:
                 "description": code_block["description"],
                 "result": (
                     exec_result
-                    if status == ExceptionMessage.EXEC_SUCCESS or exec_status == ExceptionMessage.GET_RESULT_SUCCESS
+                    if status == ExceptionMessage.EXEC_SUCCESS
+                    or exec_status == ExceptionMessage.GET_RESULT_SUCCESS
                     else exec_result[jump_point:]
                 ),
             }
@@ -62,23 +64,31 @@ class FridaCoder:
         else:
             return {"code": code_block["code"], "status": "LANGNF"}
 
-    def write_code(self, path, code):
+    def write_code_to_path(self, path: str, code: str):
         with open(path, "w", encoding="utf-8") as f:
             f.write(code)
 
+    def get_code_from_path(self, path: str):
+        with open(path, "r") as f:
+            code = f.read()
+            return code
+
+    def get_code_block(self, text):
+        code_pattern = re.compile(r"```(\w+)\n(.*?)```", re.DOTALL)
+        matches = code_pattern.findall(text)
+        code_blocks = [
+            {
+                "language": match[0],
+                "code": match[1],
+                "description": match[1][: match[1].find("\n")],
+            }
+            for match in matches
+        ]
+        return code_blocks
+
     def extract_code(self, text):
         if len(self.code_blocks) == 0:
-            code_pattern = re.compile(r"```(\w+)\n(.*?)```", re.DOTALL)
-            matches = code_pattern.findall(text)
-
-            self.code_blocks = [
-                {
-                    "language": match[0],
-                    "code": match[1],
-                    "description": match[1][: match[1].find("\n")],
-                }
-                for match in matches
-            ]
+            self.code_blocks = self.get_code_block(text)
 
             for block in self.code_blocks:
                 first_line = block["code"][: block["code"].find("\n")]
@@ -121,3 +131,24 @@ class FridaCoder:
 
     def clean(self):
         self.code_blocks = []
+
+    def is_programming_language_extension(self, extension: str):
+        programming_language_extensions = [
+            ".py",
+            ".asp" ".java",
+            ".cpp",
+            ".c",
+            ".cs",
+            ".js",
+            ".html",
+            ".css",
+            ".php",
+            ".rb",
+            ".swift",
+            ".go",
+            ".lua",
+            ".pl",
+            ".r",
+            ".sh",
+        ]
+        return extension.lower() in programming_language_extensions

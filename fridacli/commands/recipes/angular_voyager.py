@@ -1,7 +1,7 @@
 import os
 import re
 from fridacli.interface.system_console import SystemConsole
-import fridacli.commands.recipes.predefined_phrases as predefined_phrases
+import fridacli.commands.subcommands.predefined_phrases as predefined_phrases
 
 
 """"""

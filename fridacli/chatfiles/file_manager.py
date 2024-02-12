@@ -24,7 +24,7 @@ class FileManager:
 
     def get_files(self):
         return list(self.__files.keys())
-    
+
     def get_file_path(self, name):
         return self.__files.get(name, -1)
 
@@ -49,7 +49,7 @@ class FileManager:
                 if len(item_parts) == 2:
                     extension = item_parts[1]
                     self.__extension_counter[extension] += 1
-                    current_node.add_children(Tree(item))
+                    current_node.add_children(Tree(item_path))
 
     def __build_directory_tree(self, path):
         """
@@ -64,7 +64,6 @@ class FileManager:
         root_node = Tree(path)
         self.__traverse(path, root_node)
         return root_node
-
 
     def load_folder(self, path: str) -> None:
         """
