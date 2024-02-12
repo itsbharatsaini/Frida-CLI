@@ -24,7 +24,9 @@ def asp_voyager(*args, **kwargs):
     """
 
     files = file_manager.get_files()
+    spinner = Spinner()
     for file_name in files:
+        spinner.start_spinner(text=f"ASP updating {file_name}")
         code = frida_coder.get_code_from_path(file_manager.get_file_path(file_name))
         prompt = create_asp_prompt(code)
         response = chatbot_agent.chat(prompt, True)
