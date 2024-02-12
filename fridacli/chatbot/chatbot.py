@@ -17,6 +17,7 @@ from chatbot.predefined_phrases import (
 from config.env_vars import get_config_vars
 from fridacli.interface.system_console import SystemConsole
 from prompts.system import system_prompt
+from fridacli.interface.spinner import Spinner
 
 r"""
 C:\Users\onder.campos\Documents\Innovation\asp_project
@@ -123,8 +124,9 @@ class ChatbotAgent:
             if word in ["files", "file"]:
                 key_words = True
         # If files are not in the context but the is key words, they might be referring to files without specified formats.
-        if len(self.__file_manager.get_files()) == 0:
+        if key_words and len(self.__file_manager.get_files()) == 0:
             system.notification("NO PROJECT OPEN")
+
         if not self.is_files_open() and key_words:
             # TODO (IMPROVE) TWO SEARCHES NOT OPTIMAL
             # Get the files opened in dict format.
@@ -164,10 +166,13 @@ class ChatbotAgent:
 
     def chat(self, message, special_prompt=False):
         try:
+            spinner = Spinner()
+            spinner.start_spinner(text=f"Thinking")
             if not special_prompt:
                 message = self.decorate_prompt(message)
             response = self.__chatbot.chat(message)
             message = response.message.content
+            spinner.stop_spinner()
         except Exception as e:
             if e == "Unauthorized":
                 error_message = chatbot_unauthorized

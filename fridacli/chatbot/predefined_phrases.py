@@ -49,7 +49,7 @@ The files mentioned are:
 
 chatbot_without_file_prompt = lambda message: f"""Create a list of steps and generate the necessary code, if needed, to solve the following instruction. 
 If no programming language was specified, assume Python.
-Try to do it in only one block of code.
+Do it in only one block of code including the examples.
 \n{message}\n
 When returning fenced code blocks in Markdown, enable syntax highlighting by specifying the programming language name in 
 the same line right after the first three backticks.
