@@ -12,17 +12,19 @@ from fridacli.predefined_phrases.chat_command import (
     ERROR_PATH_DOES_NOT_EXIST,
     PWD_COMMAND_OUTPUT,
 )
-from fridacli.interface.system_console import SystemConsole
 from fridacli.interface.styles import (
     file_list_with_styles,
     format_to_columns,
     format_to_table,
 )
 
+from fridacli.common import (
+    system_console
+)
+
 
 def ls_subcommand(*args, **kwargs) -> None:
     """"""
-    system_console: SystemConsole = kwargs.get("system_console")
     root = args[0] if args else get_current_dir()
     valid_path = check_valid_dir(root)
     if not valid_path:
@@ -35,7 +37,6 @@ def ls_subcommand(*args, **kwargs) -> None:
 
 def pwd_subcommand(*args, **kwargs):
     """"""
-    system_console: SystemConsole = kwargs.get("system_console")
     project_path = get_current_dir()
     system_console.notification(PWD_COMMAND_OUTPUT(project_path), bottom=0)
     pass
@@ -43,7 +44,6 @@ def pwd_subcommand(*args, **kwargs):
 
 def cd_subcommand(*args, **kwargs) -> None:
     """"""
-    system_console: SystemConsole = kwargs.get("system_console")
     directory_to_move = args[0] if args else get_home_path()
     valid_path = check_valid_dir(directory_to_move)
     if not valid_path:
@@ -60,12 +60,10 @@ def help_subcommand(*args, **kwargs) -> None:
     table_output = format_to_table(
         subcommands_df, box=None, padding=True, expand=True, ratio=[1, 3, 1]
     )
-    system_console: SystemConsole = kwargs.get("system_console")
     system_console.print(table_output, top=0, bottom=0, alignment="center")
 
 
 def exit_subcommand(*args, **kwargs) -> None:
     """"""
-    system_console: SystemConsole = kwargs.get("system_console")
     system_console.notification(f"{BOT_NAME}CLI Chat session ended")
     exit()
