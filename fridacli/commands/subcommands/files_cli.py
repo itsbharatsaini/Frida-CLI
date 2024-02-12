@@ -16,11 +16,13 @@ from fridacli.predefined_phrases.chat_command import (
 
 from fridacli.interface.styles import add_styletags_to_string
 
+from fridacli.common import (
+    system_console,
+    file_manager
+)
 
 def open_subcommand(*args, **kwargs):
     """"""
-    system_console: SystemConsole = kwargs.get("system_console")
-    file_manager: FileManager = kwargs.get("file_manager")
 
     if not args:
         system_console.notification(WARNING_ARGUMENT_REQUIRED("path"), bottom=0)
@@ -55,5 +57,4 @@ def open_subcommand(*args, **kwargs):
 
 def close_subcommand(*args, **kwargs):
     """"""
-    file_manager: FileManager = kwargs.get("file_manager")
     file_manager.close_folder()

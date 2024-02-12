@@ -40,3 +40,18 @@ success_configfile_update = (
 chatbot_unauthorized = f"{add_styletags_to_string('Unauthorized', style='error')}: The provided API key is invalid or missing\nExecute {add_styletags_to_string('frida config', style='code')} to update it."
 chatbot_badrequest = f"{add_styletags_to_string('Bad Request', style='error')}: Chatbot model not found, please update model name\nExecute {add_styletags_to_string('frida config', style='code')} to update it."
 chatbot_error = f"{add_styletags_to_string('Bad Request', style='error')}: One or all of the configuration keys is invalid or missing\nExecute {add_styletags_to_string('frida config', style='code')} to update it."
+chatbot_with_file_prompt = """
+Very important consideration:
+When returning fenced code blocks in Markdown, enable syntax highlighting by specifying the programming language name. 
+If the code within is intended for updating files, include the file name in a comment form like #filename.
+The files mentioned are:
+"""
+
+chatbot_without_file_prompt = lambda message: f"""Create a list of steps and generate the necessary code, if needed, to solve the following instruction. 
+If no programming language was specified, assume Python.
+Try to do it in only one block of code.
+\n{message}\n
+When returning fenced code blocks in Markdown, enable syntax highlighting by specifying the programming language name in 
+the same line right after the first three backticks.
+In the first line, add a comment with a brief description (4 words) of the code.
+"""
