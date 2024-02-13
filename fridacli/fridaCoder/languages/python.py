@@ -4,14 +4,20 @@ import subprocess
 from fridacli.fridaCoder.languages.languague import Language
 from typing_extensions import override
 from ..exceptionMessage import ExceptionMessage
+from config.env_vars import get_config_vars
 
 
 class Python(Language):
     def __init__(self) -> None:
         super().__init__()
+        self.__get_env()
 
     @override
     def run(self, path: None, file_extesion: str = None, file_exist: bool = False):
+        """
+        TODO:
+            Change for all the code runs using file exisiting why aviod using python eval
+        """
         preprocessed_code = ""
         result_path = f"{self.result_files_dir}/{path}.txt"
         code_path = f"{self.code_files_dir}/{path}.{file_extesion}"
@@ -35,6 +41,10 @@ class Python(Language):
             except Exception as e:
                 print(e)
         return self.__build_result(result_path, result_status)
+
+    def __get_env(self):
+        env_vars = get_config_vars()
+        self.__PYTHON_ENV_PATH = env_vars["PYTHON_ENV_PATH"]
 
     def __build_result(self, result_path, result_status):
         if result_status == ExceptionMessage.EXEC_ERROR:
@@ -66,7 +76,7 @@ class Python(Language):
                 and also python3 or a posibility to change the variable name
             """
             result = subprocess.run(
-                ["python", code_path], capture_output=True, text=True
+                [self.__PYTHON_ENV_PATH, code_path], capture_output=True, text=True
             )
             with open(result_path, "w") as f:
                 f.write(result.stdout)

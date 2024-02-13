@@ -26,19 +26,17 @@ class FridaCoder:
             TODO:
                 Insted of only one files_required should be able to work with multiple
             """
+            path = ""
             if len(files_required) == 1:
                 file_name = files_required[0]
                 path = self.__file_manager.get_file_path(file_name)
-                exec_status, exec_result = language_info["worker"].run(
-                    path=path, file_exist=True
-                )
             else:
-                file_name = self.save_code_files(
+                path = self.save_code_files(
                     code_block["code"], language_info["extension"]
                 )
-                exec_status, exec_result = language_info["worker"].run(
-                    path=file_name, file_extesion=language_info["extension"]
-                )
+            exec_status, exec_result = language_info["worker"].run(
+                path=path, file_extesion=language_info["extension"], file_exist=True
+            )
             jump_point = exec_result.find("\n")
             result_status = exec_result[:jump_point]
             status = (
@@ -122,7 +120,7 @@ class FridaCoder:
         os.makedirs(os.path.dirname(file_name), exist_ok=True)
         with open(file_name, "w", encoding="utf-8") as f:
             f.write(code)
-        return formatted_time
+        return file_name
 
     def get_language(self, language: str):
         if self.languages.get(language, -1) == -1:

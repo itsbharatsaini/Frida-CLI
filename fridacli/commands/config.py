@@ -79,12 +79,26 @@ def configurate_api_keys() -> None:
     print_configuration_success(created_file=new_configfile)
 
 
+def configurate_python_env():
+    configuration = read_config_file()
+    result_dict = {
+        key_value.split("=")[0]: key_value.split("=")[1]
+        for key_value in configuration.split("\n")
+    }
+    key = system.password("Enter your python enviroment path", top=1)
+    result_dict["PYTHON_ENV_PATH"] = key
+    write_config_to_file(result_dict)
+    print("result_dict", result_dict)
+
+
 # ========= config command =========
 
 
-def exec_config(list_option: bool) -> None:
+def exec_config(list_option: bool, python_env: bool) -> None:
     """Execute the configuration command."""
     if list_option:
         print_config_list()
+    elif python_env:
+        configurate_python_env()
     else:
         configurate_api_keys()
