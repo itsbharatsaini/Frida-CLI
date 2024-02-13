@@ -19,43 +19,6 @@ from fridacli.interface.system_console import SystemConsole
 from prompts.system import system_prompt
 from fridacli.interface.spinner import Spinner
 
-r"""
-C:\Users\onder.campos\Documents\Innovation\asp_project
-What is in the file Detalle_Hipotecario_DS.asp
-
-C:\Users\onder.campos\Documents\Innovation\pythonProject
-There is a error in main.py could you solve it with all the code
-In the main.py file it is missing a funtion could you please use the funtion in utils.py so main.py could you it in one block code
-what is in main.py give the code in it
-Get me some code to check is a string is empty
-
-Sure! Here's a code snippet in Python to check if a string is empty:
-
-```python
-def is_empty_string(string):
-    if string == "":
-        return True
-    else:
-        return False
-
-# Example usage
-my_string = "Hello, world!"
-if is_empty_string(my_string):
-    print("The string is empty.")
-else:
-    print("The string is not empty.")
-```
-
-This code defines a function `is_empty_string` that takes a string as a parameter. It checks if the string is empty by comparing it to an empty string `""`. If the string is empty, the function returns `True`, otherwise it returns `False`.
-
-In the example usage, we create a variable `my_string` with the value `"Hello, world!"`. We then call the `is_empty_string` function with `my_string` as the argument and print the appropriate message based on the result.
-
-Please let me know if you need the code in a different programming language.
-Create the necessary code in the comment in rest.py
-
-Change the funtion name in the class named my_function in file main.py to check_integer
-
-"""
 
 system = SystemConsole()
 
@@ -158,6 +121,7 @@ class ChatbotAgent:
             system.notification("NO FILES FOUND", bottom=0)
             return message
 
+        # print("self.__files_required", self.__files_required)
         if len(self.__files_required) > 0:
             # When files are in context, generate a prompt by incorporating the required files.
             message = generate_prompt_with_files(message, self.__files_required)
@@ -166,13 +130,15 @@ class ChatbotAgent:
 
     def chat(self, message, special_prompt=False):
         try:
-            spinner = Spinner()
-            spinner.start_spinner(text=f"Thinking")
+            if not special_prompt:
+                spinner = Spinner()
+                spinner.start_spinner(text=f"Thinking")
             if not special_prompt:
                 message = self.decorate_prompt(message)
             response = self.__chatbot.chat(message)
             message = response.message.content
-            spinner.stop_spinner()
+            if not special_prompt:
+                spinner.stop_spinner()
         except Exception as e:
             if e == "Unauthorized":
                 error_message = chatbot_unauthorized

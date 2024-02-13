@@ -29,7 +29,10 @@ def asp_voyager(*args, **kwargs):
         spinner.start_spinner(text=f"ASP updating {file_name}")
         code = frida_coder.get_code_from_path(file_manager.get_file_path(file_name))
         prompt = create_asp_prompt(code)
+        #print("prompt", prompt)
         response = chatbot_agent.chat(prompt, True)
+        #print("response", response)
+        spinner.stop_spinner()
         chatbot_console.response(response)
 
 def document(*args, **kwargs):
@@ -44,6 +47,7 @@ def document(*args, **kwargs):
             prompt = create_document_prompt(code)
             response = chatbot_agent.chat(prompt, True)
             if len(response) > 0:
+                #print("response", response)
                 code_blocks = frida_coder.get_code_block(response)
                 if len(code_blocks) > 0:
                     documented_code = code_blocks[0]['code']
