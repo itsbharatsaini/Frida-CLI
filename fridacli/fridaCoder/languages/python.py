@@ -5,6 +5,9 @@ from fridacli.fridaCoder.languages.languague import Language
 from typing_extensions import override
 from ..exceptionMessage import ExceptionMessage
 from config.env_vars import get_config_vars
+from fridacli.logger import Logger
+
+logger = Logger()
 
 
 class Python(Language):
@@ -28,9 +31,9 @@ class Python(Language):
             result_path = f"{self.result_files_dir}/{file_name}_tmp.txt"
             code_path = path
         result_status = None
-        with open(code_path, encoding="utf-8") as fl:
-            code = fl.read()
-            try:
+        try:
+            with open(code_path, encoding="utf-8") as fl:
+                code = fl.read()
                 os.makedirs(os.path.dirname(result_path), exist_ok=True)
                 preprocessed_code = code
                 if file_exist:
@@ -38,13 +41,16 @@ class Python(Language):
                 else:
                     preprocessed_code = self.__preprocess_code(code, result_path)
                     result_status = self.__execute_code(preprocessed_code)
-            except Exception as e:
-                print(e)
-        return self.__build_result(result_path, result_status)
+            return self.__build_result(result_path, result_status)
+        except Exception as e:
+            logger.error(__name__, f"Error running: {e}")
 
     def __get_env(self):
-        env_vars = get_config_vars()
-        self.__PYTHON_ENV_PATH = env_vars["PYTHON_ENV_PATH"]
+        try:
+            env_vars = get_config_vars()
+            self.__PYTHON_ENV_PATH = env_vars["PYTHON_ENV_PATH"]
+        except Exception as e:
+            logger.error(__name__, f"Error getting enviroment path: {e}")
 
     def __build_result(self, result_path, result_status):
         if result_status == ExceptionMessage.EXEC_ERROR:
@@ -57,6 +63,7 @@ class Python(Language):
     def __execute_code(self, code: str):
         try:
             """
+            [Deplicated]
             TODO:
                 When a funtion is exectuted and the is used in different blocks it can be used the problem
                 is that for diferent prompts shouldn't have the same funtion
@@ -89,17 +96,19 @@ class Python(Language):
             with open(file_name, "r", encoding="utf-8") as f:
                 result = f.read()
                 return result
-        except:
+        except Exception as e:
+            logger.error(__name__, f"Error getting execution result: {e}")
             return None
 
     def __preprocess_code(self, code, path):
         return self.__use_template(code, path)
 
     def __use_template(self, code, file_name):
-        code_lines = code.split("\n")
-        code_lines = [f"            {c}" for c in code_lines]
-        code = "\n".join(code_lines)
-        code = f"""
+        try:
+            code_lines = code.split("\n")
+            code_lines = [f"            {c}" for c in code_lines]
+            code = "\n".join(code_lines)
+            code = f"""
 from contextlib import redirect_stdout
 import traceback
 with open(r'{file_name}', 'w', encoding='utf-8') as file:
@@ -110,9 +119,11 @@ with open(r'{file_name}', 'w', encoding='utf-8') as file:
             traceback_str = traceback.format_exc()
             file.write('ERROR\\n')
             file.write(traceback_str)
-            
-        """
-        code_lines = code.split("\n")
-        code_lines = [c for c in code_lines if c.strip() != ""]
-        code = "\n".join(code_lines)
-        return code
+                
+            """
+            code_lines = code.split("\n")
+            code_lines = [c for c in code_lines if c.strip() != ""]
+            code = "\n".join(code_lines)
+            return code
+        except Exception as e:
+            logger.error(__name__, f"Error using template: {e}")

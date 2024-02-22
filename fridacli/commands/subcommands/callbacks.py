@@ -44,10 +44,6 @@ SUBCOMMANDS_CALLBACKS = {
         "completions": None,
         "execute": close_subcommand,
     },
-    "!angular_voyager": {
-        "completions": None,
-        "execute": angular_voyager,
-    },
     "!asp_voyager": {
         "completions": None,
         "execute": asp_voyager,

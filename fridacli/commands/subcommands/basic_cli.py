@@ -22,6 +22,10 @@ from fridacli.common import (
     system_console
 )
 
+from fridacli.logger import Logger
+
+logger = Logger()
+
 
 def ls_subcommand(*args, **kwargs) -> None:
     """"""
@@ -45,6 +49,7 @@ def pwd_subcommand(*args, **kwargs):
 def cd_subcommand(*args, **kwargs) -> None:
     """"""
     directory_to_move = args[0] if args else get_home_path()
+    logger.info(__name__, f"Help command cd: {directory_to_move}")
     valid_path = check_valid_dir(directory_to_move)
     if not valid_path:
         system_console.notification(
@@ -56,6 +61,7 @@ def cd_subcommand(*args, **kwargs) -> None:
 
 def help_subcommand(*args, **kwargs) -> None:
     """"""
+    logger.info(__name__, "Help command open")
     subcommands_df = get_commands_df()
     table_output = format_to_table(
         subcommands_df, box=None, padding=True, expand=True, ratio=[1, 3, 1]

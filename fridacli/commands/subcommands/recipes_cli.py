@@ -8,6 +8,9 @@ from fridacli.common import (
     chatbot_console,
     frida_coder,
 )
+from fridacli.logger import Logger
+
+logger = Logger()
 
 
 def angular_voyager(args=None):
@@ -22,7 +25,7 @@ def asp_voyager(*args, **kwargs):
     """
     Recipe that migrates a asp project from an old version to a new version
     """
-
+    logger.info(__name__, f"ASP voyager running")
     files = file_manager.get_files()
     spinner = Spinner()
     for file_name in files:
@@ -36,6 +39,10 @@ def asp_voyager(*args, **kwargs):
         chatbot_console.response(response)
 
 def document(*args, **kwargs):
+    """
+    Recipe to document the files in file manager
+    """
+    logger.info(__name__, f"Documenting files")
     files = file_manager.get_files()
     spinner = Spinner()
     for file in files:
