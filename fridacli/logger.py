@@ -1,3 +1,4 @@
+import os
 import logging
 import datetime
 import time
@@ -6,13 +7,14 @@ from fridacli.config.env_vars import HOME_PATH
 
 
 class Logger:
-    LOG_FILE_LOCATION = f"{HOME_PATH}/fridalogs/app.log"
-    STATS_FILE_LOCATION = f"{HOME_PATH}/fridalogs/stats.log"
+    LOG_FILE_LOCATION = f"{HOME_PATH}/Documents/fridalogs/app.log"
+    STATS_FILE_LOCATION = f"{HOME_PATH}/Documents/fridalogs/stats.log"
 
     logger = None
     stat_loger = None
 
     def __init__(self):
+        os.makedirs(f"{HOME_PATH}/Documents/fridalogs/", exist_ok=True)
         self.setup_logger()
 
     @classmethod
