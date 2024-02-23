@@ -11,8 +11,8 @@ logger = Logger()
 
 class FridaCoder:
     def __init__(self, file_manager) -> None:
-        self.code_files_dir = f"{HOME_PATH}/tmp/code"
-        self.result_files_dir = f"{HOME_PATH}/tmp/results"
+        self.code_files_dir = f"{HOME_PATH}/fridatmp/code"
+        self.result_files_dir = f"{HOME_PATH}/fridatmp/results"
         self.code_blocks = []
         self.__file_manager = file_manager
         self.languages = {"python": {"extension": "py", "worker": Python()}}
