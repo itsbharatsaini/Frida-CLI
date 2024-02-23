@@ -6,6 +6,9 @@ from typing_extensions import override
 from ..exceptionMessage import ExceptionMessage
 from config.env_vars import get_config_vars
 from fridacli.logger import Logger
+from fridacli.interface.system_console import SystemConsole
+
+system_console = SystemConsole()
 
 logger = Logger()
 
@@ -48,7 +51,10 @@ class Python(Language):
     def __get_env(self):
         try:
             env_vars = get_config_vars()
-            self.__PYTHON_ENV_PATH = env_vars["PYTHON_ENV_PATH"]
+            if "PYTHON_ENV_PATH" in env_vars:
+                self.__PYTHON_ENV_PATH = env_vars["PYTHON_ENV_PATH"]
+            else:
+                self.__PYTHON_ENV_PATH = ""
         except Exception as e:
             logger.error(__name__, f"Error getting enviroment path: {e}")
 
@@ -77,6 +83,15 @@ class Python(Language):
             return ExceptionMessage.EXEC_ERROR
 
     def __execute_existing_code(self, code_path: str, result_path):
+
+        if len(self.__PYTHON_ENV_PATH) == 0:
+            system_console.notification(
+                "Python env path not configurated, use `frida config --python_env`"
+            )
+            with open(result_path, "w") as f:
+                f.write("No env configured")
+            return ExceptionMessage.EXEC_SUCCESS
+
         try:
             """
             TODO:
