@@ -1,6 +1,9 @@
 import os
 from .graph import Graph, Tree
 from collections import Counter
+from fridacli.logger import Logger
+
+logger = Logger()
 
 
 class FileManager:
@@ -23,33 +26,45 @@ class FileManager:
         return self.__folder_path
 
     def get_files(self):
-        return list(self.__files.keys())
+        try:
+            return list(self.__files.keys())
+        except Exception as e:
+            logger.error(__name__, f"Error getting files: {e}")
 
     def get_file_path(self, name):
-        return self.__files.get(name, -1)
+        try:
+            return self.__files.get(name, -1)
+        except Exception as e:
+            logger.error(__name__, f"Error getting file path: {e}")
 
     def get_file_content(self, name):
-        path = self.__files.get(name, -1)
-        with open(path, "r") as f:
-            code = f.read()
-            return code
+        try:
+            path = self.__files.get(name, -1)
+            with open(path, "r") as f:
+                code = f.read()
+                return code
+        except Exception as e:
+            logger.error(__name__, f"Error getting file content: {e}")
 
     def __traverse(self, path, current_node):
-        for item in os.listdir(path):
-            item_path = os.path.join(path, item)
+        try:
+            for item in os.listdir(path):
+                item_path = os.path.join(path, item)
 
-            if os.path.isdir(item_path):
-                child_node = Tree(item_path)
-                current_node.add_children(child_node)
-                self.__traverse(item_path, child_node)
-            else:
-                self.__files[item] = item_path
+                if os.path.isdir(item_path):
+                    child_node = Tree(item_path)
+                    current_node.add_children(child_node)
+                    self.__traverse(item_path, child_node)
+                else:
+                    self.__files[item] = item_path
 
-                item_parts = item.split(".")
-                if len(item_parts) == 2:
-                    extension = item_parts[1]
-                    self.__extension_counter[extension] += 1
-                    current_node.add_children(Tree(item_path))
+                    item_parts = item.split(".")
+                    if len(item_parts) == 2:
+                        extension = item_parts[1]
+                        self.__extension_counter[extension] += 1
+                        current_node.add_children(Tree(item_path))
+        except Exception as e:
+            logger.error(__name__, f"Error traversing: {e}")
 
     def __build_directory_tree(self, path):
         """
@@ -77,10 +92,13 @@ class FileManager:
         self.__folder_path = path
         # know the project type
         self.__tree = self.__build_directory_tree(self.__folder_path)
-        most_common_extensions = self.__extension_counter.most_common(1)
-        top_three_extensions = [ext for ext, _ in most_common_extensions]
-        project_type = ",".join(top_three_extensions)
-        tree_str = self.__tree.print_directory()
+        try:
+            most_common_extensions = self.__extension_counter.most_common(1)
+            top_three_extensions = [ext for ext, _ in most_common_extensions]
+            project_type = ",".join(top_three_extensions)
+            tree_str = self.__tree.print_directory()
+        except Exception as e:
+            logger.error(__name__, f"Error loading folder: {e}")
 
         return (project_type, tree_str)
 

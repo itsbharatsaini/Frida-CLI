@@ -55,3 +55,36 @@ When returning fenced code blocks in Markdown, enable syntax highlighting by spe
 the same line right after the first three backticks.
 In the first line, add a comment with a brief description (4 words) of the code.
 """
+
+def generate_prompt_with_files(message, files_required, file_manager):
+    # Generate a prompt by incorporating the required files.
+    """
+    Create a list of steps and generate the necessary code, if needed, to accomplish the following instruction.
+    If files are mentioned, provide the necessary code without explicitly opening the file.
+    Endeavor to complete this task using only one block of code.
+    """
+    lines = [message, chatbot_with_file_prompt]
+
+    for file in files_required:
+        lines.append(f"{file}:")
+        lines.append(file_manager.get_file_content(file))
+
+    result_string = "\n".join(lines)
+    return result_string + "\n"
+
+chatbot_classification_prompt = lambda message: f"""
+You will have only one text that you need to classify between "talk" and "solve", 
+"talk" if the text is related with a normal conversation, 
+and "solve" if the text is related to solve a problem, only respond with "talk" and "solve"
+The text to classify is:
+
+{message}
+
+only respond with "talk" and "solve"
+only classify that text
+"""
+
+chatbot_talk_prompt = lambda message: f"""
+Response the message as you were a person being polite
+{message}
+"""

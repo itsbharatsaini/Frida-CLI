@@ -4,6 +4,9 @@ import datetime
 from .languages.python import Python
 from fridacli.config.env_vars import HOME_PATH
 from .exceptionMessage import ExceptionMessage
+from fridacli.logger import Logger
+
+logger = Logger()
 
 
 class FridaCoder:
@@ -37,60 +40,71 @@ class FridaCoder:
             exec_status, exec_result = language_info["worker"].run(
                 path=path, file_extesion=language_info["extension"], file_exist=True
             )
-            jump_point = exec_result.find("\n")
-            result_status = exec_result[:jump_point]
-            status = (
-                ExceptionMessage.RESULT_ERROR
-                if exec_status == ExceptionMessage.EXEC_SUCCESS
-                or exec_status == ExceptionMessage.GET_RESULT_SUCCESS
-                and result_status == "ERROR"
-                else exec_status
-            )
-            # TODO Change the code_block["code"] when is a existing file
-            return {
-                "code": code_block["code"],
-                "status": status,
-                "description": code_block["description"],
-                "result": (
-                    exec_result
-                    if status == ExceptionMessage.EXEC_SUCCESS
+            try:
+                jump_point = exec_result.find("\n")
+                result_status = exec_result[:jump_point]
+                status = (
+                    ExceptionMessage.RESULT_ERROR
+                    if exec_status == ExceptionMessage.EXEC_SUCCESS
                     or exec_status == ExceptionMessage.GET_RESULT_SUCCESS
-                    else exec_result[jump_point:]
-                ),
-            }
+                    and result_status == "ERROR"
+                    else exec_status
+                )
+                # TODO Change the code_block["code"] when is a existing file
+                payload = {
+                    "code": code_block["code"],
+                    "status": status,
+                    "description": code_block["description"],
+                    "result": (
+                        exec_result
+                        if status == ExceptionMessage.EXEC_SUCCESS
+                        or exec_status == ExceptionMessage.GET_RESULT_SUCCESS
+                        else exec_result[jump_point:]
+                    ),
+                }
+                return payload
+            except Exception as e:
+                logger.error(__name__, f"Error getting file path: {e}")
 
         else:
             return {"code": code_block["code"], "status": "LANGNF"}
 
     def write_code_to_path(self, path: str, code: str):
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(code)
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(code)
+        except Exception as e:
+            logger.error(__name__, f"Error writing code to path: {e}")
 
     def get_code_from_path(self, path: str):
-        with open(path, "r") as f:
-            code = f.read()
-            return code
+        try:
+            with open(path, "r") as f:
+                code = f.read()
+                return code
+        except Exception as e:
+            logger.error(__name__, f"Error getting code from path: {e}")
 
     def get_code_block(self, text):
-        code_pattern = re.compile(r"```(\w+)\n(.*?)```", re.DOTALL)
-        matches = code_pattern.findall(text)
-        code_blocks = [
-            {
-                "language": match[0],
-                "code": match[1],
-                "description": match[1][: match[1].find("\n")],
-            }
-            for match in matches
-        ]
-        return code_blocks
+        try:
+            code_pattern = re.compile(r"```(\w+)\n(.*?)```", re.DOTALL)
+            matches = code_pattern.findall(text)
+            code_blocks = [
+                {
+                    "language": match[0],
+                    "code": match[1],
+                    "description": match[1][: match[1].find("\n")],
+                }
+                for match in matches
+            ]
+            return code_blocks
+        except Exception as e:
+            logger.error(__name__, f"Error get code block from text using regex: {e}")
 
     def extract_code(self, text):
-        if len(self.code_blocks) == 0:
-            self.code_blocks = self.get_code_block(text)
-
-            for block in self.code_blocks:
+        try:
+            code_blocks = self.get_code_block(text)
+            for block in code_blocks:
                 first_line = block["code"][: block["code"].find("\n")]
-
                 """
                 TODO:
                     Improve the promt so the the response could have the description 
@@ -103,9 +117,10 @@ class FridaCoder:
                     and "print" not in first_line
                 ):
                     block["code"] = "\n".join(block["code"].split("\n")[1:])
-
-            return self.code_blocks
-        return self.code_blocks
+            return code_blocks
+        except Exception as e:
+            logger.error(__name__, f"Error extracting code from text: {e}")
+            return []
 
     def has_code_blocks(self, text):
         self.extract_code(text)
@@ -114,18 +129,24 @@ class FridaCoder:
         return True
 
     def save_code_files(self, code: str, extension: str = None):
-        time_format = "%Y-%m-%d_%H-%M-%S"
-        formatted_time = datetime.datetime.now().strftime(time_format)
-        file_name = f"{self.code_files_dir}/{formatted_time}.{extension}"
-        os.makedirs(os.path.dirname(file_name), exist_ok=True)
-        with open(file_name, "w", encoding="utf-8") as f:
-            f.write(code)
-        return file_name
+        try:
+            time_format = "%Y-%m-%d_%H-%M-%S"
+            formatted_time = datetime.datetime.now().strftime(time_format)
+            file_name = f"{self.code_files_dir}/{formatted_time}.{extension}"
+            os.makedirs(os.path.dirname(file_name), exist_ok=True)
+            with open(file_name, "w", encoding="utf-8") as f:
+                f.write(code)
+            return file_name
+        except Exception as e:
+            logger.error(__name__, f"Error saving code files: {e}")
 
     def get_language(self, language: str):
-        if self.languages.get(language, -1) == -1:
-            return None
-        return self.languages[language]
+        try:
+            if self.languages.get(language, -1) == -1:
+                return None
+            return self.languages[language]
+        except Exception as e:
+            logger.error(__name__, f"Error getting language: {e}")
 
     def clean(self):
         self.code_blocks = []

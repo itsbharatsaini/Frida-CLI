@@ -27,6 +27,9 @@ from fridacli.common import (
     chatbot_console,
     frida_coder,
 )
+from fridacli.logger import Logger
+
+logger = Logger()
 
 
 def start_panel() -> None:
@@ -60,6 +63,8 @@ def chat_session() -> None:
 
     start_panel()
 
+    logger.info(__name__, "chat_session started")
+
     while chatting:
         try:
             current_dir = os.path.basename(os.getcwd())
@@ -80,14 +85,19 @@ def chat_session() -> None:
             # If the input is a command
             if is_command:
                 command, command_args = get_command_parts(user_input)
+                logger.info(__name__, f"Command selected: {command}")
                 exec_subcommand(command, *command_args)
             else:
                 response = chatbot_agent.chat(user_input, False)
+
                 # Chatbot response from the user input
                 chatbot_console.response(response, streaming=True)
 
                 # Get the code block in the chat response if any
                 code_blocks = frida_coder.prepare(response)
+                logger.info(
+                    __name__, f"Code blocks detected in prepare: {len(code_blocks)}"
+                )
                 if len(code_blocks) > 0:
                     # Go code block by code block
                     for code_block in code_blocks:
@@ -97,8 +107,13 @@ def chat_session() -> None:
                             Add a way to check if the code is the same
                         """
                         if chatbot_agent.is_files_open():
+                            logger.info(__name__, f"Files open")
                             write_confirmation = system_console.confirm(
                                 WRITE_CONFIRMATION_MESSAGE
+                            )
+                            logger.info(
+                                __name__,
+                                f"Overwrite confirmation: {write_confirmation}",
                             )
                             if write_confirmation:
                                 first_file_required = list(
@@ -107,13 +122,21 @@ def chat_session() -> None:
                                 path = file_manager.get_file_path(first_file_required)
                                 frida_coder.write_code_to_path(path, code_block["code"])
                         # Ask for confirmation to run the code
-                        run_confirmation = system_console.confirm(RUN_CONFIRMATION_MESSAGE)
+                        run_confirmation = system_console.confirm(
+                            RUN_CONFIRMATION_MESSAGE
+                        )
+                        logger.info(
+                            __name__, f"Run code confirmation: {run_confirmation}"
+                        )
                         if run_confirmation:
                             code_result = frida_coder.run(
                                 code_block, list(chatbot_agent.get_files_required())
                             )
                             # If errors are detected in the code, prompt for confirmation before submitting feedback to the chat bot
                             if code_result["status"] == ExceptionMessage.RESULT_ERROR:
+                                logger.info(
+                                    __name__, "Error detected after running, show error"
+                                )
                                 chat_execution_response = execution_result(code_result)
                                 chatbot_console.response(
                                     chat_execution_response, streaming=True
@@ -135,6 +158,9 @@ def chat_session() -> None:
                                 code_result["status"]
                                 == ExceptionMessage.GET_RESULT_SUCCESS
                             ):
+                                logger.info(
+                                    __name__, "No errors detected, showing result"
+                                )
                                 if (
                                     "result" in code_result
                                     or len(code_result["result"]) > 0
@@ -148,9 +174,11 @@ def chat_session() -> None:
                                     frida_coder.clean()
                             # If an unknown code language is detected
                             else:
+                                logger.info(__name__, "Lang no sopported")
                                 chatbot_console.response(LANG_NOT_FOUND, streaming=True)
 
         except KeyboardInterrupt:
+            logger.info(__name__, "Exit frida chat")
             exec_subcommand("!exit")
 
 

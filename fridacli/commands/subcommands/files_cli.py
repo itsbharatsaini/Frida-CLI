@@ -16,14 +16,14 @@ from fridacli.predefined_phrases.chat_command import (
 
 from fridacli.interface.styles import add_styletags_to_string
 
-from fridacli.common import (
-    system_console,
-    file_manager
-)
+from fridacli.common import system_console, file_manager
+from fridacli.logger import Logger
+
+logger = Logger()
+
 
 def open_subcommand(*args, **kwargs):
     """"""
-
     if not args:
         system_console.notification(WARNING_ARGUMENT_REQUIRED("path"), bottom=0)
         return
@@ -35,6 +35,7 @@ def open_subcommand(*args, **kwargs):
         system_console.notification(ERROR_PATH_DOES_NOT_EXIST(path_to_open), bottom=0)
         return
 
+    logger.info(__name__, f"Open command with path: {path_to_open}")
     active_folder = file_manager.get_folder_status()
     current_folder_active = check_samepath(get_current_dir(), path_to_open)
 
@@ -51,10 +52,14 @@ def open_subcommand(*args, **kwargs):
     change_directory(path_to_open)
 
     formatted_path = get_relative_path(path_to_open)
-    system_console.notification(f"{formatted_path} ({add_styletags_to_string(project_type, 'success')})", bottom=0)
+    system_console.notification(
+        f"{formatted_path} ({add_styletags_to_string(project_type, 'success')})",
+        bottom=0,
+    )
     system_console.steps_notification(tree_str)
 
 
 def close_subcommand(*args, **kwargs):
     """"""
+    logger.info(__name__, "Closing file manager")
     file_manager.close_folder()
