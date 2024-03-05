@@ -1,0 +1,98 @@
+Screen {
+    background: $surface-darken-1;
+}
+
+
+#ChatView{
+    width: 40%;
+    height: 100%
+}
+
+
+MarkdownViewer{
+    width: 100%
+}
+
+CodeView.-show-tree #cv_tree_view {
+    display: block;
+    max-width: 100%;
+    width: 100%;
+}
+
+CodeView{
+   width: 65%; 
+}
+
+SystemFridaResponse{
+    height: auto;
+}
+
+#cv_code_scroll {
+    overflow: auto scroll;
+    width: 100%;
+}
+
+#cv_code {
+    width: 100%;
+    overflow: auto;
+}
+
+Input {
+    background: #707579;
+}
+
+
+.chat_line{
+    display: block;
+    margin: 0;
+}
+
+#chat_scroll{
+    width: 40%;
+    height: 90%
+}
+
+#chat_text{
+    padding: 1;
+    margin: 1;
+    height: 90%
+}
+
+.configuration_line {
+    width: 60%;
+    margin: 0 0 0 0;
+    padding: 0 0 0 0;
+    height: 5;
+}
+
+.configuration_label{
+    content-align: center middle;
+    margin: 1;
+    width: 15;
+}
+
+.chat_markdown{
+    height: auto;
+}
+
+.chat_label{
+    width: 100%
+}
+
+#code_view_left{
+    width: 30%;
+    height: 100%;
+}
+
+#cv_tree_view {
+    height: 85%;
+    width: auto;
+}
+
+#code_view_buttons{
+    width: 100%
+}
+
+#btn_code_view_update_directory{
+    width: 100%
+}

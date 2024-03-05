@@ -1,4 +1,4 @@
-from fridacli.config.env_vars import BOT_NAME
+from fridacli.config import BOT_NAME
 from fridacli.interface.styles import add_styletags_to_string
 
 # Chat session's bot messages
