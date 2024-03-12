@@ -15,6 +15,8 @@ from fridacli.commands.subcommands.predefined_phrases import (
 
 from fridacli.logger import Logger
 
+logger = Logger()
+
 
 def open_subcommand(path_to_open):
     """
@@ -30,7 +32,7 @@ def open_subcommand(path_to_open):
     if not valid_path:
         return ERROR_PATH_DOES_NOT_EXIST
 
-    # logger.info(__name__, f"Open command with path: {path_to_open}")
+    logger.info(__name__, f"Open command with path: {path_to_open}")
     file_manager = FileManager()
     active_folder = file_manager.get_folder_status()
     current_folder_active = check_samepath(get_current_dir(), path_to_open)

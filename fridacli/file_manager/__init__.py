@@ -1,6 +1,6 @@
-import os
-from .graph import Tree
 from collections import Counter
+from .graph import Tree
+import os
 
 class FileManager:
     """
@@ -21,6 +21,29 @@ class FileManager:
             self.__files = {}
             self.__extension_counter = Counter()
             self._initialized = True
+
+    def get_files(self):
+        try:
+            return list(self.__files.keys())
+        except Exception as e:
+            pass
+            #logger.error(__name__, f"Error getting files: {e}")
+    def get_file_path(self, name):
+        try:
+            return self.__files.get(name, -1)
+        except Exception as e:
+            pass
+            #logger.error(__name__, f"Error getting file path: {e}")
+        
+    def get_file_content(self, name):
+        try:
+            path = self.__files.get(name, -1)
+            with open(path, "r") as f:
+                code = f.read()
+                return code
+        except Exception as e:
+            pass
+            #logger.error(__name__, f"Error getting file content: {e}")
 
     def __traverse(self, path, current_node):
         try:
@@ -94,4 +117,3 @@ class FileManager:
     def get_folder_path(self) -> str:
         return str(self.__folder_path)
 
-    # ... (rest of the methods remain the same)

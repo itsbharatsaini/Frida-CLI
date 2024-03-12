@@ -8,5 +8,5 @@ class SystemUserResponse(Static):
 
 class SystemFridaResponse(Static):
     def compose(self):
-        yield Label(f"[#A4CE95]frida>[/]", classes="chat_label")
+        yield Label(f"[#A4CE95]Frida>[/]", classes="chat_label")
         yield MarkdownViewer(str(self.renderable), classes = "chat_markdown", show_table_of_contents=False)

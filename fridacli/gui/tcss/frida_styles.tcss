@@ -8,7 +8,6 @@ Screen {
     height: 100%
 }
 
-
 MarkdownViewer{
     width: 100%
 }
@@ -49,7 +48,7 @@ Input {
 
 #chat_scroll{
     width: 40%;
-    height: 90%
+    height: 90%;
 }
 
 #chat_text{
@@ -95,4 +94,58 @@ Input {
 
 #btn_code_view_update_directory{
     width: 100%
+}
+
+#CodeChangeQuestion{
+    width: 100%
+}
+
+#ccq_horizontal{
+    width:100%;
+}
+
+.btn_code_options{
+    width: 31%
+}
+
+RunCodeConfirmation{
+    width: 100%
+}
+
+#rcc_vertical{
+    width: 100%
+}
+
+#rcc_horizontal{
+    width: 100%
+}
+
+.btn_rcc{
+    width: 45%
+}
+
+.reem_label{
+    background: yellow;
+    color: black;
+    width: 90%;
+    height: 2;
+    content-align-horizontal: center;
+    content-align-vertical: middle;
+}
+
+.markdown_response{
+    width: 100%;
+    background: #283237;
+    height: auto;
+    padding: 1 1 1 1;
+}
+
+.btn_code_options_nfr{
+    width: 100%
+}
+
+.cv_hs_file_label{
+    background: #283237;
+    height: 3;
+    margin: 0 0 0 1
 }

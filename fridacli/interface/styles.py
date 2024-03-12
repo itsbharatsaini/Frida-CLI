@@ -1,4 +1,3 @@
-from pandas import DataFrame
 from rich import box
 from rich.columns import Columns
 from rich.table import Table

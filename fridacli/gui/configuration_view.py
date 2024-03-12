@@ -1,10 +1,9 @@
+from textual.widgets import Static, TabbedContent, TabPane, Input, Label, Button, DirectoryTree
+from fridacli.commands.subcommands.files_commands import open_subcommand, update_log_path
+from fridacli.config import get_config_vars, write_config_to_file, get_vars_as_dict
+from fridacli.gui.code_view import FilteredDirectoryTree
 from textual.containers import Horizontal
 from textual.events import Mount
-from textual.widgets import Static, TabbedContent, TabPane, Input, Label, Button, DirectoryTree
-from fridacli.config import get_config_vars, write_config_to_file, get_vars_as_dict
-from fridacli.file_manager import FileManager
-from fridacli.commands.subcommands.files_commands import open_subcommand, update_log_path
-
 
 class ConfigurationView(Static):
     def compose(self):
@@ -74,9 +73,9 @@ class ConfigurationView(Static):
             write_config_to_file(keys)
             open_subcommand(keys["PROJECT_PATH"])
             update_log_path(keys["LOGS_PATH"])
-            code_view = self.parent.parent.query_one("#cv_tree_view", DirectoryTree)
-            code_view.path = keys["PROJECT_PATH"]
-            self.notify(f"The configuration were saved: {code_view.path}")
+            code_view = self.parent.parent.query_one("#cv_tree_view", FilteredDirectoryTree)
+            code_view = DirectoryTree(str(keys["PROJECT_PATH"]), id="cv_tree_view")
+            self.notify("The configuration were saved")
             code_view.compose()
             code_view.refresh()
             code_view.reload()

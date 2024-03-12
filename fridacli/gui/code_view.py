@@ -1,21 +1,22 @@
-import sys
-
-from rich.syntax import Syntax
-from rich.traceback import Traceback
-
-from textual.app import App, ComposeResult
-from textual.containers import Container, VerticalScroll, Vertical, Horizontal
-from textual.reactive import var
-from textual.widgets import DirectoryTree, Footer, Header, Static, Select, Button
+from textual.containers import  VerticalScroll, Vertical, Horizontal
+from textual.widgets import DirectoryTree, Static, Select, Button
 from fridacli.config import get_vars_as_dict
+from rich.traceback import Traceback
+from textual.reactive import var
+from rich.syntax import Syntax
 from typing import Iterable
 from pathlib import Path
+
+
 
 LINES = """document
 asp_voyager
 """.splitlines()
 
-
+class FilteredDirectoryTree(DirectoryTree):
+    def filter_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
+        return [path for path in paths if not path.name.startswith(".")]
+    
 class CodeView(Static):
     show_tree = var(True)
     CSS_PATH = "tcss/frida_styles.tcss"
@@ -31,7 +32,7 @@ class CodeView(Static):
                 with Horizontal(id="code_view_buttons"):
                     yield Select((line, line) for line in LINES)
                     yield Button("Execute")
-                yield DirectoryTree(path, id="cv_tree_view")
+                yield FilteredDirectoryTree(path, id="cv_tree_view")
                 yield Button("Update directory", id="btn_code_view_update_directory")
             with VerticalScroll(id="cv_code_scroll"):
                 yield Static(id="cv_code", expand=False)
@@ -45,6 +46,7 @@ class CodeView(Static):
         """Called when the user click a file in the directory tree."""
         event.stop()
         code_view = self.query_one("#cv_code", Static)
+        
         try:
             syntax = Syntax.from_path(
                 str(event.path),
@@ -71,5 +73,6 @@ class CodeView(Static):
     def on_button_pressed(self, event: Button.Pressed):
         button_pressed = str(event.button.id)
         if button_pressed == "btn_code_view_update_directory":
-            self.query_one("#cv_tree_view", DirectoryTree).watch_path()
-            self.notify("File directory updated")
+            tree_view = self.query_one("#cv_tree_view", FilteredDirectoryTree)
+            tree_view.reload()
+            self.notify(f"File directory updated {tree_view.root}")
