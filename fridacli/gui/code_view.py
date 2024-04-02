@@ -1,16 +1,23 @@
 from textual.containers import  VerticalScroll, Vertical, Horizontal
 from textual.widgets import DirectoryTree, Static, Select, Button
+from fridacli.commands.recipes import document_files
 from fridacli.config import get_vars_as_dict
 from rich.traceback import Traceback
+from fridacli.logger import Logger
+from textual.worker import Worker
 from textual.reactive import var
 from rich.syntax import Syntax
 from typing import Iterable
 from pathlib import Path
+from textual import work
+from .push_screens import EpicGenerator
 
-
+logger = Logger()
 
 LINES = """document
+generate_epics
 asp_voyager
+
 """.splitlines()
 
 class FilteredDirectoryTree(DirectoryTree):
@@ -20,6 +27,7 @@ class FilteredDirectoryTree(DirectoryTree):
 class CodeView(Static):
     show_tree = var(True)
     CSS_PATH = "tcss/frida_styles.tcss"
+    recipe_selected = ""
 
     def watch_show_tree(self, show_tree: bool) -> None:
         """Called when show_tree is modified."""
@@ -31,7 +39,7 @@ class CodeView(Static):
             with Vertical(id="code_view_left"):
                 with Horizontal(id="code_view_buttons"):
                     yield Select((line, line) for line in LINES)
-                    yield Button("Execute")
+                    yield Button("Execute", id="btn_recipe")
                 yield FilteredDirectoryTree(path, id="cv_tree_view")
                 yield Button("Update directory", id="btn_code_view_update_directory")
             with VerticalScroll(id="cv_code_scroll"):
@@ -68,11 +76,30 @@ class CodeView(Static):
         """Called in response to key binding."""
         self.show_tree = not self.show_tree
 
-    #def watch_path(self): to watch changes
 
+    def on_select_changed(self, event: Select.Changed) -> None:
+        self.recipe_selected = str(event.value)
+
+    def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
+        """Called when the worker state changes."""
+        logger.info(__name__, event)
+    
     def on_button_pressed(self, event: Button.Pressed):
         button_pressed = str(event.button.id)
+        logger.info(__name__, button_pressed)
         if button_pressed == "btn_code_view_update_directory":
             tree_view = self.query_one("#cv_tree_view", FilteredDirectoryTree)
             tree_view.reload()
             self.notify(f"File directory updated {tree_view.root}")
+        if button_pressed == "btn_recipe" :
+            """
+            TODO: Assure that the threads are syncroniced and do not stop the GUI  thread 
+            """
+            if self.recipe_selected == "document" :
+                logger.info(__name__, "On UI calling to document files")
+                self.run_worker(document_files, exclusive=False)
+            
+            elif self.recipe_selected == "generate_epics":
+                logger.info(__name__, "epics")
+                self.app.push_screen(EpicGenerator())
+

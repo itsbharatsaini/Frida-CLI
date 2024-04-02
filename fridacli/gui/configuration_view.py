@@ -1,19 +1,30 @@
 from textual.widgets import Static, TabbedContent, TabPane, Input, Label, Button, DirectoryTree
 from fridacli.commands.subcommands.files_commands import open_subcommand, update_log_path
-from fridacli.config import get_config_vars, write_config_to_file, get_vars_as_dict
+from fridacli.config import get_config_vars, write_config_to_file, get_vars_as_dict, HOME_PATH
 from fridacli.gui.code_view import FilteredDirectoryTree
-from textual.containers import Horizontal
+from textual.containers import Horizontal, Vertical
+from fridacli.logger import Logger
 from textual.events import Mount
+from typing import Iterable
+from pathlib import Path
+
+logger = Logger()
+
+
+class FilteredDirectoryTree(DirectoryTree):
+    def filter_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
+        return [path for path in paths if not path.name.startswith(".")]
 
 class ConfigurationView(Static):
     def compose(self):
         with TabbedContent(initial="project"):
             with TabPane("Project", id="project"):
                 with Static():
-                    yield Horizontal(
+                    yield Vertical(
                         Label("Project path", classes="configuration_label"),
+                        FilteredDirectoryTree(HOME_PATH, id="configuration_directorytree_projectpath"),
                         Input(id="input_project_path"),
-                        classes="configuration_line",
+                        classes="configuration_vertical",
                     )
                     yield Horizontal(
                         Label("Logs path", classes="configuration_label"),
@@ -36,10 +47,11 @@ class ConfigurationView(Static):
                     yield Button("Save configuration", id="btn_softtek_confirm")
             with TabPane("Python", id="python"):
                 with Static():
-                    yield Horizontal(
+                    yield Vertical(
                         Label("Python ENV", classes="configuration_label"),
+                        FilteredDirectoryTree(HOME_PATH, id="configuration_directorytree_pythonenv"),
                         Input(id="input_python_env"),
-                        classes="configuration_line",
+                        classes="configuration_vertical",
                     )
                     yield Button("Save configuration", id="btn_python_confirm")
 
@@ -73,12 +85,9 @@ class ConfigurationView(Static):
             write_config_to_file(keys)
             open_subcommand(keys["PROJECT_PATH"])
             update_log_path(keys["LOGS_PATH"])
-            code_view = self.parent.parent.query_one("#cv_tree_view", FilteredDirectoryTree)
-            code_view = DirectoryTree(str(keys["PROJECT_PATH"]), id="cv_tree_view")
+            #code_view = self.parent.parent.query_one("#cv_tree_view", FilteredDirectoryTree)
+            #code_view = DirectoryTree(str(keys["PROJECT_PATH"]), id="cv_tree_view")
             self.notify("The configuration were saved")
-            code_view.compose()
-            code_view.refresh()
-            code_view.reload()
 
         elif button_pressed == "btn_softtek_confirm":
             keys = get_vars_as_dict()
@@ -92,4 +101,10 @@ class ConfigurationView(Static):
             value = self.query_one("#input_python_env", Input).value
             keys["PYTHON_ENV_PATH"] = value
             write_config_to_file(keys)
-        self.notify("The configuration were saved")
+
+    def on_directory_tree_directory_selected(self, event: DirectoryTree.DirectorySelected):
+        tree_id = event.control.id
+        if tree_id == "configuration_directorytree_projectpath":
+            self.query_one("#input_project_path", Input).value = str(event.path)
+        else: 
+            self.query_one("#input_python_env", Input).value = str(event.path)

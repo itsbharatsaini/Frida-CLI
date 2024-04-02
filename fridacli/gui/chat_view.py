@@ -99,12 +99,6 @@ class ChatView(Static):
         )
         self.query_one("#input_chat", Input).clear()
 
-        """
-            Know if send the query to the chatbot or to embeddings query
-                1) Do both if there is no responses from the embenddings do not show
-                2) 
-        """
-
         response = self.chatbot_agent.chat(user_input, False)
 
         self.query_one("#chat_scroll", VerticalScroll).mount(
