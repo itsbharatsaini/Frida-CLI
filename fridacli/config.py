@@ -1,6 +1,15 @@
 from typing import Dict
 import os
-import pwd
+import sys
+
+if sys.platform.startswith('win'):
+    # Windows-specific code or alternative implementation
+    import getpass
+    def getpwuid(uid):
+        return (getpass.getuser(), '', 0, 0, '', '', '')
+else:
+    # Unix-like system
+    import pwd
 
 
 HOME_PATH = os.path.expanduser("~")

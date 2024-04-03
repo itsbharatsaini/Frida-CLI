@@ -2,7 +2,7 @@
 
 generate_document_prompt = lambda code: f"""
 "Create a comprehensive documentation for the code given in a new block code.
-For that use the stadards, example if the code is in python use Pep8 
+For that use the standards, example if the code is in python use Pep8 
 Your documentation should include a brief overview of the purpose of the file, 
 explanations of any functions or classes defined within the file, descriptions of input parameters, 
 return values, and any exceptions raised.
