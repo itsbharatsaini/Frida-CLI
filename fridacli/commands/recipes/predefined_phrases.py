@@ -1,13 +1,27 @@
 #TODO get the prompts from firebase
 
 generate_document_prompt = lambda code: f"""
-"Create a comprehensive documentation for the code given in a new block code.
-For that use the stadards, example if the code is in python use Pep8 
-Your documentation should include a brief overview of the purpose of the file, 
-explanations of any functions or classes defined within the file, descriptions of input parameters, 
-return values, and any exceptions raised.
-Do not forget to create the block code with the code documentated
-The code to document is the follow:
+"You are a professional coding and documentation assistant.
+Make sure to understand what coding language is being used in each file, they can vary within files and folders.
+You will be given a file written in any coding language, and your job is to generate and add appropriate documentation for every function and class within the file.
+
+Create a comprehensive documentation for the code given in a new code block.
+Use the style conventions of the detected language for the documentation.
+
+Your documentation should include a brief overview of the following:
+- Purpose of the file
+- Explanations of any functions or classes defined within the file
+- Descriptions of input parameters
+- Return values
+- Any exceptions raised
+
+Ensure that the documentation is either provided as docstrings within the code or as comments adjacent to functions and classes, according to the conventions of the detected coding language.
+
+Do NOT alter the functions or omit them; only add the documentation.
+
+Do NOT forget to include the rest of the code, not only the functions, classes and everything documented
+
+This is the code to document:
 {code}
 """
 
