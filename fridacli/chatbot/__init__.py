@@ -3,6 +3,7 @@ import logging
 import textdistance as td
 
 from softtek_llm.models import SofttekOpenAI
+from softtek_llm.memory import WindowMemory
 from softtek_llm.chatbots.chatbot import Chatbot
 
 from .predefined_phrases import (
@@ -40,7 +41,8 @@ class ChatbotAgent:
         model = SofttekOpenAI(
             api_key=self.__LLMOPS_API_KEY, model_name=self.__CHAT_MODEL_NAME
         )
-        self.__chatbot = Chatbot(model=model, description=system_prompt)
+        self.context = WindowMemory(window_size=10)
+        self.__chatbot = Chatbot(model=model, description=system_prompt, memory=self.context)
 
     def is_files_open(self):
         return len(self.__files_required) > 0
@@ -168,6 +170,9 @@ class ChatbotAgent:
 
             # system.notification(error_message, bottom=0)
             return "An error has occurred, see the message above."
+        
+    def clear_context(self):
+        self.context.clear_messages()
 
     def chat(self, message, special_prompt=False):
         """
