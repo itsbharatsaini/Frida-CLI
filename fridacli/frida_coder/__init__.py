@@ -98,7 +98,7 @@ class FridaCoder:
                 {
                     "language": match[0],
                     "code": match[1],
-                    "description": match[1][: match[1].find("\n")],
+                    "description": match[1][match[1].find("/// <summary>\n"): match[1].find("/// </summary>\n")],
                 }
                 for match in matches
             ]

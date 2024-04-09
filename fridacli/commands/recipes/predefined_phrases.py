@@ -1,5 +1,5 @@
 #TODO get the prompts from firebase
-
+#TODO Make a list of special documentation types for each coding language
 generate_document_prompt = lambda code: f"""
 "You are a professional coding and documentation assistant.
 Make sure to understand what coding language is being used in each file, they can vary within files and folders.
@@ -20,6 +20,20 @@ Ensure that the documentation is either provided as docstrings within the code o
 Do NOT alter the functions or omit them; only add the documentation.
 
 Do NOT forget to include the rest of the code, not only the functions, classes and everything documented
+
+Only respond with the documented code, omit any observations, planning, etc.
+
+Do NOT add observations, I only want the documented code, omit anything else
+
+Do NOT write the coding language
+
+If the code language is C#, ALWAYS use this documentation style:
+
+/// <summary>
+/// summary text
+/// </summary>
+/// <param name="param_name"></param>
+/// <returns>return type</returns>
 
 This is the code to document:
 {code}
