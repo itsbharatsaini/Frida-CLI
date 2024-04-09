@@ -11,6 +11,7 @@ from typing import Iterable
 from pathlib import Path
 from textual import work
 from .push_screens import EpicGenerator
+import os
 
 logger = Logger()
 
@@ -40,7 +41,7 @@ class CodeView(Static):
                 with Horizontal(id="code_view_buttons"):
                     yield Select((line, line) for line in LINES)
                     yield Button("Execute", id="btn_recipe")
-                yield FilteredDirectoryTree(path, id="cv_tree_view")
+                yield FilteredDirectoryTree(os.path.abspath(path), id="cv_tree_view")
                 yield Button("Update directory", id="btn_code_view_update_directory")
             with VerticalScroll(id="cv_code_scroll"):
                 yield Static(id="cv_code", expand=False)
