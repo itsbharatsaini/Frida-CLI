@@ -10,6 +10,7 @@ from rich.traceback import Traceback
 from fridacli.logger import Logger
 from textual.events import Mount
 from rich.syntax import Syntax
+from fridacli.config import OS
 
 logger = Logger()
 
@@ -59,7 +60,7 @@ class ChatView(Static):
                 message.value, self.mentioned_files
             )
             for path in paths:
-                file_name = path.split("/")[-1]
+                file_name = path.split("\\")[-1] if OS == "win" else path.split("/")[-1]
                 logger.info(__name__, f"file_name: {file_name}")
                 self.mentioned_files.append(file_name)
                 id = len(self.mentioned_files) - 1
