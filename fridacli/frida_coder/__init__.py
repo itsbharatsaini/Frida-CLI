@@ -97,14 +97,10 @@ class FridaCoder:
                 {
                     "language": match[0],
                     "code": match[1],
-                    "description": match[1][match[1].find("/// <summary>\n/// ") + len("/// <summary>\n/// "): match[1].find("\n/// </summary>")],
+                    "description": match[1][: match[1].find("\n")],
                 }
                 for match in matches
             ]
-
-            logger.info(__name__, f"{code_blocks}")
-            if code_blocks == []:
-                logger.info(__name__, f"{text}")
             return code_blocks
         except Exception as e:
             pass
