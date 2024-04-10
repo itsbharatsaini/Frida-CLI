@@ -6,7 +6,6 @@ from fridacli.config import HOME_PATH
 from .exception_message import ExceptionMessage
 from fridacli.file_manager import FileManager
 from fridacli.logger import Logger
-#from fridacli.logger import Logger
 
 logger = Logger()
 
@@ -98,10 +97,14 @@ class FridaCoder:
                 {
                     "language": match[0],
                     "code": match[1],
-                    "description": match[1][match[1].find("/// <summary>\n"): match[1].find("/// </summary>\n")],
+                    "description": match[1][match[1].find("/// <summary>\n/// ") + len("/// <summary>\n/// "): match[1].find("\n/// </summary>")],
                 }
                 for match in matches
             ]
+
+            logger.info(__name__, f"{code_blocks}")
+            if code_blocks == []:
+                logger.info(__name__, f"{text}")
             return code_blocks
         except Exception as e:
             pass

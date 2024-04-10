@@ -7,7 +7,15 @@ from fridacli.file_manager import FileManager
 from .predefined_phrases import generate_document_prompt
 
 logger = Logger()
+MAX_RETRIES = 3
 
+def write_code_to_path(path: str, code: str):
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(code)
+    except Exception as e:
+        pass
+        #logger.error(__name__, f"Error writing code to path: {e}")
 
 def extract_functions(code):
     functions = []
@@ -22,15 +30,15 @@ def extract_functions(code):
 
         # Check if it's a function definition
         function_match = re.match(
-            r"^\s*(?:(?:public|private|protected|internal|static|async|unsafe|sealed|new|override|virtual|abstract)\s+)*([\w<>\[\],\.]+\s+)*([\w_<>\.]+)\s+([\w_]+)\s*\((.*)\)\s*(?:where.*)?\s*$",
+            r"^\s*(?:(?:public|private|protected|internal|static|async|unsafe|sealed|new|override|virtual|abstract)\s+)+([\w<>\[\],\.]+\s+)+([\w_]+)\s*\((.*)\)\s*(?:where.*)?\s*$",
             line,
         )
         if function_match:
             order += 1
             start_line = idx
-            logger.info(__name__, f"line: {idx}")
-            return_type = function_match.group(1) or function_match.group(3)
-            function_name = function_match.group(2) or function_match.group(4)
+            return_type = function_match.group(1)
+            function_name = function_match.group(2)
+            logger.info(__name__, f"line: {idx} Return: {function_match.group(1)} Name: {function_match.group(2)} Args: {function_match.group(3)}")
             current_function = function_name
             current_function_lines = [line]
             brace_count = 1 if line.endswith("{") else 0
@@ -73,7 +81,6 @@ def document_file(
             code = frida_coder.get_code_from_path(full_path)
             code = code.splitlines()
             functions = extract_functions(code)
-            documented_functions = {}
 
             new_file = []
 
@@ -83,54 +90,35 @@ def document_file(
             new_file.extend(code[0:start_line - 1])
 
             for func in functions:
-                prompt = generate_document_prompt(func["code"])
+                prompt = generate_document_prompt(func["code"], extension)
                 response = chatbot_agent.chat(prompt, True)
+                i = 0
+
+                while ("```" not in response or "\\\\\\" not in response) and i  < MAX_RETRIES:
+                    response = chatbot_agent.chat(prompt, True)
+                    i += 1
+
                 if len(response) > 0:
                     code_blocks = frida_coder.get_code_block(response)
                     if len(code_blocks) > 0:
                         document_code = code_blocks[0]["code"]
-                document_code = document_code.splitlines()
-                new_file.extend(document_code)
+                
+                        document_code = ("\n" + document_code).splitlines()
+                        new_file.extend(document_code)
+                    else:
+                        code = ("\n" + func["code"]).splitlines()
+                        new_file.extend(code)
+                else:
+                    code = ("\n" + func["code"]).splitlines()
+                    new_file.extend(code)
+
 
             new_file.extend(code[end_line::])
             new_code = "\n".join(new_file)
-            logger.info(__name__, f"code")
-            logger.info(__name__, new_code)
 
-            """
-            
-            documented_functions = {}
-            for key in result:
-                prompt = generate_document_prompt(result[key])
-                response = chatbot_agent.chat(prompt, True)
-                if len(response):
-                    code_blocks = frida_coder.get_code_block(response)
-                    if len(code_blocks) > 0:
-                        document_code = code_blocks[0]["code"]
-                documented_functions[key] = document_code
+            full_path = file_manager.get_file_path(file)
 
-            for key in result.keys():
-                logger.info(__name__, f"{key}: {result[key]}")
-            """
-            """
-            
-
-            for key in result.keys():
-                logger.info(__name__, f"{key}: {result[key]}")
-
-            code = frida_coder.get_code_from_path(full_path)
-            prompt = generate_document_prompt(code)
-            response = chatbot_agent.chat(prompt, True)
-            logger.info(__name__, f"prompt len {prompt}")
-            logger.info(__name__, f"Response len {response}")
-            
-            if len(response) > 0 :
-                code_blocks = frida_coder.get_code_block(response)
-
-                if len(code_blocks) > 0:
-                    document_code = code_blocks[0]["code"]
-                    frida_coder.write_code_to_path(full_path, document_code)
-            """
+            write_code_to_path(path = full_path, code = new_code)
     except Exception as e:
         logger.info(__name__, f"{e}")
     finally:
