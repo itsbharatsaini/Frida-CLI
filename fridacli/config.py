@@ -2,20 +2,13 @@ from typing import Dict
 import os
 import sys
 
-if sys.platform.startswith('win'):
-    # Windows-specific code or alternative implementation
-    import getpass
-    def getpwuid(uid):
-        return (getpass.getuser(), '', 0, 0, '', '', '')
-else:
-    # Unix-like system
-    import pwd
-
-
 HOME_PATH = os.path.expanduser("~")
+OS = "win" if sys.platform.startswith('win') else "linux"
 config_file_path = f"{HOME_PATH}/.fridacli"
 BOT_NAME = "Frida"
 
+if OS == "linux":
+    import pwd
 
 def config_file_exists(path: str = config_file_path) -> bool:
     """Check if the configuration file already exists."""
@@ -45,10 +38,12 @@ def get_config_vars(path: str = config_file_path) -> Dict:
 def get_username() -> str:
     """Returns the name of the current user."""
     try:
-        username = os.getlogin()
-        uid = os.geteuid()
-        user_info = pwd.getpwuid(uid)
-        return user_info.pw_name
+        if OS == "win":
+            return os.getlogin()
+        else:
+            uid = os.geteuid()
+            user_info = pwd.getpwuid(uid)
+            return user_info.pw_name
     except OSError:
         username = "user"
     return username

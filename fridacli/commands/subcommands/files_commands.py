@@ -14,6 +14,7 @@ from fridacli.commands.subcommands.predefined_phrases import (
 )
 
 from fridacli.logger import Logger
+import os
 
 logger = Logger()
 
@@ -37,7 +38,7 @@ def open_subcommand(path_to_open):
     active_folder = file_manager.get_folder_status()
     current_folder_active = check_samepath(get_current_dir(), path_to_open)
 
-    project_type, tree_str = file_manager.load_folder(path=path_to_open)
+    project_type, tree_str = file_manager.load_folder(path=os.path.abspath(path_to_open))
     # change_directory(path_to_open)
 
     formatted_path = get_relative_path(path_to_open)
