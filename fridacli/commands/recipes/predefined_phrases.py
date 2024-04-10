@@ -1,29 +1,47 @@
-#TODO get the prompts from firebase
+# TODO get the prompts from firebase
+# TODO Make a list of special documentation types for each coding language
 
-generate_document_prompt = lambda code: f"""
-"You are a professional coding and documentation assistant.
-Make sure to understand what coding language is being used in each file, they can vary within files and folders.
-You will be given a file written in any coding language, and your job is to generate and add appropriate documentation for every function and class within the file.
+programming_languages = {
+    ".cs": [
+        "C#",
+        """
+    /// <summary>
+    /// Summary text.
+    /// </summary>
+    /// <param name="param_name"></param>
+    /// <returns>return type</returns>""",
+    ]
+}
 
-Create a comprehensive documentation for the code given in a new code block.
-Use the style conventions of the detected language for the documentation.
+def generate_document_prompt(code, extension):
+    return f"""
+    You are a professional coding and documentation assistant.
+    You will be given a function written in {programming_languages[extension][0]}, and your job is to generate the appropriate documentation for it.
 
-Your documentation should include a brief overview of the following:
-- Purpose of the file
-- Explanations of any functions or classes defined within the file
-- Descriptions of input parameters
-- Return values
-- Any exceptions raised
+    Create a comprehensive documentation for the function given.
+    Do NOT generate anything else besides the documentation.
 
-Ensure that the documentation is either provided as docstrings within the code or as comments adjacent to functions and classes, according to the conventions of the detected coding language.
+    ALWAYS use this documentation style: {programming_languages[extension][1]}
 
-Do NOT alter the functions or omit them; only add the documentation.
+    Your documentation should include a brief overview of the following:
+    - Purpose of the function
+    - Descriptions of input parameters
+    - Return values
+    - Exceptions handled in the function
 
-Do NOT forget to include the rest of the code, not only the functions, classes and everything documented
+    You have to return a code block with the function and the documentation.
 
-This is the code to document:
-{code}
-"""
+    Do NOT alter the functions or omit them; only add the documentation.
+
+    Do NOT add anything to the code block besides the documentation and the function.
+
+    Do NOT write observations.
+
+    ONLY respond with a code block, omit anything else.
+
+    This is the function to document:
+    {code}
+    """
 
 generate_epic = lambda epic_name: f"""Generate at least 5 user stories for the Epic {epic_name} in the project Innovasports Mobile, which is a mobile application designed for selling shoes.
 Each user story should consist of a title, a detailed description, and acceptance criteria to ensure clarity and understanding.

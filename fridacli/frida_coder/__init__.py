@@ -6,7 +6,6 @@ from fridacli.config import HOME_PATH
 from .exception_message import ExceptionMessage
 from fridacli.file_manager import FileManager
 from fridacli.logger import Logger
-#from fridacli.logger import Logger
 
 logger = Logger()
 
