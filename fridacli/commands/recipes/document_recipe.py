@@ -7,7 +7,28 @@ from fridacli.file_manager import FileManager
 from .predefined_phrases import generate_document_prompt
 
 logger = Logger()
-MAX_RETRIES = 3
+MAX_RETRIES = 2
+
+def get_code_block(text):
+    try:
+        code_pattern = re.compile(r"```(\w+)\n(.*?)```", re.DOTALL)
+        matches = code_pattern.findall(text)
+        code_blocks = [
+            {
+                "language": match[0],
+                "code": match[1],
+                "description": match[1][match[1].find("/// <summary>\n/// ") + len("/// <summary>\n/// "): match[1].find("\n/// </summary>")],
+            }
+            for match in matches
+        ]
+
+        logger.info(__name__, f"{code_blocks}")
+        if code_blocks == []:
+            logger.info(__name__, f"{text}")
+        return code_blocks
+    except Exception as e:
+        pass
+        #logger.error(__name__, f"Error get code block from text using regex: {e}")
 
 def write_code_to_path(path: str, code: str):
     try:
@@ -99,7 +120,7 @@ def document_file(
                     i += 1
 
                 if len(response) > 0:
-                    code_blocks = frida_coder.get_code_block(response)
+                    code_blocks = get_code_block(response)
                     if len(code_blocks) > 0:
                         document_code = code_blocks[0]["code"]
                 
