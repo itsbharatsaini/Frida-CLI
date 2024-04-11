@@ -11,9 +11,6 @@ from pathlib import Path
 logger = Logger()
 
 
-class FilteredDirectoryTree(DirectoryTree):
-    def filter_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
-        return [path for path in paths if not path.name.startswith(".")]
 
 class ConfigurationView(Static):
     def compose(self):
@@ -85,8 +82,9 @@ class ConfigurationView(Static):
             write_config_to_file(keys)
             open_subcommand(keys["PROJECT_PATH"])
             update_log_path(keys["LOGS_PATH"])
-            #code_view = self.parent.parent.query_one("#cv_tree_view", FilteredDirectoryTree)
-            #code_view = DirectoryTree(str(keys["PROJECT_PATH"]), id="cv_tree_view")
+            self.parent.parent.query_one("#cv_tree_view", FilteredDirectoryTree).remove()
+            self.parent.parent.query_one("#code_view_left", Vertical).mount(FilteredDirectoryTree(str(keys["PROJECT_PATH"]), id="cv_tree_view"))
+            #code_view.refresh(repaint=True)
             self.notify("The configuration were saved")
 
         elif button_pressed == "btn_softtek_confirm":
