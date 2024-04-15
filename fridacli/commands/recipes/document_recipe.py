@@ -9,15 +9,48 @@ from .predefined_phrases import generate_document_prompt
 logger = Logger()
 MAX_RETRIES = 2
 
+def get_documentation(block, function):
+    lines = [f"\nFunction: {function['name_of_function']}", f"Description:\n{block['description']}"]
+    first_parameter = True
+    first_return = True
+    first_exception = True
+
+    for idx, line in enumerate(block["code"].splitlines(), 1):
+        try:
+            param_match = re.match(r"^\s*///\s*<\s*param\s*name\s*=\s*\"([\w\s]*)\">([\w\.\-\s<>=\"/{}]*)</param>\s*$", line)
+            returns_match = re.match(r'^\s*///\s*<\s*returns\s*>([\w\.\-\s<>=\"/{}]*)</returns>\s*$', line)
+            exception_match = re.match(r'^\s*///\s*<\s*exception\s*cref\s*=\s*\"([\w\s]*)\">([\w\.\-\s<>=\"/{}]*)</exception>\s*$', line)
+
+            if param_match:
+                start = 'Argument: \n' if first_parameter else ''
+                lines.append(f"{start}- {param_match.group(1)}. {param_match.group(2)}")
+                first_parameter = False
+                logger.info(__name__, f"func: {function['name_of_function']} | idx: {idx} | Param: {param_match.group(1)} {param_match.group(2)}")
+            elif returns_match:
+                start = 'Return: \n' if first_return else ''
+                lines.append(f"{start}- {returns_match.group(1)}")
+                first_return = False
+                logger.info(__name__, f"func: {function['name_of_function']} |idx: {idx} | Return: {returns_match.group(1)}")
+            elif exception_match:
+                start = 'Exception: \n' if first_exception else ''
+                lines.append(f"{start}- {exception_match.group(1)}. {exception_match.group(2)}")
+                first_exception = False
+                logger.info(__name__, f"func: {function['name_of_function']} |idx: {idx} | Exception: {exception_match.group(1)} {exception_match.group(2)}")
+        except Exception as e:
+            logger.error(__name__, f"func: {function['name_of_function']} | idx: {idx} | line: {line} error: {e}")
+            continue
+    
+    return lines
+
 def get_code_block(text):
     try:
-        code_pattern = re.compile(r"```(\w+)\n(.*?)```", re.DOTALL)
+        code_pattern = re.compile(r"```([\w#]*)\n(.*?)```", re.DOTALL)
         matches = code_pattern.findall(text)
         code_blocks = [
             {
                 "language": match[0],
                 "code": match[1],
-                "description": match[1][match[1].find("/// <summary>\n/// ") + len("/// <summary>\n/// "): match[1].find("\n/// </summary>")],
+                "description": match[1][match[1].find("/// <summary>\n/// ") + len("/// <summary>\n/// "): match[1].find("\n/// </summary>")].replace("/// ", ""),
             }
             for match in matches
         ]
@@ -59,7 +92,7 @@ def extract_functions(code):
             start_line = idx
             return_type = function_match.group(1)
             function_name = function_match.group(2)
-            logger.info(__name__, f"line: {idx} Return: {function_match.group(1)} Name: {function_match.group(2)} Args: {function_match.group(3)}")
+            #logger.info(__name__, f"line: {idx} Return: {function_match.group(1)} Name: {function_match.group(2)} Args: {function_match.group(3)}")
             current_function = function_name
             current_function_lines = [line]
             brace_count = 1 if line.endswith("{") else 0
@@ -78,6 +111,7 @@ def extract_functions(code):
                     "order": order,
                     "start_line": start_line,
                     "end_line": idx,
+                    "name_of_function": current_function,
                     "code": "\n".join(current_function_lines),
                 }
             )
@@ -104,6 +138,7 @@ def document_file(
             functions = extract_functions(code)
 
             new_file = []
+            new_doc = [f"Documentation of the file '{file}'"]
 
             start_line = functions[0]["start_line"]
             end_line = functions[-1]["end_line"]
@@ -120,12 +155,15 @@ def document_file(
                     i += 1
 
                 if len(response) > 0:
+                    #logger.info(__name__, f"{response}")
                     code_blocks = get_code_block(response)
                     if len(code_blocks) > 0:
                         document_code = code_blocks[0]["code"]
-                
                         document_code = ("\n" + document_code).splitlines()
                         new_file.extend(document_code)
+                        
+                        documentation = get_documentation(code_blocks[0], func)
+                        new_doc.extend(documentation)
                     else:
                         code = ("\n" + func["code"]).splitlines()
                         new_file.extend(code)
@@ -137,9 +175,13 @@ def document_file(
             new_file.extend(code[end_line::])
             new_code = "\n".join(new_file)
 
-            full_path = file_manager.get_file_path(file)
+            new_doc_file = "\n".join(new_doc)
 
-            write_code_to_path(path = full_path, code = new_code)
+            full_path = file_manager.get_file_path(file)
+            path = ''.join(full_path.split(file)[:-1])
+
+            write_code_to_path(full_path, new_code)
+            write_code_to_path(path + ("doc_" + file).replace(extension, ".txt"), new_doc_file)
     except Exception as e:
         logger.info(__name__, f"{e}")
     finally:
