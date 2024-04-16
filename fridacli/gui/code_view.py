@@ -4,13 +4,13 @@ from fridacli.commands.recipes import document_files
 from fridacli.config import get_vars_as_dict
 from rich.traceback import Traceback
 from fridacli.logger import Logger
-from textual.worker import Worker
+from textual.worker import Worker, WorkerState
 from textual.reactive import var
 from rich.syntax import Syntax
 from typing import Iterable
 from pathlib import Path
 from textual import work
-from .push_screens import EpicGenerator
+from .push_screens import EpicGenerator, DocGenerator
 import os
 
 logger = Logger()
@@ -83,7 +83,10 @@ class CodeView(Static):
 
     def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
         """Called when the worker state changes."""
-        logger.info(__name__, event)
+        if WorkerState.SUCCESS == event.worker.state and event.worker.name == "document_files":
+            logger.info(__name__, f"all cool")
+            self.app.pop_screen()
+        logger.info(__name__, f"{event}")
     
     def on_button_pressed(self, event: Button.Pressed):
         button_pressed = str(event.button.id)
@@ -98,7 +101,8 @@ class CodeView(Static):
             """
             if self.recipe_selected == "document" :
                 logger.info(__name__, "On UI calling to document files")
-                self.run_worker(document_files, exclusive=False)
+                self.app.push_screen(DocGenerator())
+                self.run_worker(document_files, exclusive=False, thread=True)
             
             elif self.recipe_selected == "generate_epics":
                 logger.info(__name__, "epics")
