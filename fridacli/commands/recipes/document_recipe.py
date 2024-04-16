@@ -1,6 +1,7 @@
 import re
 import os
 import threading
+from docx import Document
 from fridacli.logger import Logger
 from fridacli.frida_coder import FridaCoder
 from fridacli.file_manager import FileManager
@@ -10,7 +11,7 @@ logger = Logger()
 MAX_RETRIES = 2
 
 def get_documentation(block, function):
-    lines = [f"\nFunction: {function['name_of_function']}", f"Description:\n{block['description']}"]
+    lines = [("subheader", f"Function: {function['name_of_function']}"), ("bold", "Description:"), ("text", block['description'].rstrip())]
     first_parameter = True
     first_return = True
     first_exception = True
@@ -22,25 +23,53 @@ def get_documentation(block, function):
             exception_match = re.match(r'^\s*///\s*<\s*exception\s*cref\s*=\s*\"([\w\s]*)\">([\w\.\-\s<>=\"/{}]*)</exception>\s*$', line)
 
             if param_match:
-                start = 'Argument: \n' if first_parameter else ''
-                lines.append(f"{start}- {param_match.group(1)}. {param_match.group(2)}")
-                first_parameter = False
-                logger.info(__name__, f"func: {function['name_of_function']} | idx: {idx} | Param: {param_match.group(1)} {param_match.group(2)}")
+                if first_parameter:
+                    lines.append(("bold", "Arguments:"))
+                    lines.append(("bullet", f"{param_match.group(1)}. {param_match.group(2)}"))
+                    first_parameter = False
+                else:
+                    lines.append(("bullet", f"{param_match.group(1)}. {param_match.group(2)}"))
+                
             elif returns_match:
-                start = 'Return: \n' if first_return else ''
-                lines.append(f"{start}- {returns_match.group(1)}")
-                first_return = False
-                logger.info(__name__, f"func: {function['name_of_function']} |idx: {idx} | Return: {returns_match.group(1)}")
+                if first_return:
+                    lines.append(("bold", "Return:"))
+                    lines.append(("bullet", f"{returns_match.group(1)}"))
+                    first_return = False
+                else:
+                    lines.append(("bullet", f"{returns_match.group(1)}"))
+
+                logger.info(__name__, f"return: {returns_match.group(1)}")
             elif exception_match:
-                start = 'Exception: \n' if first_exception else ''
-                lines.append(f"{start}- {exception_match.group(1)}. {exception_match.group(2)}")
-                first_exception = False
-                logger.info(__name__, f"func: {function['name_of_function']} |idx: {idx} | Exception: {exception_match.group(1)} {exception_match.group(2)}")
+                if first_exception:
+                    lines.append(("bold", "Exception:"))
+                    lines.append(("bullet", f"{exception_match.group(1)}. {exception_match.group(2)}"))
+                    first_exception = False
+                else:
+                    lines.append(("bullet", f"{exception_match.group(1)}. {exception_match.group(2)}"))
+   
         except Exception as e:
             logger.error(__name__, f"func: {function['name_of_function']} | idx: {idx} | line: {line} error: {e}")
             continue
     
     return lines
+
+def save_documentation(path, lines):
+    doc = Document()
+
+    for format, text in lines:
+        if format == "title":
+            doc.add_heading(text)
+        elif format == "subheader":
+            doc.add_heading(text, level=2)
+        elif format == "bold":
+            p = doc.add_paragraph("")
+            p.add_run(text).bold = True
+        elif format == "text":
+            doc.add_paragraph(text)
+        elif format == "bullet":
+            doc.add_paragraph(text, style='List Bullet')
+
+    doc.save(path)
 
 def get_code_block(text):
     try:
@@ -54,10 +83,8 @@ def get_code_block(text):
             }
             for match in matches
         ]
-
-        logger.info(__name__, f"{code_blocks}")
         if code_blocks == []:
-            logger.info(__name__, f"{text}")
+            logger.info(__name__, f"Revisar: {text}")
         return code_blocks
     except Exception as e:
         pass
@@ -138,7 +165,7 @@ def document_file(
             functions = extract_functions(code)
 
             new_file = []
-            new_doc = [f"Documentation of the file '{file}'"]
+            new_doc = [("title", f"Documentation of the file '{file}'")]
 
             start_line = functions[0]["start_line"]
             end_line = functions[-1]["end_line"]
@@ -155,7 +182,6 @@ def document_file(
                     i += 1
 
                 if len(response) > 0:
-                    #logger.info(__name__, f"{response}")
                     code_blocks = get_code_block(response)
                     if len(code_blocks) > 0:
                         document_code = code_blocks[0]["code"]
@@ -175,13 +201,11 @@ def document_file(
             new_file.extend(code[end_line::])
             new_code = "\n".join(new_file)
 
-            new_doc_file = "\n".join(new_doc)
-
             full_path = file_manager.get_file_path(file)
             path = ''.join(full_path.split(file)[:-1])
 
             write_code_to_path(full_path, new_code)
-            write_code_to_path(path + ("doc_" + file).replace(extension, ".txt"), new_doc_file)
+            save_documentation(path + ("doc_" + file).replace(extension, ".docx"), new_doc)
     except Exception as e:
         logger.info(__name__, f"{e}")
     finally:
