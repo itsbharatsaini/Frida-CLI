@@ -2,6 +2,7 @@ import re
 import os
 import threading
 from docx import Document
+from mdutils.mdutils import MdUtils
 from fridacli.logger import Logger
 from fridacli.frida_coder import FridaCoder
 from fridacli.file_manager import FileManager
@@ -53,23 +54,50 @@ def get_documentation(block, function):
     
     return lines
 
-def save_documentation(path, lines):
-    doc = Document()
+def save_documentation(path, lines, extension = "docx"):
+    if extension == "docx":
+        doc = Document()
 
-    for format, text in lines:
-        if format == "title":
-            doc.add_heading(text)
-        elif format == "subheader":
-            doc.add_heading(text, level=2)
-        elif format == "bold":
-            p = doc.add_paragraph("")
-            p.add_run(text).bold = True
-        elif format == "text":
-            doc.add_paragraph(text)
-        elif format == "bullet":
-            doc.add_paragraph(text, style='List Bullet')
+        for format, text in lines:
+            if format == "title":
+                doc.add_heading(text)
+            elif format == "subheader":
+                doc.add_heading(text, level=2)
+            elif format == "bold":
+                p = doc.add_paragraph("")
+                p.add_run(text).bold = True
+            elif format == "text":
+                doc.add_paragraph(text)
+            elif format == "bullet":
+                doc.add_paragraph(text, style='List Bullet')
 
-    doc.save(path)
+        doc.save(path)
+    elif extension == "md":
+        mdFile = None
+        bullets = []
+        for format, text in lines:
+            if format == "title":
+                mdFile = MdUtils(file_name=path, title=text)
+            elif format == "subheader":
+                if bullets:
+                    mdFile.new_list(bullets)
+                    bullets = []
+                mdFile.new_header(level=2, title=text, add_table_of_contents="n")
+            elif format == "bold":
+                if bullets:
+                    mdFile.new_list(bullets)
+                    bullets = []
+                mdFile.new_line(text, bold_italics_code="b")
+            elif format == "text":
+                mdFile.new_line(text)
+            elif format == "bullet":
+                bullets.append(text)
+        if bullets:
+            mdFile.new_list(bullets)
+            bullets = []
+
+        logger.info(__name__, "Creating doc...")
+        mdFile.create_md_file()
 
 def get_code_block(text):
     try:
@@ -205,7 +233,8 @@ def document_file(
             path = ''.join(full_path.split(file)[:-1])
 
             write_code_to_path(full_path, new_code)
-            save_documentation(path + ("doc_" + file).replace(extension, ".docx"), new_doc)
+            logger.info(__name__, "About to start doc...")
+            save_documentation(path + ("readme_" + file).replace(extension, ".md"), new_doc, extension="md")
     except Exception as e:
         logger.info(__name__, f"{e}")
     finally:
