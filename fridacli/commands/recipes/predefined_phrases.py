@@ -6,10 +6,12 @@ programming_languages = {
         "C#",
         """
     /// <summary>
-    /// Summary text.
+    /// Purpose of the funtion.
+    /// Detailed description of the function.
     /// </summary>
-    /// <param name="param_name"></param>
-    /// <returns>return type</returns>""",
+    /// <param name="param_name">Description of the parameter.</param>
+    /// <returns>Return values.</returns>
+    /// <exception cref="exception_name">Description of the exception.</exception>""",
     ]
 }
 
@@ -24,12 +26,18 @@ def generate_document_prompt(code, extension):
     ALWAYS use this documentation style: {programming_languages[extension][1]}
 
     Your documentation should include a brief overview of the following:
-    - Purpose of the function
+    - Purpose of the function with a detailed description of what the function does.
     - Descriptions of input parameters
     - Return values
     - Exceptions handled in the function
 
+    The description of the function MUST be within the code block in the 'summary' section.
+
+    The description of the function MUST be written with natural language.
+
     You have to return a code block with the function and the documentation.
+
+    Do NOT omit the implementation of the function.
 
     Do NOT alter the functions or omit them; only add the documentation.
 

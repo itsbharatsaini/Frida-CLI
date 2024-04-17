@@ -157,9 +157,32 @@ RunCodeConfirmation{
     margin: 0 0 0 1
 }
 
+LoaderIndicator{
+    width: 100%;
+}
+
 EpicGenerator {
-    width: 300;
+    width: 50;
     align: center middle;
+}
+
+DocGenerator{
+    width: 50;
+    text-align: center;
+    align: center middle;
+}
+
+.loader {
+    grid-size: 1;
+    width: 50;
+    height: 18;
+    border: thick $background 80%;
+    background: $surface;
+}
+
+#doc_title{
+    text-align: center;
+    padding: 1 2;
 }
 
 .dialog {

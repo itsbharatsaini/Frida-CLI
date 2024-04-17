@@ -1,5 +1,5 @@
 from textual.screen import Screen
-from textual.widgets import Label, Input, Button, DirectoryTree
+from textual.widgets import Label, Input, Button, DirectoryTree, LoadingIndicator
 from textual.containers import Vertical, Container, Horizontal
 from fridacli.commands.recipes import generate_epics
 from fridacli.logger import Logger
@@ -11,6 +11,14 @@ logger = Logger()
 class FilteredDirectoryTree(DirectoryTree):
     def filter_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
         return [path for path in paths if not path.name.startswith(".")]
+
+class DocGenerator(Screen):
+    def compose(self):
+        yield Vertical(
+            Label("Working on your documentation!", id = "doc_title"),
+            LoadingIndicator(),
+            classes="loader",
+        )
     
 
 class EpicGenerator(Screen):
