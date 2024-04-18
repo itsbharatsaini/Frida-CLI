@@ -54,8 +54,8 @@ def get_documentation(block, function):
     
     return lines
 
-def save_documentation(path, lines, extension = "docx"):
-    if extension == "docx":
+def save_documentation(path, lines):
+    if "docx" in path:
         doc = Document()
 
         for format, text in lines:
@@ -72,7 +72,7 @@ def save_documentation(path, lines, extension = "docx"):
                 doc.add_paragraph(text, style='List Bullet')
 
         doc.save(path)
-    elif extension == "md":
+    else:
         mdFile = None
         bullets = []
         for format, text in lines:
@@ -176,6 +176,7 @@ def extract_functions(code):
 
 
 def document_file(
+    checkbox,
     file,
     thread_semaphore,
     chatbot_agent,
@@ -233,8 +234,11 @@ def document_file(
             path = ''.join(full_path.split(file)[:-1])
 
             write_code_to_path(full_path, new_code)
-            logger.info(__name__, "About to start doc...")
-            save_documentation(path + ("readme_" + file).replace(extension, ".md"), new_doc, extension="md")
+
+            for doctype, selected in checkbox.items():
+                if selected:
+                    filename = (("readme_" + file).replace(extension, ".md")) if doctype == "md" else (("doc_" + file).replace(extension, ".docx"))
+                    save_documentation(path + filename, new_doc)
     except Exception as e:
         logger.info(__name__, f"{e}")
     finally:
@@ -242,7 +246,7 @@ def document_file(
 
 
 async def exec_document(
-    chatbot_agent, file_manager: FileManager, frida_coder: FridaCoder
+    checkbox, chatbot_agent, file_manager: FileManager, frida_coder: FridaCoder
 ):
     """
     Documenting all the files using threads
@@ -257,6 +261,7 @@ async def exec_document(
         thread = threading.Thread(
             target=document_file,
             args=(
+                checkbox,
                 file,
                 thread_semaphore,
                 chatbot_agent,
