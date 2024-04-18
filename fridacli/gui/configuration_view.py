@@ -5,8 +5,6 @@ from fridacli.gui.code_view import FilteredDirectoryTree
 from textual.containers import Horizontal, Vertical
 from fridacli.logger import Logger
 from textual.events import Mount
-from typing import Iterable
-from pathlib import Path
 
 logger = Logger()
 

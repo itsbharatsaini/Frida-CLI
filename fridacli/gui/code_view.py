@@ -9,7 +9,6 @@ from textual.reactive import var
 from rich.syntax import Syntax
 from typing import Iterable
 from pathlib import Path
-from textual import work
 from .push_screens import EpicGenerator, DocGenerator
 import os
 
