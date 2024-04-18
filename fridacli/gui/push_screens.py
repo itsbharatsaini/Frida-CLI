@@ -1,6 +1,6 @@
 from textual.screen import Screen
 from textual.widgets import Label, Input, Button, DirectoryTree, LoadingIndicator
-from textual.containers import Vertical, Container, Horizontal
+from textual.containers import Vertical, Horizontal
 from fridacli.commands.recipes import generate_epics
 from fridacli.logger import Logger
 from fridacli.config import HOME_PATH

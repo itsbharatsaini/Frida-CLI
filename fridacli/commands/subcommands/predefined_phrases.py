@@ -1,6 +1,3 @@
-from fridacli.interface.styles import add_styletags_to_string
-
-
 """ COMMANDS MESSAGES """
 
 class CommandMessage:
