@@ -43,7 +43,6 @@ class CodeView(Static):
                     yield Select((line, line) for line in LINES)
                     yield Button("Execute", id="btn_recipe")
                 yield FilteredDirectoryTree(os.path.abspath(path), id="cv_tree_view")
-                yield Button("Update directory", id="btn_code_view_update_directory")
             with VerticalScroll(id="cv_code_scroll"):
                 yield Static(id="cv_code", expand=False)
 
@@ -84,10 +83,6 @@ class CodeView(Static):
     def on_button_pressed(self, event: Button.Pressed):
         button_pressed = str(event.button.id)
         logger.info(__name__, button_pressed)
-        if button_pressed == "btn_code_view_update_directory":
-            tree_view = self.query_one("#cv_tree_view", FilteredDirectoryTree)
-            tree_view.reload()
-            self.notify(f"File directory updated {tree_view.root}")
         if button_pressed == "btn_recipe" :
             """
             TODO: Assure that the threads are syncroniced and do not stop the GUI  thread 
