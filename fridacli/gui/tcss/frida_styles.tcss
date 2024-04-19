@@ -97,10 +97,6 @@ Input {
     width: 100%
 }
 
-#btn_code_view_update_directory{
-    width: 100%
-}
-
 #CodeChangeQuestion{
     width: 100%
 }
