@@ -1,4 +1,6 @@
 from textual.containers import  VerticalScroll, Vertical, Horizontal
+from textual.screen import Screen
+from textual.events import Focus, Hide, Show
 from textual.widgets import DirectoryTree, Static, Select, Button
 from fridacli.commands.recipes import document_files
 from fridacli.config import get_vars_as_dict
@@ -76,7 +78,6 @@ class CodeView(Static):
         """Called in response to key binding."""
         self.show_tree = not self.show_tree
 
-
     def on_select_changed(self, event: Select.Changed) -> None:
         self.recipe_selected = str(event.value)
     
@@ -93,9 +94,11 @@ class CodeView(Static):
             """
             if self.recipe_selected == "document" :
                 logger.info(__name__, "On UI calling to document files")
-                self.app.push_screen(DocGenerator())
+                self.app.push_screen(DocGenerator(), self.doc_generator_callback)
             
             elif self.recipe_selected == "generate_epics":
                 logger.info(__name__, "epics")
                 self.app.push_screen(EpicGenerator())
 
+    def doc_generator_callback(self, result):
+        self.query_one("#cv_tree_view", FilteredDirectoryTree).reload()

@@ -28,7 +28,7 @@ class DocGenerator(Screen):
         """Called when the worker state changes."""
         if WorkerState.SUCCESS == event.worker.state and event.worker.name == "document_files":
             self.app.pop_screen()
-            self.app.pop_screen()
+            self.dismiss("OK")
         logger.info(__name__, f"{event}")
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -36,7 +36,7 @@ class DocGenerator(Screen):
             self.app.pop_screen()
         elif event.button.id == "generate_documentation":
             docx = self.query_one("#docx_check", Checkbox).value
-            md = self.query_one("#docx_check", Checkbox).value
+            md = self.query_one("#md_check", Checkbox).value
             if docx or md:
                 self.app.push_screen(DocLoader())
                 self.run_worker(document_files({"docx": docx, "md": md}), exclusive=False, thread=True)
