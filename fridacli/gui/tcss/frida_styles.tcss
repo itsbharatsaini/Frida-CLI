@@ -89,7 +89,7 @@ Input {
 }
 
 #cv_tree_view {
-    height: 85%;
+    height: 90%;
     width: auto;
 }
 
