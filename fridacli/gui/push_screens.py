@@ -1,13 +1,16 @@
 from textual.screen import Screen
-from textual.widgets import Label, Input, Button, DirectoryTree, LoadingIndicator
+from textual.widgets import Label, Input, Button, DirectoryTree, LoadingIndicator, Checkbox
 from textual.containers import Vertical, Horizontal
-from fridacli.commands.recipes import generate_epics
+from fridacli.commands.recipes import generate_epics, document_files
+from textual.worker import Worker, WorkerState
 from fridacli.logger import Logger
 from fridacli.config import HOME_PATH
 from typing import Iterable
 from pathlib import Path
 
 logger = Logger()
+
+
 class FilteredDirectoryTree(DirectoryTree):
     def filter_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
         return [path for path in paths if not path.name.startswith(".")]
@@ -15,11 +18,38 @@ class FilteredDirectoryTree(DirectoryTree):
 class DocGenerator(Screen):
     def compose(self):
         yield Vertical(
+            Label("Please select the format(s) you need for your documentation.", id="format_selection"),
+            Vertical(Checkbox("Word Document", id = "docx_check"), Checkbox("Markdown Readme", id = "md_check"), id="checkbox"),
+            Horizontal(Button("Quit", variant="error", id="quit"),Button("Create Documentation", variant="success", id="generate_documentation")),
+            classes="dialog_doc",
+        )
+
+    def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
+        """Called when the worker state changes."""
+        if WorkerState.SUCCESS == event.worker.state and event.worker.name == "document_files":
+            self.app.pop_screen()
+            self.dismiss("OK")
+        logger.info(__name__, f"{event}")
+    
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "quit":
+            self.app.pop_screen()
+        elif event.button.id == "generate_documentation":
+            docx = self.query_one("#docx_check", Checkbox).value
+            md = self.query_one("#md_check", Checkbox).value
+            if docx or md:
+                self.app.push_screen(DocLoader())
+                self.run_worker(document_files({"docx": docx, "md": md}), exclusive=False, thread=True)
+            else:
+                self.notify(f"You must select at least one option.")
+
+class DocLoader(Screen):
+    def compose(self):
+        yield Vertical(
             Label("Working on your documentation!", id = "doc_title"),
             LoadingIndicator(),
             classes="loader",
         )
-    
 
 class EpicGenerator(Screen):
     path = HOME_PATH
