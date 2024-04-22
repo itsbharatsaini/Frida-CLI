@@ -1,6 +1,4 @@
-from textual.containers import Container
 from textual.widgets import Static, Label
-
 
 class ResultErrorExceptionMessage(Static):
     def compose(self):

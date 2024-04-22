@@ -1,5 +1,4 @@
 import re
-import logging
 import textdistance as td
 
 from softtek_llm.models import SofttekOpenAI
