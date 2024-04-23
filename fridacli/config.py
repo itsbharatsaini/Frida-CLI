@@ -14,7 +14,6 @@ def config_file_exists(path: str = config_file_path) -> bool:
     """Check if the configuration file already exists."""
     return os.path.exists(path)
 
-
 def get_config_vars(path: str = config_file_path) -> Dict:
     """Retrieve configuration variables from a given configuration file."""
     if not config_file_exists():
@@ -25,6 +24,7 @@ def get_config_vars(path: str = config_file_path) -> Dict:
         keys["LLMOPS_API_KEY"] = ""
         keys["CHAT_MODEL_NAME"] = ""
         keys["PYTHON_ENV_PATH"] = ""
+        keys["PROJECT_SETUP"] = "FALSE"
         write_config_to_file(keys)
         
     config_variables = {}
