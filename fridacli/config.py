@@ -6,6 +6,25 @@ HOME_PATH = os.path.expanduser("~")
 OS = "win" if sys.platform.startswith('win') else "linux"
 config_file_path = f"{HOME_PATH}/.fridacli"
 BOT_NAME = "Frida"
+SUPPORTED_PROGRAMMING_LANGUAGES = [
+    ".py",
+    ".asp",
+    ".java",
+    ".cpp",
+    ".c",
+    ".cs",
+    ".js",
+    ".html",
+    ".css",
+    ".php",
+    ".rb",
+    ".swift",
+    ".go",
+    ".lua",
+    ".pl",
+    ".r",
+    ".sh",
+]
 
 if OS == "linux":
     import pwd
