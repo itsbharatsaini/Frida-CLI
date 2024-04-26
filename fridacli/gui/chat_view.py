@@ -11,6 +11,7 @@ from fridacli.logger import Logger
 from textual.events import Mount
 from rich.syntax import Syntax
 from fridacli.config import OS
+import os
 
 logger = Logger()
 
@@ -130,8 +131,9 @@ class ChatView(Static):
         """Event when a button in clicked"""
         button_pressed = str(event.button.id)
         if "cv_hs_file_" in button_pressed:
-            file_name = button_pressed.replace("cv_hs_file_", "")
-            convert_file_name = file_name.replace("-", ".")
-            logger.info(__name__, f"convert_file_name: {convert_file_name}")
-            path = self.file_manager.get_file_path(convert_file_name)
+            id = int(button_pressed.split("_")[-1])
+            file_name = self.mentioned_files[id]
+            logger.info(__name__, f"convert_file_name: {file_name}")
+            path = self.file_manager.get_file_path(file_name)
+            logger.info(__name__, f"{path} {file_name}")
             self.display_code_file(path)
