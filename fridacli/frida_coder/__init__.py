@@ -163,7 +163,8 @@ class FridaCoder:
     def is_programming_language_extension(self, extension: str):
         programming_language_extensions = [
             ".py",
-            ".asp" ".java",
+            ".asp",
+            ".java",
             ".cpp",
             ".c",
             ".cs",
