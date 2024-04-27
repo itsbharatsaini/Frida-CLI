@@ -99,6 +99,55 @@ def save_documentation(path, lines):
         logger.info(__name__, "Creating doc...")
         mdFile.create_md_file()
 
+def extract_documentation_functions(block):
+    lines = []
+    function = []
+    first_parameter = True
+    first_return = True
+    first_exception = True
+
+    for idx, line in enumerate(block["code"].splitlines(), 1):
+        try:
+            param_match = re.match(r"^\s*///\s*<\s*param\s*name\s*=\s*\"([\w\s]*)\">([\w\.\-\s<>=\"/{}]*)</param>\s*$", line)
+            returns_match = re.match(r'^\s*///\s*<\s*returns\s*>([\w\.\-\s<>=\"/{}]*)</returns>\s*$', line)
+            exception_match = re.match(r'^\s*///\s*<\s*exception\s*cref\s*=\s*\"([\w\s]*)\">([\w\.\-\s<>=\"/{}]*)</exception>\s*$', line)
+            function_match = re.match(r'^\s*(?:(?:public|private|protected|internal|static|async|unsafe|sealed|new|override|virtual|abstract)\s+)+(?:[\w<>\[\],\.]+\s+)+([\w_]+)\s*\((?:.*)\)\s*(?:where.*)?\s*$', line)
+
+            if param_match:
+                if first_parameter:
+                    function.append(("bold", "Arguments:"))
+                    function.append(("bullet", f"{param_match.group(1)}. {param_match.group(2)}"))
+                    first_parameter = False
+                else:
+                    function.append(("bullet", f"{param_match.group(1)}. {param_match.group(2)}"))
+                
+            elif returns_match:
+                if first_return:
+                    function.append(("bold", "Return:"))
+                    function.append(("bullet", f"{returns_match.group(1)}"))
+                    first_return = False
+                else:
+                    function.append(("bullet", f"{returns_match.group(1)}"))
+
+                logger.info(__name__, f"return: {returns_match.group(1)}")
+            elif exception_match:
+                if first_exception:
+                    function.append(("bold", "Exception:"))
+                    function.append(("bullet", f"{exception_match.group(1)}. {exception_match.group(2)}"))
+                    first_exception = False
+                else:
+                    function.append(("bullet", f"{exception_match.group(1)}. {exception_match.group(2)}"))
+            elif function_match:
+                lines.extend([("subheader", f"Function: {function_match.group(1)}"), ("bold", "Description:"), ("text", block["description"].rstrip())])
+                lines.extend(function)
+                function = []
+                logger.info(__name__, f"name {function_match.group(1)}")
+   
+        except Exception as e:
+            logger.error(__name__, f"func: {function['name_of_function']} | idx: {idx} | line: {line} error: {e}")
+    
+    return lines
+
 def get_code_block(text, extract_functions = False):
     try:
         code_pattern = re.compile(r"```([\w#]*)\s*([\w.;\s]*\s*(?:///\s*<\s*summary\s*>\s*///\s*([\w,.:/\s]*)///\s*<\s*/\s*summary\s*>)*\s*.*)```", re.DOTALL)
@@ -107,13 +156,17 @@ def get_code_block(text, extract_functions = False):
         if matches == []:
             logger.info(__name__, f"Revisar  2: {text}")
         else:
-            # for match in matches:
-            #     logger.info(__name__, f"0: {match[0]} 1: {match[1]} 2: {match[2]}")
+            for match in matches:
+                logger.info(__name__, f"0: {match[0]} 1: {match[1]} 2: {match[2]}")
             code_blocks = {
                     "language": matches[0][0],
                     "code": matches[0][1],
                     "description": matches[0][2].replace("/", "").replace("`", "") #"description": match[1][match[1].find("/// <summary>\n/// ") + len("/// <summary>\n/// "): match[1].find("\n/// </summary>")].replace("/// ", ""),
                 }
+            
+            if extract_functions:
+                lines = extract_documentation_functions(code_blocks)
+                code_blocks["documentation"] = lines
             return code_blocks
     except Exception as e:
         logger.error(__name__, f"Error get code block from text using regex: {e}")
