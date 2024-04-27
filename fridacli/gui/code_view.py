@@ -15,10 +15,9 @@ import os
 
 logger = Logger()
 
-LINES = """document
+LINES = """Generate Documentation
 generate_epics
 asp_voyager
-
 """.splitlines()
 
 class FilteredDirectoryTree(DirectoryTree):
@@ -86,7 +85,7 @@ class CodeView(Static):
             """
             TODO: Assure that the threads are syncroniced and do not stop the GUI  thread 
             """
-            if self.recipe_selected == "document" :
+            if self.recipe_selected == "Generate Documentation" :
                 logger.info(__name__, "On UI calling to document files")
                 self.app.push_screen(DocGenerator(), self.doc_generator_callback)
             
