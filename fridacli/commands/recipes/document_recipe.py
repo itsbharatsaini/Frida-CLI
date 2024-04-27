@@ -6,7 +6,7 @@ from mdutils.mdutils import MdUtils
 from fridacli.logger import Logger
 from fridacli.frida_coder import FridaCoder
 from fridacli.file_manager import FileManager
-from .predefined_phrases import generate_document_prompt
+from .predefined_phrases import generate_document_for_funct_prompt, generate_full_document_prompt
 
 logger = Logger()
 MAX_RETRIES = 2
@@ -99,24 +99,24 @@ def save_documentation(path, lines):
         logger.info(__name__, "Creating doc...")
         mdFile.create_md_file()
 
-def get_code_block(text):
+def get_code_block(text, extract_functions = False):
     try:
-        code_pattern = re.compile(r"```([\w#]*)\n(.*?)```", re.DOTALL)
+        code_pattern = re.compile(r"```([\w#]*)\s*([\w.;\s]*\s*(?:///\s*<\s*summary\s*>\s*///\s*([\w,.:/\s]*)///\s*<\s*/\s*summary\s*>)*\s*.*)```", re.DOTALL)
         matches = code_pattern.findall(text)
-        code_blocks = [
-            {
-                "language": match[0],
-                "code": match[1],
-                "description": match[1][match[1].find("/// <summary>\n/// ") + len("/// <summary>\n/// "): match[1].find("\n/// </summary>")].replace("/// ", ""),
-            }
-            for match in matches
-        ]
-        if code_blocks == []:
-            logger.info(__name__, f"Revisar: {text}")
-        return code_blocks
+        
+        if matches == []:
+            logger.info(__name__, f"Revisar  2: {text}")
+        else:
+            # for match in matches:
+            #     logger.info(__name__, f"0: {match[0]} 1: {match[1]} 2: {match[2]}")
+            code_blocks = {
+                    "language": matches[0][0],
+                    "code": matches[0][1],
+                    "description": matches[0][2].replace("/", "").replace("`", "") #"description": match[1][match[1].find("/// <summary>\n/// ") + len("/// <summary>\n/// "): match[1].find("\n/// </summary>")].replace("/// ", ""),
+                }
+            return code_blocks
     except Exception as e:
-        pass
-        #logger.error(__name__, f"Error get code block from text using regex: {e}")
+        logger.error(__name__, f"Error get code block from text using regex: {e}")
 
 def write_code_to_path(path: str, code: str):
     try:
@@ -174,9 +174,9 @@ def extract_functions(code):
             current_function_lines = []
     return functions
 
-
 def document_file(
-    checkbox,
+    formats,
+    method,
     file,
     thread_semaphore,
     chatbot_agent,
@@ -188,65 +188,90 @@ def document_file(
         _, extension = os.path.splitext(file)
         if frida_coder.is_programming_language_extension(extension):
             logger.info(__name__, f"working on {file}")
+
             full_path = file_manager.get_file_path(file)
+            doc_path = ''.join(full_path.split(file)[:-1])
+            
             code = frida_coder.get_code_from_path(full_path)
-            code = code.splitlines()
-            functions = extract_functions(code)
+            num_lines = code.count('\n')
 
-            new_file = []
-            new_doc = [("title", f"Documentation of the file '{file}'")]
+            if method == "Quick":
 
-            start_line = functions[0]["start_line"]
-            end_line = functions[-1]["end_line"]
-
-            new_file.extend(code[0:start_line - 1])
-
-            for func in functions:
-                prompt = generate_document_prompt(func["code"], extension)
-                response = chatbot_agent.chat(prompt, True)
-                i = 0
-
-                while ("```" not in response or "///" not in response) and i  < MAX_RETRIES:
+                if num_lines <= 300:
+                    logger.info(__name__, f"Extension: {extension} | Method: {method}")
+                    prompt = generate_full_document_prompt(code, extension)
                     response = chatbot_agent.chat(prompt, True)
-                    i += 1
 
-                if len(response) > 0:
-                    code_blocks = get_code_block(response)
-                    if len(code_blocks) > 0:
-                        document_code = code_blocks[0]["code"]
-                        document_code = ("\n" + document_code).splitlines()
-                        new_file.extend(document_code)
-                        
-                        documentation = get_documentation(code_blocks[0], func)
-                        new_doc.extend(documentation)
+                    i = 0
+
+                    while ("```" not in response) and i  < MAX_RETRIES:
+                        logger.info(__name__, f"Retry # {i} for file {file}")
+                        response = chatbot_agent.chat(prompt, True)
+                        i += 1
+                    
+                    if "```" in response:
+                        code_blocks = get_code_block(response, True)
+                        if code_blocks:
+                            document_code = code_blocks["code"]
                     else:
-                        code = ("\n" + func["code"]).splitlines()
-                        new_file.extend(code)
+                        logger.info(__name__, f"Revisar 1: {response}")
+                    
                 else:
-                    code = ("\n" + func["code"]).splitlines()
-                    new_file.extend(code)
+                    logger.info(__name__, f"else  - Extension: {extension} | Method: {method}")
+                    code = code.splitlines()
+                    functions = extract_functions(code)
+
+                    new_file = []
+                    new_doc = [("title", f"Documentation of the file '{file}'")]
+
+                    start_line = functions[0]["start_line"]
+                    end_line = functions[-1]["end_line"]
+
+                    new_file.extend(code[0:start_line - 1])
+
+                    for func in functions:
+                        prompt = generate_document_for_funct_prompt(func["code"], extension)
+                        response = chatbot_agent.chat(prompt, True)
+                        i = 0
+
+                        while ("```" not in response or "///" not in response) and i  < MAX_RETRIES:
+                            logger.info(__name__, f"Retry # {i} for file {file}")
+                            response = chatbot_agent.chat(prompt, True)
+                            i += 1
+
+                        if len(response) > 0:
+                            code_blocks = get_code_block(response)
+                            if len(code_blocks) > 0:
+                                document_code = code_blocks[0]["code"]
+                                document_code = ("\n" + document_code).splitlines()
+                                new_file.extend(document_code)
+                                
+                                documentation = get_documentation(code_blocks[0], func)
+                                new_doc.extend(documentation)
+                            else:
+                                code = ("\n" + func["code"]).splitlines()
+                                new_file.extend(code)
+                        else:
+                            code = ("\n" + func["code"]).splitlines()
+                            new_file.extend(code)
 
 
-            new_file.extend(code[end_line::])
-            new_code = "\n".join(new_file)
-
-            full_path = file_manager.get_file_path(file)
-            path = ''.join(full_path.split(file)[:-1])
+                    new_file.extend(code[end_line::])
+                    new_code = "\n".join(new_file)
 
             write_code_to_path(full_path, new_code)
 
-            for doctype, selected in checkbox.items():
+            for doctype, selected in formats.items():
                 if selected:
                     filename = (("readme_" + file).replace(extension, ".md")) if doctype == "md" else (("doc_" + file).replace(extension, ".docx"))
-                    save_documentation(path + filename, new_doc)
+                    save_documentation(doc_path + filename, new_doc)
     except Exception as e:
         logger.info(__name__, f"{e}")
     finally:
         thread_semaphore.release()
 
-
 async def exec_document(
-    checkbox, chatbot_agent, file_manager: FileManager, frida_coder: FridaCoder
+    formats, method, chatbot_agent, file_manager: FileManager, frida_coder: FridaCoder
 ):
     """
     Documenting all the files using threads
@@ -261,7 +286,8 @@ async def exec_document(
         thread = threading.Thread(
             target=document_file,
             args=(
-                checkbox,
+                formats,
+                method,
                 file,
                 thread_semaphore,
                 chatbot_agent,
