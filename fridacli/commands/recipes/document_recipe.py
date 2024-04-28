@@ -34,7 +34,8 @@ def save_documentation(path, lines):
         bullets = []
         for format, text in lines:
             if format == "title":
-                mdFile = MdUtils(file_name=path, title=text)
+                mdFile = MdUtils(file_name=path)
+                mdFile.new_header(level=1, title=text, add_table_of_contents="n")
             elif format == "subheader":
                 if bullets:
                     mdFile.new_list(bullets)
@@ -53,7 +54,7 @@ def save_documentation(path, lines):
             mdFile.new_list(bullets)
             bullets = []
 
-        logger.info(__name__, "Creating doc...")
+        logger.info(__name__, f"Creating doc in... {path}")
         mdFile.create_md_file()
 
 def extract_documentation(information, one_function, funct_name):
@@ -86,8 +87,6 @@ def extract_documentation(information, one_function, funct_name):
                         first_return = False
                     else:
                         function.append(("bullet", f"{returns_match.group(1)}"))
-
-                    logger.info(__name__, f"return: {returns_match.group(1)}")
                 elif exception_match:
                     if first_exception:
                         function.append(("bold", "Exception:"))
@@ -96,15 +95,18 @@ def extract_documentation(information, one_function, funct_name):
                     else:
                         function.append(("bullet", f"{exception_match.group(1)}. {exception_match.group(2)}"))
                 elif function_match:
-                    lines.extend([("subheader", f"Function: {function_match.group(1)}"), ("bold", "Description:"), ("text", information["description"].rstrip())])
+                    lines.extend([("subheader", f"Function: {function_match.group(1)}")])
+                    if information["description"].rstrip() != "":
+                        lines.extend([("bold", "Description:"), ("text", information["description"].rstrip())])
                     lines.extend(function)
                     function = []
-                    logger.info(__name__, f"name {function_match.group(1)}")
     
             except Exception as e:
                 logger.error(__name__, f"func: {function['name_of_function']} | idx: {idx} | line: {line} error: {e}")
     else:
-        lines = [("subheader", f"Function: {funct_name}"), ("bold", "Description:"), ("text", information['description'].rstrip())]
+        lines = [("subheader", f"Function: {funct_name}")]
+        if information["description"].rstrip() != "":
+            lines.extend([("bold", "Description:"), ("text", information["description"].rstrip())])
 
         for idx, line in enumerate(information["code"].splitlines(), 1):
             try:
@@ -127,8 +129,6 @@ def extract_documentation(information, one_function, funct_name):
                         first_return = False
                     else:
                         lines.append(("bullet", f"{returns_match.group(1)}"))
-
-                    logger.info(__name__, f"return: {returns_match.group(1)}")
                 elif exception_match:
                     if first_exception:
                         lines.append(("bold", "Exception:"))
@@ -148,10 +148,8 @@ def get_code_block(text, one_function, funct_name = None):
         matches = code_pattern.findall(text)
         
         if matches == []:
-            logger.info(__name__, f"Revisar  2: {text}")
+            logger.info(__name__, f"Did not match: {text}")
         else:
-            for match in matches:
-                logger.info(__name__, f"0: {match[0]} 1: {match[1]} 2: {match[2]}")
             information = {
                     "language": matches[0][0],
                     "code": matches[0][1],
@@ -160,7 +158,6 @@ def get_code_block(text, one_function, funct_name = None):
             
             lines = extract_documentation(information, one_function, funct_name)
             information["documentation"] = lines
-            logger.info(__name__, lines)
             return information
     except Exception as e:
         logger.error(__name__, f"Error get code block from text using regex: {e}")
@@ -250,7 +247,6 @@ def document_file(
             if method == "Quick":
 
                 if num_lines <= 300:
-                    logger.info(__name__, f"Extension: {extension} | Method: {method}")
                     prompt = generate_full_document_prompt(code, extension)
                     response = chatbot_agent.chat(prompt, True)
 
@@ -262,12 +258,15 @@ def document_file(
                     if ("```" in response and "///" in response):
                         information = get_code_block(response, True)
                         if information:
-                            document_code = information["code"]
+                            new_code = information["code"]
+                            new_doc.extend(information["documentation"])
+                        else:
+                            new_file = code.splitlines()
                     else:
-                        logger.info(__name__, f"Revisar 1: {response}")
+                        logger.info(__name__, f"Check response: {response}")
+                        new_file = code.splitlines()
                     
                 else:
-                    logger.info(__name__, f"else  - Extension: {extension} | Method: {method}")
                     code = code.splitlines()
                     functions = extract_functions(code)
 
@@ -275,8 +274,6 @@ def document_file(
                     end_line = functions[-1]["end_line"]
 
                     new_file.extend(code[0:start_line - 1])
-
-                    logger.info(__name__, functions)
 
                     for func in functions:
                         funct_name = func["name_of_function"]
@@ -294,13 +291,12 @@ def document_file(
                                 document_code = information["code"]
                                 document_code = ("\n" + document_code).splitlines()
                                 new_file.extend(document_code)
-                                
-                                documentation = get_documentation(information[0], func)
-                                new_doc.extend(documentation)
+                                new_doc.extend(information["documentation"])
                             else:
                                 code = ("\n" + func["code"]).splitlines()
                                 new_file.extend(code)
                         else:
+                            logger.info(__name__, f"Check response: {response}")
                             code = ("\n" + func["code"]).splitlines()
                             new_file.extend(code)
 
@@ -310,10 +306,13 @@ def document_file(
 
             write_code_to_path(full_path, new_code)
 
-            for doctype, selected in formats.items():
-                if selected:
-                    filename = (("readme_" + file).replace(extension, ".md")) if doctype == "md" else (("doc_" + file).replace(extension, ".docx"))
-                    save_documentation(doc_path + filename, new_doc)
+            if len(new_doc) > 1:
+                for doctype, selected in formats.items():
+                    if selected:
+                        filename = (("readme_" + file).replace(extension, ".md")) if doctype == "md" else (("doc_" + file).replace(extension, ".docx"))
+                        save_documentation(doc_path + filename, new_doc)
+            else:
+                pass
     except Exception as e:
         logger.info(__name__, f"{e}")
     finally:
