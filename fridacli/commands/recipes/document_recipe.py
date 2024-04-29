@@ -329,6 +329,8 @@ async def exec_document(
     Documenting all the files using threads
     """
     logger.info(__name__, "Documenting files")
+    file_manager.load_folder(file_manager.get_folder_path())
+    
     files = file_manager.get_files()
     thread_semaphore = threading.Semaphore(5)
 

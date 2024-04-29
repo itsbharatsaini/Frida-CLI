@@ -47,6 +47,7 @@ class FileManager:
 
     def __traverse(self, path, current_node):
         try:
+            self.__files = {}
             for item in os.listdir(path):
                 item_path = os.path.join(path, item)
 
