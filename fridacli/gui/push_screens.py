@@ -1,5 +1,5 @@
 from textual.screen import Screen
-from textual.widgets import Label, Input, Button, DirectoryTree, LoadingIndicator, Checkbox
+from textual.widgets import Label, Input, Button, DirectoryTree, LoadingIndicator, Checkbox, Select
 from textual.containers import Vertical, Horizontal
 from fridacli.commands.recipes import generate_epics, document_files
 from textual.worker import Worker, WorkerState
@@ -10,6 +10,9 @@ from pathlib import Path
 
 logger = Logger()
 
+LINES = """Quick (ChatGPT-3.5)
+Slow (ChatGPT-4)
+""".splitlines()
 
 class FilteredDirectoryTree(DirectoryTree):
     def filter_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
@@ -18,8 +21,10 @@ class FilteredDirectoryTree(DirectoryTree):
 class DocGenerator(Screen):
     def compose(self):
         yield Vertical(
-            Label("Please select the format(s) you need for your documentation.", id="format_selection"),
+            Label("Please select the format(s) you need for your documentation:", id="format_selection"),
             Vertical(Checkbox("Word Document", id = "docx_check"), Checkbox("Markdown Readme", id = "md_check"), id="checkbox"),
+            Label("Please select a method to generate the documentation:"),
+            Select(((line, line) for line in LINES), id="select_method", value="Quick (ChatGPT-3.5)"),
             Horizontal(Button("Quit", variant="error", id="quit"),Button("Create Documentation", variant="success", id="generate_documentation")),
             classes="dialog_doc",
         )
@@ -37,11 +42,13 @@ class DocGenerator(Screen):
         elif event.button.id == "generate_documentation":
             docx = self.query_one("#docx_check", Checkbox).value
             md = self.query_one("#md_check", Checkbox).value
-            if docx or md:
+            method = self.query_one("#select_method", Select)
+            if (docx or md) and not method.is_blank():
                 self.app.push_screen(DocLoader())
-                self.run_worker(document_files({"docx": docx, "md": md}), exclusive=False, thread=True)
+                self.run_worker(document_files({"docx": docx, "md": md}, method.value.split(" ")[0]), exclusive=False, thread=True)
             else:
-                self.notify(f"You must select at least one option.")
+                self.notify(f"You must select at least one format and a method for the documentation.")
+            
 
 class DocLoader(Screen):
     def compose(self):

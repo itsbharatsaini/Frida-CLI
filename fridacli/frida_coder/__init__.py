@@ -162,3 +162,4 @@ class FridaCoder:
 
     def is_programming_language_extension(self, extension: str):
         return extension.lower() in SUPPORTED_PROGRAMMING_LANGUAGES
+

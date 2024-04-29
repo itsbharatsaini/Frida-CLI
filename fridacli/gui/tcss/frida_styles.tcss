@@ -193,7 +193,7 @@ DocGenerator {
 .dialog_doc{
     grid-size: 1;
     width: 70;
-    height: 18;
+    height: 22;
     border: thick $background 80%;
     background: $surface;
 }
