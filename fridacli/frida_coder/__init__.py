@@ -2,7 +2,7 @@ import os
 import re
 import datetime
 from fridacli.frida_coder.languague.python import Python
-from fridacli.config import HOME_PATH
+from fridacli.config import HOME_PATH, SUPPORTED_PROGRAMMING_LANGUAGES
 from .exception_message import ExceptionMessage
 from fridacli.file_manager import FileManager
 from fridacli.logger import Logger
@@ -161,23 +161,5 @@ class FridaCoder:
         self.code_blocks = []
 
     def is_programming_language_extension(self, extension: str):
-        programming_language_extensions = [
-            ".py",
-            ".asp",
-            ".java",
-            ".cpp",
-            ".c",
-            ".cs",
-            ".js",
-            ".html",
-            ".css",
-            ".php",
-            ".rb",
-            ".swift",
-            ".go",
-            ".lua",
-            ".pl",
-            ".r",
-            ".sh",
-        ]
-        return extension.lower() in programming_language_extensions
+        return extension.lower() in SUPPORTED_PROGRAMMING_LANGUAGES
+

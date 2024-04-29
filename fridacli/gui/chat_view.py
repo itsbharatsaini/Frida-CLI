@@ -38,40 +38,44 @@ class ChatView(Static):
         Delete children in the HorizontalScroll representing the files
         mentioned in the Input
         """
-        id = self.mentioned_files.index(file_name)
+        id = file_name.replace(".", "---")
         self.mentioned_files.remove(file_name)
         self.query_one("#cv_hs", HorizontalScroll).remove_children(
             f"#cv_hs_file_{id}"
         )
+        x = self.query_one("#cv_hs", HorizontalScroll).children
+        logger.info(__name__, f"deleted button with id {id} childrens: {x}")
 
     async def on_input_changed(self, message: Input.Changed) -> None:
         """A coroutine to handle a text changed message."""
-        if len(message.value) < self.chat_label_sz:
-            # If backspace is used to update the text
-            tempo = self.mentioned_files.copy()
+        logger.info(__name__, f"{self.chat_label_sz} {message.value} {self.mentioned_files}")
 
-            for file in tempo:
-                if file not in str(message.value):
-                    logger.info(__name__, f"file_to_delete: {file}")
-                    self.delete_child_cv_hs(file)
-        else:
-            self.chat_label_sz = len(message.value)
-            paths = self.chatbot_agent.get_matching_files(
-                message.value, self.mentioned_files
-            )
-            for path in paths:
-                file_name = path.split("\\")[-1] if OS == "win" else path.split("/")[-1]
-                logger.info(__name__, f"file_name: {file_name}")
-                self.mentioned_files.append(file_name)
-                id = len(self.mentioned_files) - 1
-                self.query_one("#cv_hs", HorizontalScroll).mount(
-                    Button(
-                        str(file_name),
-                        id=f"cv_hs_file_{id}",
-                        classes="cv_hs_file_label",
-                    )
+        self.chat_label_sz = len(message.value)
+        tempo = self.mentioned_files.copy()
+
+        for file in tempo:
+            if file not in str(message.value):
+                logger.info(__name__, f"file_to_delete: {file}")
+                self.delete_child_cv_hs(file)
+        
+        self.chat_label_sz = len(message.value)
+        paths = self.chatbot_agent.get_matching_files(
+            message.value, self.mentioned_files
+        )
+        
+        for path in paths:
+            file_name = path.split("\\")[-1] if OS == "win" else path.split("/")[-1]
+            logger.info(__name__, f"file_name: {file_name}")
+            self.mentioned_files.append(file_name)
+            id = file_name.replace(".", "---")
+            self.query_one("#cv_hs", HorizontalScroll).mount(
+                Button(
+                    str(file_name),
+                    id=f"cv_hs_file_{id}",
+                    classes="cv_hs_file_label",
                 )
-                self.display_code_file(path)
+            )
+            self.display_code_file(path)
 
     def display_code_file(self, path):
         """Change and display the file that was mentioned"""
@@ -130,8 +134,8 @@ class ChatView(Static):
         """Event when a button in clicked"""
         button_pressed = str(event.button.id)
         if "cv_hs_file_" in button_pressed:
-            file_name = button_pressed.replace("cv_hs_file_", "")
-            convert_file_name = file_name.replace("-", ".")
-            logger.info(__name__, f"convert_file_name: {convert_file_name}")
-            path = self.file_manager.get_file_path(convert_file_name)
+            file_name = button_pressed.split("_")[-1].replace("---", ".")
+            logger.info(__name__, f"convert_file_name: {file_name}")
+            path = self.file_manager.get_file_path(file_name)
+            logger.info(__name__, f"{path} {file_name}")
             self.display_code_file(path)

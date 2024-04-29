@@ -1,10 +1,8 @@
 import re
 import textdistance as td
-
 from softtek_llm.models import SofttekOpenAI
 from softtek_llm.memory import WindowMemory
 from softtek_llm.chatbots.chatbot import Chatbot
-
 from .predefined_phrases import (
     chatbot_unauthorized,
     chatbot_badrequest,
@@ -19,6 +17,7 @@ from fridacli.config import get_config_vars
 from fridacli.prompts_provider.chatbot_prompts import system_prompt
 from fridacli.file_manager import FileManager
 from fridacli.logger import Logger
+from fridacli.config import SUPPORTED_PROGRAMMING_LANGUAGES
 
 logger = Logger()
 
@@ -51,8 +50,7 @@ class ChatbotAgent:
 
     def is_file_format(self, word):
         # Determine if a word follows the file format (name.extension).
-        extensions = [".py", ".asp"]
-        pattern = f'^[a-zA-Z_][a-zA-Z0-9_]*({ "|".join(extensions)})$'
+        pattern = f'^[a-zA-Z_][a-zA-Z0-9_]*({ "|".join(SUPPORTED_PROGRAMMING_LANGUAGES)})$'
         match = re.match(pattern, word)
         return bool(match)
 
