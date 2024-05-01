@@ -231,3 +231,50 @@ DocGenerator {
 #configuration_directorytree_pythonenv {
     height: 25
 }
+
+CreateNewEpic {
+    width: 50;
+    align: center middle;
+}
+
+#upload_excel_button{
+    margin: 1 0 1 5;
+}
+
+#download_template_button{
+    margin: 1 0 1 2;
+}
+
+#epic_name_input{
+    margin: 2 32 1 4;
+}
+
+#platform_label{
+    margin: 1 0 1 5;
+}
+
+#platform_radio{
+    margin: 1 4 1 4;
+}
+
+#project_context_label{
+    margin: 1 0 1 5;
+}
+
+#project_context_input{
+    margin: 1 4 1 4;
+}
+
+#upload_excel_label{
+    margin: 1 0 0 5
+}
+
+#create_epic_quit{
+    margin: 1 0 1 5;
+}
+
+#create_epic_generate{
+    margin: 1 0 1 2;
+}
+
+

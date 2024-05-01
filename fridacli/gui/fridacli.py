@@ -1,9 +1,10 @@
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal
-from textual.widgets import Header, TabbedContent, TabPane, Label
+from textual.widgets import Header, TabbedContent, TabPane, Label, Button
 from .chat_view import ChatView
 from .code_view import CodeView
 from .configuration_view import ConfigurationView
+from .create_epic_example_view import Create_epic_example
 
 
 class FridaCLI(App):
@@ -23,3 +24,5 @@ class FridaCLI(App):
                 yield Horizontal(CodeView(id="code_view_pather"), ChatView())
             with TabPane("Code Snippets", id="code_snippets"):
                 yield Label("Holaaa")
+            with TabPane("Example", id="create_epic_test"):
+                yield Create_epic_example()

@@ -1,5 +1,5 @@
 from textual.screen import Screen
-from textual.widgets import Label, Input, Button, DirectoryTree, LoadingIndicator, Checkbox, Select
+from textual.widgets import Label, Input, Button, DirectoryTree, LoadingIndicator, Checkbox, Select, RadioSet, RadioButton
 from textual.containers import Vertical, Horizontal
 from fridacli.commands.recipes import generate_epics, document_files
 from textual.worker import Worker, WorkerState
@@ -82,3 +82,31 @@ class EpicGenerator(Screen):
     def on_directory_tree_directory_selected(self, event: DirectoryTree.DirectorySelected):
         self.path = event.path
         logger.info(__name__, self.path)
+
+class CreateNewEpic(Screen):
+    path = HOME_PATH
+    def compose(self):
+        yield Vertical(
+            Input(placeholder="Name of project", id="epic_name_input"),
+            Label("Type of Platform", id="platform_label"),
+            RadioSet(RadioButton("Mobile"), RadioButton("Web"), RadioButton("Tablet"), id="platform_radio"),
+            Label("Tell us more about your project", id="project_context_label"),
+            Input(id="project_context_input"),
+            Label("Upload your Excel", id="upload_excel_label"),
+            Horizontal(
+                Button("Upload your Excel", variant="default", id="upload_excel_button"),
+                Button("Download Template", variant="default", id="download_template_button")
+            ),
+            Horizontal(
+                Button("Cancel", variant="error", id="create_epic_quit"),
+                Button("Create epic", variant="success", id="create_epic_generate")
+            ),
+            classes="dialog",
+        )
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "quit":
+            self.app.pop_screen()
+        elif event.button.id == "generate":
+            # Call function to generate the epic
+            self.app.pop_screen()
