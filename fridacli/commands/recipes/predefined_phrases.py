@@ -16,7 +16,7 @@ programming_languages = {
     /// Detailed description of the function.
     /// </summary>
     /// <param name="param_name">Description of the parameter.</param>
-    /// <returns>Return values.</returns>
+    /// <returns>Return value.</returns>
     /// <exception cref="exception_name">Description of the exception.</exception>""",
     """
     /// <summary>
@@ -24,6 +24,33 @@ programming_languages = {
     /// Detailed description of the class.
     /// </summary>
     """
+    ],
+    ".py": [
+        "Python",
+        '''
+        """
+        Detailes description of the code and it\'s purpose.
+        """
+        ''',
+        '''
+        """
+        Detailed description of the function and it\'s purpose.
+
+        Args:
+            param_name (param_type): Description of the parameter.
+
+        Returns:
+            return_type: Return value.
+
+        Raises:
+            Exception_name: Description of the exception.
+        """
+        ''',
+        '''
+        """
+        Detailes description of the class and it\'s purpose.
+        """
+        '''
     ]
 }
 
@@ -42,9 +69,9 @@ def generate_full_document_prompt(code, extension):
 
     Each function must be documented with:
     - Purpose of the function with a detailed description of what the function does.
-    - Descriptions of input parameters
-    - Return values
-    - Exceptions handled in the function
+    - Descriptions of input parameters if any.
+    - Return values if any.
+    - Exceptions handled in the function if any.
 
     ALWAYS use this documentation style for the code: {programming_languages[extension][1]}
 
