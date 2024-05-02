@@ -7,9 +7,24 @@ from fridacli.logger import Logger
 from fridacli.frida_coder import FridaCoder
 from fridacli.file_manager import FileManager
 from .predefined_phrases import generate_document_for_funct_prompt, generate_full_document_prompt
+from .documentation import extract_documentation_python, extract_documentation_csharp
 
 logger = Logger()
+
 MAX_RETRIES = 2
+EXTENSIONS = {
+    ".py": [
+        '"""',
+        r"```(python)*\s*((?:[\w._,\s]*)*(?:\"\"\"\s*([\w.\-,\'_:=#\[\(\)\]\s]*)\"\"\"\s*)*.*)```",
+        "",
+        [r"^\s*def\s*([\w\d_]*)\s*\(\s*(?:[\w:\d_]*)\s*\)\s*:\s*$"],
+    ],
+    ".cs": [
+        "///",
+        r"```([\w#]*)\s*([\w.;\s]*\s*(?:///\s*<\s*summary\s*>\s*///\s*([\w.\-,:#\[()\]\d\s]*)///\s*<\s*/\s*summary\s*>)*\s*.*)```",
+        "/",
+    ],
+}
 
 def save_documentation(path, lines):
     if "docx" in path:
@@ -57,98 +72,17 @@ def save_documentation(path, lines):
         logger.info(__name__, f"Creating doc in... {path}")
         mdFile.create_md_file()
 
-def extract_documentation(information, one_function, funct_name):
-    lines = []
-    first_parameter = True
-    first_return = True
-    first_exception = True
-
-    if one_function:
-        lines = [("subheader", f"Function: {funct_name}")]
-        if information["description"].rstrip() != "":
-            lines.extend([("bold", "Description:"), ("text", information["description"].rstrip())])
-
-        for idx, line in enumerate(information["code"].splitlines(), 1):
-            try:
-                param_match = re.match(r"^\s*///\s*<\s*param\s*name\s*=\s*\"([\w\s]*)\">([\w\.\-\s<>=\"/{}]*)</param>\s*$", line)
-                returns_match = re.match(r'^\s*///\s*<\s*returns\s*>([\w\.\-\s<>=\"/{}]*)</returns>\s*$', line)
-                exception_match = re.match(r'^\s*///\s*<\s*exception\s*cref\s*=\s*\"([\w\s]*)\">([\w\.\-\s<>=\"/{}]*)</exception>\s*$', line)
-
-                if param_match:
-                    if first_parameter:
-                        lines.append(("bold", "Arguments:"))
-                        lines.append(("bullet", f"{param_match.group(1)}. {param_match.group(2)}"))
-                        first_parameter = False
-                    else:
-                        lines.append(("bullet", f"{param_match.group(1)}. {param_match.group(2)}"))
-                    
-                elif returns_match:
-                    if first_return:
-                        lines.append(("bold", "Return:"))
-                        lines.append(("bullet", f"{returns_match.group(1)}"))
-                        first_return = False
-                    else:
-                        lines.append(("bullet", f"{returns_match.group(1)}"))
-                elif exception_match:
-                    if first_exception:
-                        lines.append(("bold", "Exception:"))
-                        lines.append(("bullet", f"{exception_match.group(1)}. {exception_match.group(2)}"))
-                        first_exception = False
-                    else:
-                        lines.append(("bullet", f"{exception_match.group(1)}. {exception_match.group(2)}"))
-    
-            except Exception as e:
-                logger.error(__name__, f"func: {function['name_of_function']} | idx: {idx} | line: {line} error: {e}")
+def extract_documentation(information, extension, one_function, funct_name):
+    if extension == ".py":
+        return extract_documentation_python(information, one_function, funct_name)
+    elif extension == ".cs":
+        return extract_documentation_csharp(information, one_function, funct_name)
     else:
-        function = []
-        for idx, line in enumerate(information["code"].splitlines(), 1):
-            try:
-                param_match = re.match(r"^\s*///\s*<\s*param\s*name\s*=\s*\"([\w\s]*)\">([\w\.\-\s<>=\"/{}]*)</param>\s*$", line)
-                returns_match = re.match(r'^\s*///\s*<\s*returns\s*>([\w\.\-\s<>=\"/{}]*)</returns>\s*$', line)
-                exception_match = re.match(r'^\s*///\s*<\s*exception\s*cref\s*=\s*\"([\w\s]*)\">([\w\.\-\s<>=\"/{}]*)</exception>\s*$', line)
-                function_match = re.match(r'^\s*(?:(?:public|private|protected|internal|static|async|unsafe|sealed|new|override|virtual|abstract)\s+)+(?:[\w<>\[\],\.]+\s+)+([\w_]+)\s*\((?:.*)\)\s*(?:where.*)?\s*$', line)
+        logger.info(__name__, f"Do not support {extension} extension by now.")
 
-                if param_match:
-                    if first_parameter:
-                        function.append(("bold", "Arguments:"))
-                        function.append(("bullet", f"{param_match.group(1)}. {param_match.group(2)}"))
-                        first_parameter = False
-                    else:
-                        function.append(("bullet", f"{param_match.group(1)}. {param_match.group(2)}"))
-                    
-                elif returns_match:
-                    if first_return:
-                        function.append(("bold", "Return:"))
-                        function.append(("bullet", f"{returns_match.group(1)}"))
-                        first_return = False
-                    else:
-                        function.append(("bullet", f"{returns_match.group(1)}"))
-                elif exception_match:
-                    if first_exception:
-                        function.append(("bold", "Exception:"))
-                        function.append(("bullet", f"{exception_match.group(1)}. {exception_match.group(2)}"))
-                        first_exception = False
-                    else:
-                        function.append(("bullet", f"{exception_match.group(1)}. {exception_match.group(2)}"))
-                elif function_match:
-                    lines.extend([("subheader", f"Function: {function_match.group(1)}")])
-                    if information["description"].rstrip() != "":
-                        lines.extend([("bold", "Description:"), ("text", information["description"].rstrip())])
-                    lines.extend(function)
-
-                    function = []
-                    first_parameter = True
-                    first_return = True
-                    first_exception = True
-    
-            except Exception as e:
-                logger.error(__name__, f"func: {function['name_of_function']} | idx: {idx} | line: {line} error: {e}")
-    
-    return lines
-
-def get_code_block(text, one_function, funct_name = None):
+def get_code_block(text, extension, one_function, funct_name = None):
     try:
-        code_pattern = re.compile(r"```([\w#]*)\s*([\w.;\s]*\s*(?:///\s*<\s*summary\s*>\s*///\s*([\w,.:/\s]*)///\s*<\s*/\s*summary\s*>)*\s*.*)```", re.DOTALL)
+        code_pattern = re.compile(EXTENSIONS[extension][1], re.DOTALL)
         matches = code_pattern.findall(text)
         
         if matches == []:
@@ -157,11 +91,13 @@ def get_code_block(text, one_function, funct_name = None):
             information = {
                     "language": matches[0][0],
                     "code": matches[0][1],
-                    "description": matches[0][2].replace("/", "").replace("`", "")
+                    "description": matches[0][2].replace(EXTENSIONS[extension][2], "").replace("`", "")
                 }
             
-            lines = extract_documentation(information, one_function, funct_name)
-            information["documentation"] = lines
+            logger.info(__name__, information)
+            lines = extract_documentation(information, extension, one_function, funct_name)
+            if lines is not None:
+                information["documentation"] = lines
             return information
     except Exception as e:
         logger.error(__name__, f"Error get code block from text using regex: {e}")
@@ -251,16 +187,20 @@ def document_file(
             if method == "Quick":
 
                 if num_lines <= 300:
+                    logger.info(__name__, f"{extension} {file} with {num_lines} lines... 1")
                     prompt = generate_full_document_prompt(code, extension)
+                    logger.info(__name__, f"{file} with {num_lines} lines... 2")
                     response = chatbot_agent.chat(prompt, True)
+                    logger.info(__name__, f"{file} with {num_lines} lines... 3")
 
-                    while ("```" not in response or "///" not in response) and i <= MAX_RETRIES:
+                    while ("```" not in response or EXTENSIONS[extension][0] not in response) and i <= MAX_RETRIES:
                         logger.info(__name__, f"Retry # {i} for file {file}")
                         response = chatbot_agent.chat(prompt, True)
                         i += 1
-                    
-                    if ("```" in response and "///" in response):
-                        information = get_code_block(response, False)
+                    logger.info(__name__, f"{file} with {num_lines} lines... 4")
+                    logger.info(__name__, response)
+                    if ("```" in response and EXTENSIONS[extension][0] in response):
+                        information = get_code_block(response, extension, False)
                         if information:
                             new_code = information["code"]
                             new_doc.extend(information["documentation"])
@@ -271,6 +211,7 @@ def document_file(
                         new_file = code.splitlines()
                     
                 else:
+                    logger.info(__name__, f"Else... more than 300 lines")
                     code = code.splitlines()
                     functions = extract_functions(code)
 
@@ -284,12 +225,12 @@ def document_file(
                         prompt = generate_document_for_funct_prompt(func["code"], extension)
                         response = chatbot_agent.chat(prompt, True)
 
-                        while ("```" not in response or "///" not in response) and i <= MAX_RETRIES:
+                        while ("```" not in response or EXTENSIONS[extension][0] not in response) and i <= MAX_RETRIES:
                             logger.info(__name__, f"Retry # {i} for file {file} function {funct_name}")
                             response = chatbot_agent.chat(prompt, True)
                             i += 1
 
-                        if ("```" in response and "///" in response):
+                        if ("```" in response and EXTENSIONS[extension][0] in response):
                             information = get_code_block(response, True, funct_name)
                             if information:
                                 document_code = information["code"]
@@ -307,6 +248,8 @@ def document_file(
 
                     new_file.extend(code[end_line::])
                     new_code = "\n".join(new_file)
+            else:
+                pass
 
             write_code_to_path(full_path, new_code)
 
@@ -330,7 +273,7 @@ async def exec_document(
     """
     logger.info(__name__, "Documenting files")
     file_manager.load_folder(file_manager.get_folder_path())
-    
+
     files = file_manager.get_files()
     thread_semaphore = threading.Semaphore(5)
 
