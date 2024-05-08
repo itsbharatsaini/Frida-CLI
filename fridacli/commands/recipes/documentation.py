@@ -3,6 +3,46 @@ from fridacli.logger import Logger
 
 logger = Logger()
 
+def extract_functions_python(code):
+    def get_function_line(code, function):
+        for id, line in enumerate(code, 1):
+            if function.strip() in line:
+                return id
+            
+    code_pattern = re.compile(r"(\s*def\s*([\w_]*)\s*\([\s\w:._,=\[\]]*\)\s*(?:->\s*[\w.\[\]]*)*\s*:\s*)", re.DOTALL)
+    matches = code_pattern.findall(code)
+    funcs = []
+    code_lines = code.splitlines()
+
+    for id, match in enumerate(matches, 0):
+        full_function = ""
+        start = get_function_line(code_lines, match[0])
+        tabs = code_lines[start - 1].rstrip().count("    ")
+        next_lines = code_lines[start + 1:]
+        i = 0
+        end = None
+
+        for line in next_lines:
+            line_tabs = line.rstrip().count("    ")
+            if ("def" in line or line.strip() != "") and line_tabs <= tabs:
+                end = start + i + 1
+                break
+            i += 1 
+            full_function += line
+
+        if end is None:
+            end = len(code_lines)
+
+        funcs.append({
+            "order": id,
+            "start_line": start,
+            "end_line": end,
+            "name_of_function": match[1],
+            "code": match[0] + full_function,
+        })
+
+    return funcs
+
 
 def extract_documentation_python(information, one_function, funct_name):
     lines = []
