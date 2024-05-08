@@ -8,17 +8,17 @@ def extract_functions_python(code):
         for id, line in enumerate(code, 1):
             if function.strip() in line:
                 return id
-            
+    
+    full_code = "".join(code)
     code_pattern = re.compile(r"(\s*def\s*([\w_]*)\s*\([\s\w:._,=\[\]]*\)\s*(?:->\s*[\w.\[\]]*)*\s*:\s*)", re.DOTALL)
-    matches = code_pattern.findall(code)
-    funcs = []
-    code_lines = code.splitlines()
+    matches = code_pattern.findall(full_code)
+    functions = []
 
     for id, match in enumerate(matches, 0):
         full_function = ""
-        start = get_function_line(code_lines, match[0])
-        tabs = code_lines[start - 1].rstrip().count("    ")
-        next_lines = code_lines[start + 1:]
+        start = get_function_line(code, match[0])
+        tabs = code[start - 1].rstrip().count("    ")
+        next_lines = code[start + 1:]
         i = 0
         end = None
 
@@ -31,9 +31,9 @@ def extract_functions_python(code):
             full_function += line
 
         if end is None:
-            end = len(code_lines)
+            end = len(code)
 
-        funcs.append({
+        functions.append({
             "order": id,
             "start_line": start,
             "end_line": end,
@@ -41,7 +41,55 @@ def extract_functions_python(code):
             "code": match[0] + full_function,
         })
 
-    return funcs
+    return functions
+
+def extract_functions_csharp(code):
+    functions = []
+    current_function = None
+    current_function_lines = []
+    brace_count = 0
+    order = 0
+    start_line = 0
+
+    for idx, line in enumerate(code, 1):
+        line = line.strip()
+
+        # Check if it's a function definition
+        function_match = re.match(
+            r"^\s*(?:(?:public|private|protected|internal|static|async|unsafe|sealed|new|override|virtual|abstract)\s+)+([\w<>\[\],\.]+\s+)+([\w_]+)\s*\((.*)\)\s*(?:where.*)?\s*$",
+            line,
+        )
+        if function_match:
+            order += 1
+            start_line = idx
+            return_type = function_match.group(1)
+            function_name = function_match.group(2)
+            # logger.info(__name__, f"line: {idx} Return: {function_match.group(1)} Name: {function_match.group(2)} Args: {function_match.group(3)}")
+            current_function = function_name
+            current_function_lines = [line]
+            brace_count = 1 if line.endswith("{") else 0
+            continue
+
+        # If inside a function, add lines to its list
+        if current_function:
+            current_function_lines.append(line)
+            brace_count += line.count("{")
+            brace_count -= line.count("}")
+
+        # Check if the function ends
+        if brace_count == 0 and current_function:
+            functions.append(
+                {
+                    "order": order,
+                    "start_line": start_line,
+                    "end_line": idx,
+                    "name_of_function": current_function,
+                    "code": "\n".join(current_function_lines),
+                }
+            )
+            current_function = None
+            current_function_lines = []
+    return functions
 
 
 def extract_documentation_python(information, one_function, funct_name):
