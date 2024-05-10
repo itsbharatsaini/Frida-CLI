@@ -101,7 +101,7 @@ def generate_document_for_funct_prompt(code, extension):
     Create a comprehensive documentation for the function given.
     Do NOT generate anything else besides the documentation.
 
-    ALWAYS use this documentation style: {programming_languages[extension][1]}
+    ALWAYS use this documentation style: {programming_languages[extension][2]}
 
     Your documentation should include a brief overview of the following:
     - Purpose of the function with a detailed description of what the function does.
@@ -109,15 +109,17 @@ def generate_document_for_funct_prompt(code, extension):
     - Return values
     - Exceptions handled in the function
 
-    The description of the function MUST be within the code block in the 'summary' section.
+    The description of the function MUST be within the code block.
 
     The description of the function MUST be written with natural language.
 
     You have to return a code block with the function and the documentation.
 
-    Do NOT omit the implementation of the function.
+    Always follow the best documentation practices.
 
-    Do NOT alter the functions or omit them; only add the documentation.
+    Do NOT omit the function.
+
+    Do NOT alter the function; only add the documentation.
 
     Do NOT add anything to the code block besides the documentation and the function.
 
