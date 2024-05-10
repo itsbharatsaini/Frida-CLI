@@ -107,6 +107,11 @@ def extract_documentation_python(information, one_function, funct_name):
 
     try:
         if not one_function:
+            if information["description"].strip() != "":
+                lines.extend(
+                    [("bold", "Description:"), ("text", information["description"].strip())]
+                )
+
             code_pattern = re.compile(
                 r"(?:(?:.*)\s*class\s*([\w_\d]*)\s*:\s*(?:\"\"\"([\w\d\s\(\).#,:]*)\"\"\")*\s*)",
                 re.DOTALL,
@@ -127,29 +132,27 @@ def extract_documentation_python(information, one_function, funct_name):
                         ),
                     ]
                 )
-        if one_function:
-            code_pattern = re.compile(
-                r"(?:\s*(?:\"\"\"([\w\(\):\[\]\'_\-.,`\s]*)\"\"\"\s*)*def\s*([\w\d_]*)\s*\(\s*(?:[\w,:\d_\s]*)\s*\)\s*(?:-\s*>\s*[\w.]*)*\s*:\s*(?:\"\"\"([\w\(\):\[\]\'_\-.,`\s]*)\"\"\"\s*)*)",
-                re.DOTALL,
-            )
-        else:
-            code_pattern = re.compile(
-                r"(?:\s*def\s*([\w\d_]*)\s*\(\s*(?:[\w,:\d_\s]*)\s*\)\s*(?:-\s*>\s*[\w.]*)*\s*:\s*(?:\"\"\"([\w\(\):_\-.,`\s]*)\"\"\"))",
-                re.DOTALL,
-            )
+        code_pattern = re.compile(
+            r"(?:\s*(?:\"\"\"([\w\(\):\[\]\'_\-.,`\s]*)\"\"\"\s*)*def\s*([\w\d_]*)\s*\(\s*(?:[\w,:\d_\s]*)\s*\)\s*(?:-\s*>\s*[\w.]*)*\s*:\s*(?:\"\"\"([\w\(\):\[\]\'_\-.,`\s]*)\"\"\"\s*)*)",
+            re.DOTALL,
+        )
 
         matches = code_pattern.findall(information["code"])
 
+        logger.info(__name__, f"Matches found: {matches}")            
+
         for match in matches:
             funct_name = match[1]
-            logger.info(__name__, f"found something {match}")
             doc = match[0] or match[2]
             doc = doc.split("\n\n")
 
             lines.append(("subheader", f"Function: {funct_name}"))
-            lines.extend(
-                [("bold", "Description:"), ("text", information["description"].strip())]
-            )
+
+            logger.info(__name__, f"Match: {match} lines {lines}")
+            if doc[0].strip() != "":
+                lines.extend(
+                    [("bold", "Description:"), ("text", doc[0].strip())]
+                )
 
             if len(doc) >= 2:
                 for line in doc[1:]:

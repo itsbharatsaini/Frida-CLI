@@ -24,7 +24,7 @@ EXTENSIONS = {
     ".py": [
         extract_functions_python,
         '"""',
-        r"```(python)*\s*((?:\"\"\"([\w\(\):\[\]\'_\-.,`\s]*)\"\"\"\s*)*def\s*[\w\d_]*\s*\(\s*(?:[\w,:\d_\s]*)\s*\)\s*(?:-\s*>\s*[\w.]*)*\s*:\s*(?:\"\"\"([\w\(\):\[\]_\'\-.,`\s]*)\"\"\"\s*)*.*)```",
+        r"```(python)*\s*((?:\"\"\"([\w\(\)=\"\[\]\{\}:\'_\-.,`\s]*)\"\"\"\s*)*(?:[\w\s.\(\)s]*)def\s*[\w\d_]*\s*\(\s*(?:[\w,:\d_\s]*)\s*\)\s*(?:-\s*>\s*[\w.]*)*\s*:\s*(?:\"\"\"([\{\}\w\"\(\):_\'\-\[\].,`\s]*)\"\"\"\s*)*.*)```",
         "",
     ],
     ".cs": [
@@ -98,19 +98,26 @@ def get_code_block(text, extension, one_function, funct_name=None):
         code_pattern = re.compile(EXTENSIONS[extension][2], re.DOTALL)
         matches = code_pattern.findall(text)
 
+        logger.info(__name__, matches)
+
         if matches == []:
             logger.info(__name__, f"Did not match: {text}")
         else:
-            description = matches[0][2].replace(EXTENSIONS[extension][3], "").replace(
-                "`", ""
-            ) or matches[0][3].replace(EXTENSIONS[extension][3], "").replace("`", "")
+            if one_function and extension == ".py":
+                description = matches[0][2].replace(EXTENSIONS[extension][3], "").replace(
+                    "`", ""
+                ) or matches[0][3].replace(EXTENSIONS[extension][3], "").replace("`", "")
+                description = description.split("\n\n")[0]
+            else:
+                description = matches[0][2].replace(EXTENSIONS[extension][3], "").replace(
+                    "`", ""
+                )
             information = {
                 "language": matches[0][0],
                 "code": matches[0][1],
-                "description": (
-                    description.split("\n\n")[0] if extension == ".py" else description
-                ),
+                "description": description,
             }
+            logger.info(__name__, information)
 
             lines = extract_documentation(
                 information, extension, one_function, funct_name
@@ -162,6 +169,7 @@ def document_file(
 
             new_file = []
             new_doc = [("title", f"Documentation of the file '{file}'")]
+            new_code = None
 
             i = 1
 
@@ -178,7 +186,7 @@ def document_file(
                         logger.info(__name__, f"Retry # {i} for file {file}")
                         response = chatbot_agent.chat(prompt, True)
                         i += 1
-
+                    logger.info(__name__, f"file {file}, resp: {response}")
                     if "```" in response and EXTENSIONS[extension][1] in response:
                         information = get_code_block(response, extension, False)
                         if information:
@@ -241,7 +249,10 @@ def document_file(
             else:
                 pass
 
-            write_code_to_path(full_path, new_code)
+            if new_code is not None:
+                write_code_to_path(full_path, new_code, extension)
+            else:
+                logger.info(__name__, f"Could not write new code for file {file}")
 
             if len(new_doc) > 1:
                 for doctype, selected in formats.items():
@@ -253,7 +264,7 @@ def document_file(
                         )
                         save_documentation(doc_path + filename, new_doc)
             else:
-                pass
+                logger.info(__name__, f"Could not write new documentation for file {file}")
     except Exception as e:
         logger.info(__name__, f"Error in file: {file}: {e}")
     finally:
