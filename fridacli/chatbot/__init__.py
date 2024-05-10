@@ -149,7 +149,7 @@ class ChatbotAgent:
             logger.stat_tokens(
                 prompt_tokens=response.usage.prompt_tokens,
                 completion_tokens=response.usage.completion_tokens,
-            )  
+            )
             """
             return response.message.content
         except Exception as e:
@@ -167,7 +167,7 @@ class ChatbotAgent:
 
             # system.notification(error_message, bottom=0)
             return "An error has occurred, see the message above."
-        
+
     def clear_context(self):
         self.context.clear_messages()
 

@@ -4,7 +4,7 @@ from .chat_responses.code_change_question import RunCodeConfirmation
 from textual.widgets import Static, Input, Button
 from fridacli.file_manager import FileManager
 from fridacli.frida_coder import FridaCoder
-from fridacli.chatbot import ChatbotAgent
+from fridacli.chatbot import ChatbotAgent #Error loading
 from textual.app import ComposeResult
 from rich.traceback import Traceback
 from fridacli.logger import Logger
@@ -57,12 +57,12 @@ class ChatView(Static):
             if file not in str(message.value):
                 logger.info(__name__, f"file_to_delete: {file}")
                 self.delete_child_cv_hs(file)
-        
+
         self.chat_label_sz = len(message.value)
         paths = self.chatbot_agent.get_matching_files(
             message.value, self.mentioned_files
         )
-        
+
         for path in paths:
             file_name = path.split("\\")[-1] if OS == "win" else path.split("/")[-1]
             logger.info(__name__, f"file_name: {file_name}")

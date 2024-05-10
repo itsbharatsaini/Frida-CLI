@@ -1,0 +1,51 @@
+{
+  "projects": [
+    {
+      "project_name": "Online Bookstore",
+      "project_description": "A web application for purchasing books online.",
+      "plataform": "Mobile",
+      "date": "2024-05-09",
+      "versions": [
+        {
+          "version_name": "v1.0",
+          "epics": [
+            {
+              "epic_name": "User Authentication",
+              "user_stories": [
+                {
+                  "user_story": "As a user, I want to be able to register an account.",
+                  "description": "Users should be able to create a new account with their email and password.",
+                  "acceptance_criteria": "User should receive a confirmation email after registration.",
+                  "out_of_scope": "Third-party authentication methods (e.g., social media login) are out of scope for this version."
+                },
+                {
+                  "user_story": "As a user, I want to be able to log in to my account.",
+                  "description": "Registered users should be able to log in with their credentials.",
+                  "acceptance_criteria": "User should be redirected to the homepage after successful login.",
+                  "out_of_scope": "Forgot password functionality is out of scope for this version."
+                }
+              ]
+            },
+            {
+              "epic_name": "Browse Books",
+              "user_stories": [
+                {
+                  "user_story": "As a user, I want to be able to browse books by category.",
+                  "description": "Users should be able to view a list of books categorized by genre or topic.",
+                  "acceptance_criteria": "Users should see categories listed on the homepage.",
+                  "out_of_scope": "Advanced search functionality is out of scope for this version."
+                },
+                {
+                  "user_story": "As a user, I want to be able to view details of a specific book.",
+                  "description": "Users should be able to see detailed information about a book, including its description, author, and price.",
+                  "acceptance_criteria": "Clicking on a book should display its details on a separate page.",
+                  "out_of_scope": "User reviews and ratings are out of scope for this version."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -18,7 +18,7 @@ CodeView.-show-tree #cv_tree_view {
 }
 
 CodeView{
-   width: 65%; 
+   width: 65%;
 }
 
 SystemFridaResponse{
@@ -230,4 +230,92 @@ DocGenerator {
 
 #configuration_directorytree_pythonenv {
     height: 25
+}
+
+
+
+#epics_side_bar {
+    background: #283237;
+    width: 20%;
+}
+
+.epics_header_cls {
+    height: 3;
+    margin-bottom: 2;
+}
+
+#epics_search_input {
+    width: 50
+}
+
+#epics_search_btn {
+    margin-right: 80
+}
+
+#epics_container_select {
+    width: 50;
+    margin_right: 80;
+}
+
+
+CreateNewEpic {
+    width: 50;
+    align: center middle;
+}
+
+#upload_excel_button{
+    margin: 1 0 1 5;
+}
+
+#download_template_button{
+    margin: 1 0 1 2;
+}
+
+#epic_name_input{
+    margin: 2 32 1 4;
+}
+
+#platform_label{
+    margin: 1 0 1 5;
+}
+
+#platform_radio{
+    margin: 1 4 1 4;
+}
+
+#project_context_label{
+    margin: 1 0 1 5;
+}
+
+#project_context_input{
+    margin: 1 4 1 4;
+}
+
+#upload_excel_label{
+    margin: 1 0 0 5
+}
+
+#create_epic_quit{
+    margin: 1 0 1 5;
+}
+
+#create_epic_generate{
+    margin: 1 0 1 2;
+}
+
+#list_project_item {
+    height: 3;
+    grid-gutter: 0 1;
+}
+
+#a{
+    align: center top;
+}
+
+#list_view_container {
+    width: 80%;
+}
+
+.list_project_label {
+    width: 30;
 }

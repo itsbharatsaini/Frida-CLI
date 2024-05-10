@@ -1,0 +1,28 @@
+{
+  "projects": [
+    {
+      "project_name": "",
+      "project_description": "",
+      "plataform": "Mobile",
+      "date": "",
+      "versions": [
+        {
+          "version_name": "",
+          "epics": [
+            {
+              "epic_name": "",
+              "user_stories": [
+                {
+                  "user_story": "",
+                  "description": "",
+                  "acceptance_criteria": "",
+                  "out_of_scope": ""
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

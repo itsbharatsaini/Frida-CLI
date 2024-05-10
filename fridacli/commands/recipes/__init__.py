@@ -4,6 +4,7 @@ from fridacli.chatbot import ChatbotAgent
 from fridacli.file_manager import FileManager
 from fridacli.frida_coder import FridaCoder
 
+
 chatbot_agent = ChatbotAgent()
 file_manager = FileManager()
 frida_coder = FridaCoder()
