@@ -236,7 +236,7 @@ DocGenerator {
 
 #epics_side_bar {
     background: #283237;
-    width: 20%;
+    width: 15%;
 }
 
 .epics_header_cls {
@@ -318,4 +318,8 @@ CreateNewEpic {
 
 .list_project_label {
     width: 30;
+}
+
+#epics_options {
+    width: 20%
 }

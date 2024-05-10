@@ -6,6 +6,7 @@ from fridacli.gui.push_screens import CreateNewEpic
 from fridacli.logger import Logger
 from .utils import get_data_from_file, get_project_versions, get_versions_name
 from datetime import datetime
+from .project import Project
 
 logger = Logger()
 
