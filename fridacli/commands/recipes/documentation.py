@@ -3,14 +3,18 @@ from fridacli.logger import Logger
 
 logger = Logger()
 
+
 def extract_functions_python(code):
     def get_function_line(code, function):
         for id, line in enumerate(code, 1):
             if function.strip() in line:
                 return id
-    
+
     full_code = "".join(code)
-    code_pattern = re.compile(r"(\s*def\s*([\w_]*)\s*\([\s\w:._,=\[\]]*\)\s*(?:->\s*[\w.\[\]]*)*\s*:\s*)", re.DOTALL)
+    code_pattern = re.compile(
+        r"(\s*def\s*([\w_]*)\s*\([\s\w:._,=\[\]]*\)\s*(?:->\s*[\w.\[\]]*)*\s*:\s*)",
+        re.DOTALL,
+    )
     matches = code_pattern.findall(full_code)
     functions = []
 
@@ -18,7 +22,7 @@ def extract_functions_python(code):
         full_function = ""
         start = get_function_line(code, match[0])
         tabs = code[start - 1].rstrip().count("    ")
-        next_lines = code[start + 1:]
+        next_lines = code[start + 1 :]
         i = 0
         end = None
 
@@ -27,21 +31,24 @@ def extract_functions_python(code):
             if ("def" in line or line.strip() != "") and line_tabs <= tabs:
                 end = start + i + 1
                 break
-            i += 1 
+            i += 1
             full_function += line
 
         if end is None:
             end = len(code)
 
-        functions.append({
-            "order": id,
-            "start_line": start,
-            "end_line": end,
-            "name_of_function": match[1],
-            "code": match[0] + full_function,
-        })
+        functions.append(
+            {
+                "order": id,
+                "start_line": start,
+                "end_line": end,
+                "name_of_function": match[1],
+                "code": match[0] + full_function,
+            }
+        )
 
     return functions
+
 
 def extract_functions_csharp(code):
     functions = []
@@ -99,9 +106,7 @@ def extract_documentation_python(information, one_function, funct_name):
     first_exception = True
 
     try:
-        if one_function:
-            pass
-        else:
+        if not one_function:
             code_pattern = re.compile(
                 r"(?:(?:.*)\s*class\s*([\w_\d]*)\s*:\s*(?:\"\"\"([\w\d\s\(\).#,:]*)\"\"\")*\s*)",
                 re.DOTALL,
@@ -122,70 +127,88 @@ def extract_documentation_python(information, one_function, funct_name):
                         ),
                     ]
                 )
-
+        if one_function:
             code_pattern = re.compile(
-                r"(?:\s*def\s*([\w\d_]*)\s*\(\s*(?:[\w,:\d_\s]*)\s*\)\s*(?:-\s*>\s*[\w.]*)*\s*:\s*(?:\"\"\"([\w\(\):.,`\s]*)\"\"\"))",
+                r"(?:\s*(?:\"\"\"([\w\(\):\[\]\'_\-.,`\s]*)\"\"\"\s*)*def\s*([\w\d_]*)\s*\(\s*(?:[\w,:\d_\s]*)\s*\)\s*(?:-\s*>\s*[\w.]*)*\s*:\s*(?:\"\"\"([\w\(\):\[\]\'_\-.,`\s]*)\"\"\"\s*)*)",
                 re.DOTALL,
             )
-            matches = code_pattern.findall(information["code"])
+        else:
+            code_pattern = re.compile(
+                r"(?:\s*def\s*([\w\d_]*)\s*\(\s*(?:[\w,:\d_\s]*)\s*\)\s*(?:-\s*>\s*[\w.]*)*\s*:\s*(?:\"\"\"([\w\(\):_\-.,`\s]*)\"\"\"))",
+                re.DOTALL,
+            )
 
-            for match in matches:
-                funct_name = match[0]
-                doc = match[1].split("\n\n")
+        matches = code_pattern.findall(information["code"])
 
-                lines.append(("subheader", f"Function: {funct_name}"))
-                lines.extend([("bold", "Description:"), ("text", doc[0].strip())])
+        for match in matches:
+            funct_name = match[1]
+            logger.info(__name__, f"found something {match}")
+            doc = match[0] or match[2]
+            doc = doc.split("\n\n")
 
-                if len(doc) >= 2:
-                    for line in doc[1:]:
-                        sep = line.split("\n")
-                        if "Args:" in sep[0]:
-                            for arg in sep[1:]:
-                                if "None" not in arg and arg.strip() != "":
-                                    if first_parameter:
-                                        lines.append(("bold", "Arguments:"))
-                                        first_parameter = False
-                                    if ":" in arg:
-                                        sep_arg = arg.strip().split(":")
-                                        lines.append(
-                                            ("bullet", f"{sep_arg[0]}. {sep_arg[1]}")
-                                        )
-                                    else:
-                                        sep_arg = arg.strip()
-                                        lines[-1][1] += sep_arg
-                        if "Returns:" in sep[0]:
-                            for ret in sep[1:]:
-                                if "None" not in ret and ret.strip() != "":
-                                    if first_return:
-                                        lines.append(("bold", "Returns:"))
-                                        first_return = False
-                                    if ":" in ret:
-                                        sep_ret = ret.strip().split(":")
-                                        lines.append(
-                                            ("bullet", f"{sep_ret[0]}. {sep_ret[1]}")
-                                        )
-                                    else:
-                                        sep_ret = ret.strip()
-                                        lines[-1][1] += sep_ret
-                        if "Raises:" in sep[0]:
-                            for rai in sep[1:]:
-                                if "None" not in rai and rai.strip() != "":
-                                    if first_exception:
-                                        lines.append(("bold", "Raises:"))
-                                        first_exception = False
-                                    if ":" in rai:
-                                        sep_rai = rai.strip().split(":")
-                                        lines.append(
-                                            ("bullet", f"{sep_rai[0]}. {sep_rai[1]}")
-                                        )
-                                    else:
-                                        sep_rai = rai.strip()
-                                        lines[-1][1] += sep_rai
-                first_parameter = True
-                first_return = True
-                first_exception = True
+            lines.append(("subheader", f"Function: {funct_name}"))
+            lines.extend(
+                [("bold", "Description:"), ("text", information["description"].strip())]
+            )
 
-            return lines
+            if len(doc) >= 2:
+                for line in doc[1:]:
+                    sep = line.split("\n")
+                    if "Args:" in sep[0]:
+                        for arg in sep[1:]:
+                            if "None" not in arg and arg.strip() != "":
+                                if first_parameter:
+                                    lines.append(("bold", "Arguments:"))
+                                    first_parameter = False
+                                if ":" in arg:
+                                    sep_arg = arg.strip().split(":")
+                                    lines.append(
+                                        ("bullet", f"{sep_arg[0]}. {sep_arg[1]}")
+                                    )
+                                else:
+                                    sep_arg = arg.strip()
+                                    lines[-1] = (lines[-1][0], lines[-1][1] + sep_arg)
+                    elif "Returns:" in sep[0]:
+                        for ret in sep[1:]:
+                            if "None" not in ret and ret.strip() != "":
+                                if first_return:
+                                    lines.append(("bold", "Returns:"))
+                                    first_return = False
+                                if ":" in ret:
+                                    sep_ret = ret.strip().split(":")
+                                    lines.append(
+                                        ("bullet", f"{sep_ret[0]}. {sep_ret[1]}")
+                                    )
+                                else:
+                                    sep_ret = ret.strip()
+                                    lines[-1] = (lines[-1][0], lines[-1][1] + sep_ret)
+                    elif "Raises:" in sep[0]:
+                        for rai in sep[1:]:
+                            if "None" not in rai and rai.strip() != "":
+                                if first_exception:
+                                    lines.append(("bold", "Raises:"))
+                                    first_exception = False
+                                if ":" in rai:
+                                    sep_rai = rai.strip().split(":")
+                                    lines.append(
+                                        ("bullet", f"{sep_rai[0]}. {sep_rai[1]}")
+                                    )
+                                else:
+                                    sep_rai = rai.strip()
+                                    lines[-1] = (lines[-1][0], lines[-1][1] + sep_rai)
+                    elif (
+                        first_parameter
+                        and first_return
+                        and first_exception
+                        and line.strip() != ""
+                    ):
+                        lines[2] = ("text", lines[2][1] + "\n" + line.strip())
+
+            first_parameter = True
+            first_return = True
+            first_exception = True
+
+        return lines
     except Exception as e:
         logger.info(__name__, f"{e}")
 
