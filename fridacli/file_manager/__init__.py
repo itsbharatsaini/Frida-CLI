@@ -47,7 +47,6 @@ class FileManager:
 
     def __traverse(self, path, current_node):
         try:
-            self.__files = {}
             for item in os.listdir(path):
                 item_path = os.path.join(path, item)
 
@@ -78,6 +77,7 @@ class FileManager:
         - None
         """
         root_node = Tree(path)
+        self.__files = {}
         self.__traverse(path, root_node)
         return root_node
 
