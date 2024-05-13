@@ -7,14 +7,14 @@ logger = Logger()
 def extract_functions_python(code):
     def get_function_line(code, function):
         for id, line in enumerate(code, 1):
-            if function.strip() in line:
+            if function.strip().split("    ")[0] in line:
                 return id
 
     full_code = "".join(code)
     code_pattern = re.compile(
-        r"(\s*def\s*([\w_]*)\s*\([\s\w:._,=\[\]]*\)\s*(?:->\s*[\w.\[\]]*)*\s*:\s*)",
-        re.DOTALL,
-    )
+            r"(\s*def\s*([\w\d_]*)\s*\(\s*(?:[\w\[\],.|=:_\s]*)\s*\)\s*(?:-\s*>\s*[\w.]*)*\s*:\s*)",
+            re.DOTALL,
+        )
     matches = code_pattern.findall(full_code)
     functions = []
 
@@ -22,14 +22,16 @@ def extract_functions_python(code):
         full_function = ""
         start = get_function_line(code, match[0])
         tabs = code[start - 1].rstrip().count("    ")
-        next_lines = code[start + 1 :]
+        additional_lines = match[0].strip().count("    ") + 1
+        next_lines = code[start + additional_lines:]
+        #logger.info(__name__, f"func {match[1]}, tabs {tabs}, next lines {next_lines} additional_lines {additional_lines}")
         i = 0
         end = None
 
         for line in next_lines:
             line_tabs = line.rstrip().count("    ")
             if ("def" in line or line.strip() != "") and line_tabs <= tabs:
-                end = start + i + 1
+                end = start + i + additional_lines
                 break
             i += 1
             full_function += line
@@ -46,6 +48,7 @@ def extract_functions_python(code):
                 "code": match[0] + full_function,
             }
         )
+        #logger.info(__name__, functions[-1])
 
     return functions
 
@@ -133,7 +136,7 @@ def extract_documentation_python(information, one_function, funct_name):
                     ]
                 )
         code_pattern = re.compile(
-            r"(?:\s*(?:\"\"\"([\w\(\):\[\]\'_\-.,`\s]*)\"\"\"\s*)*def\s*([\w\d_]*)\s*\(\s*(?:[\w,:\d_\s]*)\s*\)\s*(?:-\s*>\s*[\w.]*)*\s*:\s*(?:\"\"\"([\w\(\):\[\]\'_\-.,`\s]*)\"\"\"\s*)*)",
+            r"(?:\s*(?:\"\"\"([\w\(\):\[\]\'#_\-.,`\s]*)\"\"\"\s*)*def\s*([\w\d_]*)\s*\(\s*(?:[\w\[\],.|=:_\s]*)\s*\)\s*(?:-\s*>\s*[\w.]*)*\s*:\s*(?:\"\"\"([\w\(\)#:\[\]\'_\-.,`\s]*)\"\"\"\s*)*)",
             re.DOTALL,
         )
 
@@ -210,6 +213,9 @@ def extract_documentation_python(information, one_function, funct_name):
             first_parameter = True
             first_return = True
             first_exception = True
+
+            if one_function:
+                break
 
         return lines
     except Exception as e:
