@@ -1,5 +1,14 @@
 import re
 from fridacli.logger import Logger
+from .regex_configuration import (
+    DOCUMENTATION_FROM_ALL_FUNCTIONS_PYTHON,
+    DEFINITION_OF_FUNCTION_PYTHON,
+    DEFINITION_OF_FUNCTION_CSHARP,
+    DEFINITION_OF_FUNCTION_CSHARP_2,
+    PARAM_CSHARP,
+    RETURN_CSHARP,
+    EXCEPTION_CSHARP,
+)
 
 logger = Logger()
 
@@ -12,7 +21,7 @@ def extract_functions_python(code):
 
     full_code = "".join(code)
     code_pattern = re.compile(
-        r"(\s*def\s*([\w\d_]*)\s*\(\s*(?:[\w\[\],.|=:_\s]*)\s*\)\s*(?:-\s*>\s*[\w.]*)*\s*:\s*)",
+        DEFINITION_OF_FUNCTION_PYTHON,
         re.DOTALL,
     )
     matches = code_pattern.findall(full_code)
@@ -66,7 +75,7 @@ def extract_functions_csharp(code):
 
         # Check if it's a function definition
         function_match = re.match(
-            r"^\s*(?:(?:public|private|protected|internal|static|async|unsafe|sealed|new|override|virtual|abstract)\s+)+([\w<>\[\],\.]+\s+)+([\w_]+)\s*\((.*)\)\s*(?:where.*)?\s*$",
+            DEFINITION_OF_FUNCTION_CSHARP,
             line,
         )
         if function_match:
@@ -120,7 +129,7 @@ def extract_documentation_python(information, one_function, funct_name):
                 )
 
         code_pattern = re.compile(
-            r"(?:\s*(?:\"\"\"([\w\(\)|\":\[\]\'#_\-.,`\s]*)\"\"\"\s*)*def\s*([\w\d_]*)\s*\(\s*(?:[\w\[\],.|=:_\s]*)\s*\)\s*(?:-\s*>\s*[\w.]*)*\s*:\s*(?:\"\"\"([\w\"\(\)|#:\[\]\'_\-.,`\s]*)\"\"\"\s*)*)",
+            DOCUMENTATION_FROM_ALL_FUNCTIONS_PYTHON,
             re.DOTALL,
         )
 
@@ -269,15 +278,15 @@ def extract_documentation_csharp(information, one_function, funct_name):
         for idx, line in enumerate(information["code"].splitlines(), 1):
             try:
                 param_match = re.match(
-                    r"^\s*///\s*<\s*param\s*name\s*=\s*\"([\w\s]*)\">([\w\.\-\s<>=\"/{}]*)</param>\s*$",
+                    PARAM_CSHARP,
                     line,
                 )
                 returns_match = re.match(
-                    r"^\s*///\s*<\s*returns\s*>([\w\.\-\s<>=\"/{}]*)</returns>\s*$",
+                    RETURN_CSHARP,
                     line,
                 )
                 exception_match = re.match(
-                    r"^\s*///\s*<\s*exception\s*cref\s*=\s*\"([\w\s]*)\">([\w\.\-\s<>=\"/{}]*)</exception>\s*$",
+                    EXCEPTION_CSHARP,
                     line,
                 )
 
@@ -334,19 +343,19 @@ def extract_documentation_csharp(information, one_function, funct_name):
         for idx, line in enumerate(information["code"].splitlines(), 1):
             try:
                 param_match = re.match(
-                    r"^\s*///\s*<\s*param\s*name\s*=\s*\"([\w\s]*)\">([\w\.\-\s<>=\"/{}]*)</param>\s*$",
+                    PARAM_CSHARP,
                     line,
                 )
                 returns_match = re.match(
-                    r"^\s*///\s*<\s*returns\s*>([\w\.\-\s<>=\"/{}]*)</returns>\s*$",
+                    RETURN_CSHARP,
                     line,
                 )
                 exception_match = re.match(
-                    r"^\s*///\s*<\s*exception\s*cref\s*=\s*\"([\w\s]*)\">([\w\.\-\s<>=\"/{}]*)</exception>\s*$",
+                    EXCEPTION_CSHARP,
                     line,
                 )
                 function_match = re.match(
-                    r"^\s*(?:(?:public|private|protected|internal|static|async|unsafe|sealed|new|override|virtual|abstract)\s+)+(?:[\w<>\[\],\.]+\s+)+([\w_]+)\s*\((?:.*)\)\s*(?:where.*)?\s*$",
+                    DEFINITION_OF_FUNCTION_CSHARP_2,
                     line,
                 )
 

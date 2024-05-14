@@ -16,6 +16,11 @@ from .documentation import (
     extract_functions_python,
     extract_functions_csharp,
 )
+from .regex_configuration import (
+    SUMMARY_AND_CODE_FROM_ALL_FUNCTIONS_PYTHON,
+    CODE_FROM_PYTHON,
+    SUMMARY_AND_CODE_FROM_CSHARP,
+)
 
 logger = Logger()
 
@@ -24,14 +29,14 @@ EXTENSIONS = {
     ".py": [
         extract_functions_python,
         '"""',
-        r"```(python)*\s*((?:\"\"\"([\w\(\)=\"\[\]\{\}#:\'_\-.,`\s]*)\"\"\"\s*)*(?:[\w\s.\(\)s]*)def\s*[\w\d_]*\s*\(\s*(?:[\w\[\],.|=:_\s]*)\s*\)\s*(?:-\s*>\s*[\w.]*)*\s*:\s*(?:\"\"\"([\{\}\w\"\(\)#:_\'\-\[\].,`\s]*)\"\"\"\s*)*.*)```",
+        SUMMARY_AND_CODE_FROM_ALL_FUNCTIONS_PYTHON,
         "",
-        r"```(python)*\s*(.*)```"
+        CODE_FROM_PYTHON,
     ],
     ".cs": [
         extract_functions_csharp,
         "///",
-        r"```([\w#]*)\s*([\w.;\s]*\s*(?:///\s*<\s*summary\s*>\s*///\s*([\w.\-,:#\[()\]\d\s]*)///\s*<\s*/\s*summary\s*>)*\s*.*)```",
+        SUMMARY_AND_CODE_FROM_CSHARP,
         "/",
     ],
 }
