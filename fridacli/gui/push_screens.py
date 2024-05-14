@@ -1,5 +1,5 @@
 from textual.screen import Screen
-from textual.widgets import Label, Input, Button, DirectoryTree, LoadingIndicator, Checkbox, RadioSet, RadioButton
+from textual.widgets import Label, Input, Button, DirectoryTree, LoadingIndicator, Checkbox, RadioSet, RadioButton, TextArea
 from textual.containers import Vertical, Horizontal
 from fridacli.commands.recipes import generate_epics, document_files
 from textual.worker import Worker, WorkerState
@@ -85,7 +85,7 @@ class CreateNewEpic(Screen):
             Label("Type of Platform", id="platform_label"),
             RadioSet(RadioButton("Mobile"), RadioButton("Web"), RadioButton("Tablet"), id="platform_radio"),
             Label("Tell us more about your project", id="project_context_label"),
-            Input(id="project_context_input"),
+            TextArea("", id="project_context_input"),
             Label("Upload your Excel", id="upload_excel_label"),
             Horizontal(
                 Button("Upload your Excel", variant="default", id="upload_excel_button"),
@@ -106,8 +106,8 @@ class CreateNewEpic(Screen):
             self.app.pop_screen()
         elif event.button.id == "create_epic_generate":
             epic_name_input = self.query_one("#epic_name_input", Input).value
-            plataform = self.radio_set_value
-            project_context_input = self.query_one("#project_context_input", Input).value
+            plataform = str(self.radio_set_value)
+            project_context_input = self.query_one("#project_context_input", TextArea).text
             if len(epic_name_input) > 0  and len(plataform) > 0 and len(project_context_input) > 0:
                 params = (epic_name_input, plataform, project_context_input)
                 self.dismiss(params)

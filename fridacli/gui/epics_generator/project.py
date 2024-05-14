@@ -7,6 +7,8 @@ from textual.app import App, ComposeResult
 from textual.widgets import DataTable, Label, TabbedContent, TextArea
 from fridacli.logger import Logger
 from textual.binding import Binding
+from .utils import get_versions_names, create_empty_userstory, create_new_epic
+from .push_screens import NewProjectPushScreen
 #from fridacli.commands.recipes import create_new_userstory_from_epic
 
 logger = Logger()
@@ -23,18 +25,20 @@ ROWS = [
 
 
 class UserStory(Static):
-    def __init__(self,userstory_name) -> None:
+    def __init__(self, user_story) -> None:
         super().__init__()
-        self.userstory_name = userstory_name
+        self.user_story = user_story
 
     def compose(self):
         with Horizontal(classes="user_story_horizontal"):
-            yield TextArea(classes="user_story_textarea", id="userstory_name")
-            yield TextArea(classes="user_story_textarea", id="userstory_description")
+            yield TextArea(self.user_story["user_story"], classes="user_story_textarea", id="userstory_name")
+            yield TextArea(self.user_story["description"], classes="user_story_textarea", id="userstory_description")
             yield TextArea(
-                classes="user_story_textarea", id="userstory_acceptance_criteria"
+                self.user_story["acceptance_criteria"],
+                classes="user_story_textarea",
+                id="userstory_acceptance_criteria"
             )
-            yield TextArea(classes="user_story_textarea", id="userstory_out_of_scope")
+            yield TextArea(self.user_story["out_of_scope"], classes="user_story_textarea", id="userstory_out_of_scope")
 
     def complete_cell(self):
         username_name = self.query_one("#userstory_name", TextArea)
@@ -51,36 +55,38 @@ class UserStory(Static):
 
 
 class Epic(Static):
-    def __init__(self,epic_name) -> None:
-        self.epic_name = epic_name
+    def __init__(self, epic) -> None:
+        self.epic = epic
         self.userstories_names = []
-        super().__init__(
-            renderable,
-            expand=True,
-            shrink=True,
-            markup=markup,
-            name=name,
-            id=id,
-            classes=classes,
-            disabled=disabled,
-        )
+        super().__init__()
         self.shrink = True
         self.expand = True
 
-    def compose(self) -> ComposeResult:
-        yield Label(Text(self.epic_name, style="font-size: 30px"), id="epic_label")
-        with Vertical(classes="user_story_vertical", id="user_story_vertical"):
-            yield UserStory("")
-            yield UserStory("")
+    def compose(self):
+        yield Label(Text(self.epic["epic_name"], style="font-size: 30"), id="epic_label")
+        with Horizontal(classes="user_story_horizontal_title"):
+            yield TextArea("User story", classes="user_story_textarea_title", disabled=True)
+            yield TextArea("Description", classes="user_story_textarea_title", disabled=True)
+            yield TextArea("Acceptance Criteria", classes="user_story_textarea_title", disabled=True)
+            yield TextArea("Out of Scope", classes="user_story_textarea_title", disabled=True)
+
+        yield Vertical(classes="user_story_vertical", id="user_story_vertical")
         with Horizontal(classes="user_story_horizontal"):
-            yield Button("Create New User Story", id="new_epic_btn")
+            yield Button("Create New User Story")
             yield Button("Complete Cells", variant="success")
+
+    def on_mount(self):
+        user_stories_component = self.query_one("#user_story_vertical", Vertical)
+        for user_story in self.epic["user_stories"]:
+            user_stories_component.mount(UserStory(user_story))
 
     def on_button_pressed(self, event: Button.Pressed):
         button_pressed = str(event.button.id)
         vertical = self.query_one("#user_story_vertical", Vertical)
         if button_pressed == "new_epic_btn":
-            vertical.mount(UserStory(userstory_name = ""))
+            empty_userstory = create_empty_userstory()
+
+            vertical.mount(UserStory(empty_userstory))
         else:
             self.create_new_userstory()
 
@@ -94,24 +100,97 @@ class Epic(Static):
 class Options(TabbedContent):
     BORDER_TITLE = "Data Catalog"
 
+    def __init__(self, project_drescription, epics) -> None:
+        super().__init__()
+        self.project_drescription = project_drescription
+        self.epics = epics
+
+
     def compose(self):
         yield Button("Create New Epic", id="new_epic_btn")
         yield Label("Project description")
-        yield TextArea(id="project_description_textarea")
+        yield TextArea(self.project_drescription, id="project_description_textarea")
 
     def on_button_pressed(self, event: Button.Pressed):
         button_pressed = str(event.button.id)
+        #Create a new Epic
         if button_pressed == "new_epic_btn":
-            logger.info(__name__, self.parent.parent.parent)
-            self.parent.parent.parent.create_new_epic("Test3")
+            logger.info(__name__, "epic" + str(self.epics))
+            #self.app.push_screen(NewProjectPushScreen())
+            empty_epic = create_new_epic(self.epics)
+            self.parent.parent.parent.create_new_epic(empty_epic)
 
 class Project(Static):
+    versions_names = """Version 1
+    Version 2
+    Version 3
+    """.splitlines()
+    def __init__(self, project) -> None:
+        super().__init__()
+        self.project = project
+        self.version = ""
     def compose(self):
         with Horizontal():
-            with VerticalScroll(id="epics_list"):
-                yield Epic(epic_name="Cart")
+            with Vertical(id="epics_container"):
+                with Horizontal(id = "epics_horizontal_buttons"):
+                    yield Select(
+                        options = [(line, line) for line in self.versions_names],
+                        prompt="Version",
+                        id="epics_select",
+                        disabled=True
+                    )
+                    yield Button("Edit", id="epic_edit_btn", disabled=True)
+                    yield Button("Download", id="epic_download_btn", disabled=True)
+
+                yield VerticalScroll(id="epics_list")
             with Vertical(id="epics_options"):
-                yield Options()
+                yield Options(
+                    self.project["project_description"],
+                    self.project["versions"][0] if self.version == "" else list(filter(lambda x: x["epic_name"], self.project["versions"]))[0]
+                )
+
+    def on_mount(self):
+        self.populate_components("")
+
+    def populate_components(self, version_name):
+        #Get the versions
+        versions = get_versions_names(self.project)
+        if version_name == "":
+            self.update_select_options(versions, True)
+
+        #Update buttons
+        self.query_one("#epic_edit_btn", Button).disabled = False
+        self.query_one("#epic_download_btn", Button).disabled = False
+        version = {}
+        if version_name == "":
+            version = self.project["versions"][0]
+            self.version = version
+        else:
+            self.project["versions"]
+            version = list(filter(lambda x: x["version_name"] == version_name, self.project["versions"]))
+            if len(version) > 0:
+                version = version[0]
+        logger.info(__name__,"version " + str(version))
+        self.populate_epics(version)
+
+
+    def populate_epics(self, version):
+        epics = version["epics"]
+        for epic in epics:
+            self.create_new_epic(epic)
+
+    def update_select_options(self, options, disabled):
+        select = self.query_one("#epics_select", Select)
+        new_options = [(line, line) for line in options]
+        select.set_options(new_options)
+        if disabled:
+            select.disabled = False
 
     def create_new_epic(self, epic=""):
-        self.query_one("#epics_list", VerticalScroll).mount(Epic(epic_name=epic))
+        self.query_one("#epics_list", VerticalScroll).mount(Epic(epic))
+
+    def on_select_changed(self, event: Select.Changed):
+        logger.info(__name__, "clicked")
+        version_selected = event.value
+        self.query_one("#epics_list", VerticalScroll).remove_children("*")
+        self.populate_components(version_selected)

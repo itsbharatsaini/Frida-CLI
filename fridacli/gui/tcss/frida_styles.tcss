@@ -233,6 +233,7 @@ DocGenerator {
 }
 
 
+/* epics generator */
 
 #epics_side_bar {
     background: #283237;
@@ -252,9 +253,7 @@ DocGenerator {
     margin-right: 80
 }
 
-#epics_container_select {
-    width: 50;
-    margin_right: 80;
+#epics_container {
 }
 
 
@@ -289,6 +288,7 @@ CreateNewEpic {
 
 #project_context_input{
     margin: 1 4 1 4;
+    background: #808080;
 }
 
 #upload_excel_label{
@@ -313,7 +313,7 @@ CreateNewEpic {
 }
 
 #list_view_container {
-    width: 80%;
+    width: 60%
 }
 
 .list_project_label {
@@ -322,4 +322,98 @@ CreateNewEpic {
 
 #epics_options {
     width: 20%
+}
+
+Epic {
+    margin: 0;
+    padding: 0;
+    height: auto;
+}
+
+UserStory {
+    padding: 0;
+    margin: 0;
+}
+
+#epics_list {
+    width: 100%;
+    margin-left: 1;
+    margin-right: 1;
+}
+
+.user_story_vertical {
+    margin: 0;
+    margin-bottom: 1;
+    padding: 0;
+    height: auto;
+}
+
+#project_content{
+    align: center top;
+}
+
+#selected_cell_text {
+    height: 10;
+}
+
+#project_description_textarea {
+    height: 10;
+    background: #808080;
+    color: #000000;
+}
+
+#text_cell {
+    height: 5
+}
+
+.user_story_textarea {
+    height: 6;
+    background: #808080;
+    color: #000000;
+}
+
+.user_story_textarea_title {
+    height: 3;
+    background: #808080;
+    color: #E1E1E1;
+}
+
+.user_story_horizontal {
+    margin-left: 10;
+    padding-left: 5;
+    height: 6;
+}
+
+.user_story_horizontal_title {
+    padding: 0 0 0 0;
+    margin: 0;
+    height: 2;
+}
+
+.user_story_header_horizontal {
+    padding: 0 0 0 0;
+    margin: 0;
+}
+
+.user_story_horizontal {
+    padding: 0 0 0 0;
+    margin: 0;
+}
+
+#epics_horizontal_buttons {
+    height: 4;
+}
+
+#epics_select {
+    width: 30
+}
+
+#new_epic_btn {
+    width: 98%;
+    margin-bottom: 2;
+}
+
+NewProjectPushScreen {
+    width: 50;
+    align: center middle;
 }
