@@ -26,6 +26,7 @@ EXTENSIONS = {
         '"""',
         r"```(python)*\s*((?:\"\"\"([\w\(\)=\"\[\]\{\}#:\'_\-.,`\s]*)\"\"\"\s*)*(?:[\w\s.\(\)s]*)def\s*[\w\d_]*\s*\(\s*(?:[\w\[\],.|=:_\s]*)\s*\)\s*(?:-\s*>\s*[\w.]*)*\s*:\s*(?:\"\"\"([\{\}\w\"\(\)#:_\'\-\[\].,`\s]*)\"\"\"\s*)*.*)```",
         "",
+        r"```(python)*\s*(.*)```"
     ],
     ".cs": [
         extract_functions_csharp,
@@ -95,7 +96,7 @@ def extract_documentation(information, extension, one_function, funct_name):
 
 def get_code_block(text, extension, one_function, funct_name=None):
     try:
-        code_pattern = re.compile(EXTENSIONS[extension][2], re.DOTALL)
+        code_pattern = re.compile(EXTENSIONS[extension][4] if (not one_function and extension == ".py") else EXTENSIONS[extension][2], re.DOTALL)
         matches = code_pattern.findall(text)
 
         logger.info(__name__, matches)
@@ -112,6 +113,8 @@ def get_code_block(text, extension, one_function, funct_name=None):
                     "`", ""
                 )
                 description = description.split("\n\n")[0]
+            elif extension == ".py":
+                description = ""
             else:
                 description = (
                     matches[0][2].replace(EXTENSIONS[extension][3], "").replace("`", "")
@@ -255,7 +258,7 @@ def document_file(
                 pass
 
             if new_code is not None:
-                write_code_to_path(full_path, new_code, extension)
+                pass #write_code_to_path(full_path, new_code, extension)
             else:
                 logger.info(__name__, f"Could not write new code for file {file}")
 

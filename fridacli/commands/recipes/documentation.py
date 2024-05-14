@@ -107,6 +107,7 @@ def extract_documentation_python(information, one_function, funct_name):
     first_parameter = True
     first_return = True
     first_exception = True
+    first_function = True
 
     try:
         if not one_function:
@@ -129,9 +130,10 @@ def extract_documentation_python(information, one_function, funct_name):
 
         for match in matches:
             funct_name = match[1]
-            doc = match[0] or match[2]
+            doc = match[2] if first_function else (match[0] or match[2])
 
             if doc != "":
+                doc = doc.replace("\n    \n", "\n\n")
                 doc = doc.split("\n\n")
                 lines.append(("subheader", f"Function: {funct_name}"))
 
@@ -142,6 +144,7 @@ def extract_documentation_python(information, one_function, funct_name):
                     for line in doc[1:]:
                         sep = line.split("\n")
                         if "Args:" in sep[0]:
+                            logger.info(__name__, f"Args {funct_name}: {sep}")
                             for arg in sep[1:]:
                                 if "None" not in arg and arg.strip() != "":
                                     if first_parameter:
@@ -169,6 +172,7 @@ def extract_documentation_python(information, one_function, funct_name):
                                             lines[-1][1] + "\n" + arg.rstrip(),
                                         )
                         elif "Returns:" in sep[0]:
+                            logger.info(__name__, f"Returns {funct_name}: {sep}")
                             for ret in sep[1:]:
                                 if "None" not in ret and ret.strip() != "":
                                     if first_return:
@@ -196,6 +200,7 @@ def extract_documentation_python(information, one_function, funct_name):
                                             lines[-1][1] + "\n" + ret.rstrip(),
                                         )
                         elif "Raises:" in sep[0]:
+                            logger.info(__name__, f"Raises {funct_name}: {sep}")
                             for rai in sep[1:]:
                                 if "None" not in rai and rai.strip() != "":
                                     if first_exception:
