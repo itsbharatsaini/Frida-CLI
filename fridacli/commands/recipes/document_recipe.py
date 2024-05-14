@@ -263,7 +263,7 @@ def document_file(
                 pass
 
             if new_code is not None:
-                pass #write_code_to_path(full_path, new_code, extension)
+                write_code_to_path(full_path, new_code, extension)
             else:
                 logger.info(__name__, f"Could not write new code for file {file}")
 

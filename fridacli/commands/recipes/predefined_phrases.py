@@ -48,6 +48,8 @@ def generate_full_document_prompt(code, extension):
 
     ALWAYS use this documentation style for the functions: {programming_languages[extension][1]}
 
+    Do NOT document classes.
+
     Do NOT add 'Example usage' in the documentation of the function.
 
     Do NOT generate anything else besides the documentation.
@@ -72,7 +74,7 @@ def generate_document_for_funct_prompt(code, extension):
     Create a comprehensive documentation for the function given.
     Do NOT generate anything else besides the documentation.
 
-    ALWAYS use this documentation style: {programming_languages[extension][2]}
+    ALWAYS use this documentation style: {programming_languages[extension][1]}
 
     Your documentation should include a brief overview of the following:
     - Purpose of the function with a detailed description of what the function does.
