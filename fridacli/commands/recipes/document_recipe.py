@@ -24,7 +24,7 @@ EXTENSIONS = {
     ".py": [
         extract_functions_python,
         '"""',
-        r"```(python)*\s*((?:\"\"\"([\w\(\)=\"\[\]\{\}:\'_\-.,`\s]*)\"\"\"\s*)*(?:[\w\s.\(\)s]*)def\s*[\w\d_]*\s*\(\s*(?:[\w,:\d_\s]*)\s*\)\s*(?:-\s*>\s*[\w.]*)*\s*:\s*(?:\"\"\"([\{\}\w\"\(\):_\'\-\[\].,`\s]*)\"\"\"\s*)*.*)```",
+        r"```(python)*\s*((?:\"\"\"([\w\(\)=\"\[\]\{\}#:\'_\-.,`\s]*)\"\"\"\s*)*(?:[\w\s.\(\)s]*)def\s*[\w\d_]*\s*\(\s*(?:[\w\[\],.|=:_\s]*)\s*\)\s*(?:-\s*>\s*[\w.]*)*\s*:\s*(?:\"\"\"([\{\}\w\"\(\)#:_\'\-\[\].,`\s]*)\"\"\"\s*)*.*)```",
         "",
     ],
     ".cs": [
@@ -104,13 +104,17 @@ def get_code_block(text, extension, one_function, funct_name=None):
             logger.info(__name__, f"Did not match: {text}")
         else:
             if one_function and extension == ".py":
-                description = matches[0][2].replace(EXTENSIONS[extension][3], "").replace(
+                description = matches[0][2].replace(
+                    EXTENSIONS[extension][3], ""
+                ).replace("`", "") or matches[0][3].replace(
+                    EXTENSIONS[extension][3], ""
+                ).replace(
                     "`", ""
-                ) or matches[0][3].replace(EXTENSIONS[extension][3], "").replace("`", "")
+                )
                 description = description.split("\n\n")[0]
             else:
-                description = matches[0][2].replace(EXTENSIONS[extension][3], "").replace(
-                    "`", ""
+                description = (
+                    matches[0][2].replace(EXTENSIONS[extension][3], "").replace("`", "")
                 )
             information = {
                 "language": matches[0][0],
@@ -124,6 +128,7 @@ def get_code_block(text, extension, one_function, funct_name=None):
             )
             if lines is not None and lines != []:
                 information["documentation"] = lines
+                logger.info(__name__, f"lines on doc: {lines}")
             else:
                 logger.info(
                     __name__,
@@ -175,7 +180,7 @@ def document_file(
 
             if method == "Quick":
 
-                if num_lines < 300:
+                if num_lines <= 300:
                     prompt = generate_full_document_prompt(code, extension)
                     response = chatbot_agent.chat(prompt, True)
 
@@ -264,7 +269,9 @@ def document_file(
                         )
                         save_documentation(doc_path + filename, new_doc)
             else:
-                logger.info(__name__, f"Could not write new documentation for file {file}")
+                logger.info(
+                    __name__, f"Could not write new documentation for file {file}"
+                )
     except Exception as e:
         logger.info(__name__, f"Error in file: {file}: {e}")
     finally:
