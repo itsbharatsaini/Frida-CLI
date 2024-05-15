@@ -8,12 +8,15 @@ from .utils import get_data_from_file, get_project_versions, generate_empty_proj
 from datetime import datetime
 from .project import Project
 
+
 logger = Logger()
 
 class ListProjectItem(Static):
-    def __init__(self, project) -> None:
+    def __init__(self, project, idx) -> None:
         super().__init__()
         self.project = project
+        #Index of the project in Data
+        self.idx = idx
 
     def compose(self):
         with Grid(id = "list_project_item"):
@@ -26,10 +29,9 @@ class EpicsGeneration(Static):
     #Contains all of the version
     versions = {}
     validation = False
+    project_size = 0
     def __init__(self) -> None:
         super().__init__()
-        #self.compose()
-        #self.load_projects()
 
     def compose(self):
         with Horizontal(id="a"):
@@ -57,6 +59,7 @@ class EpicsGeneration(Static):
             if data.get("projects") != -1:
                 #Trasnform the data
                 projects = data["projects"]
+                self.project_size = len(projects)
 
                 #Get the list view
                 list_view = self.query_one("#list_view_container", ListView)
@@ -64,8 +67,8 @@ class EpicsGeneration(Static):
 
                 #Populate all the projects stored
                 if len(projects) > 0:
-                    for project in data["projects"]:
-                        list_view.append(ListItem(ListProjectItem(project)))
+                    for idx, project in enumerate(data["projects"]):
+                        list_view.append(ListItem(ListProjectItem(project, idx)))
             else:
                 self.notify("No projects found", severity="error")
         else:
@@ -82,7 +85,8 @@ class EpicsGeneration(Static):
         #Create new ListProjectItem
         project = generate_empty_project(project_name, project_description, plataform, formatted_time)
         logger.info(__name__, "project" + str(project))
-        list_view.append(ListItem(ListProjectItem(project)))
+        list_view.append(ListItem(ListProjectItem(project, self.project_size + 1)))
+        self.project_size += 1
 
     def on_button_pressed(self, event: Button.Pressed):
         button_pressed = str(event.button.id)
@@ -96,4 +100,4 @@ class EpicsGeneration(Static):
         content = self.query_one("#project_content", VerticalScroll)
         #Delete the projects list since a proyect has been selected
         content.remove_children("#list_view_container")
-        content.mount(Project(selected.project))
+        content.mount(Project(self.PATH, selected.project, selected.index))

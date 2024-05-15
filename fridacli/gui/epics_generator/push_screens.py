@@ -1,39 +1,47 @@
+from logging import disable
 from textual.screen import Screen
 from textual.widgets import Label, Input, Button, DirectoryTree, LoadingIndicator, Checkbox, RadioSet, RadioButton, TextArea
 from textual.containers import Vertical, Horizontal
+from fridacli.logger import Logger
 
-class NewProjectPushScreen(Screen):
+logger = Logger()
+
+class NewObjectPushScreen(Screen):
     radio_set_value = ""
+    def __init__(self, title) -> None:
+        super().__init__()
+        self.title = title
+        self.first_option = "Create empty " + str(self.title)
+        self.second_option = "Create generated " + str(self.title)
     def compose(self):
         yield Vertical(
-            Input(placeholder="Name of project", id="epic_name_input"),
-            Label("Type of Platform", id="platform_label"),
-            RadioSet(RadioButton("Mobile"), RadioButton("Web"), RadioButton("Tablet"), id="platform_radio"),
-            Label("Tell us more about your project", id="project_context_label"),
-            TextArea("", id="project_context_input"),
-            Label("Upload your Excel", id="upload_excel_label"),
-            Horizontal(
-                Button("Upload your Excel", variant="default", id="upload_excel_button"),
-                Button("Download Template", variant="default", id="download_template_button")
+            Label("Create new " + str(self.title), id="platform_label"),
+            RadioSet(
+                RadioButton(self.first_option),
+                RadioButton(self.second_option),
+                id="platform_radio"
             ),
+            Label(f"* Write the {self.title} name", classes="new_epic_push_components"),
+            Input("", id="epic_name_input"),
             Horizontal(
                 Button("Cancel", variant="error", id="create_epic_quit"),
-                Button("Create epic", variant="success", id="create_epic_generate")
+                Button("Generate", variant="success", id="create_epic_generate")
             ),
             classes="dialog",
         )
+
     def on_radio_set_changed(self, event: RadioSet.Changed):
-        self.radio_set_value = event.pressed.label
+        self.radio_set_value = str(event.pressed.label)
+        logger.info(__name__, self.radio_set_value)
+        #input = self.query_one("#epic_name_input", Input)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "create_epic_quit":
             self.app.pop_screen()
         elif event.button.id == "create_epic_generate":
-            epic_name_input = self.query_one("#epic_name_input", Input).value
-            plataform = str(self.radio_set_value)
-            project_context_input = self.query_one("#project_context_input", TextArea).text
-            if len(epic_name_input) > 0  and len(plataform) > 0 and len(project_context_input) > 0:
-                params = (epic_name_input, plataform, project_context_input)
-                self.dismiss(params)
+            # Create empty epic
+            params = self.query_one("#epic_name_input", Input).value
+            if self.radio_set_value != "":
+                self.dismiss((self.radio_set_value == self.first_option, params))
             else:
-                self.notify("Some of the values are empty", severity="error")
+                self.notify("No option selected", severity="error")

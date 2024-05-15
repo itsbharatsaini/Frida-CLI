@@ -214,8 +214,8 @@ DocGenerator {
 .dialog {
     grid-size: 1;
     width: 100;
-    height: 32;
-    border: thick $background 80%;
+    height: 25;
+    border: thick $background 50%;
     background: $surface;
 }
 
@@ -413,7 +413,12 @@ UserStory {
     margin-bottom: 2;
 }
 
-NewProjectPushScreen {
+NewObjectPushScreen {
     width: 50;
     align: center middle;
+    height: 5;
+}
+
+.new_epic_push_components{
+    margin: 1 1 1 5;
 }
