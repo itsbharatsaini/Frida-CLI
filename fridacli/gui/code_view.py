@@ -1,8 +1,5 @@
 from textual.containers import  VerticalScroll, Vertical, Horizontal
-from textual.screen import Screen
-from textual.events import Focus, Hide, Show
 from textual.widgets import DirectoryTree, Static, Select, Button
-from fridacli.commands.recipes import document_files
 from fridacli.config import get_vars_as_dict
 from rich.traceback import Traceback
 from fridacli.logger import Logger
@@ -11,6 +8,9 @@ from rich.syntax import Syntax
 from typing import Iterable
 from pathlib import Path
 from .push_screens import EpicGenerator, DocGenerator
+from fridacli.config import OS
+import sys
+import subprocess
 import os
 
 logger = Logger()
@@ -55,21 +55,31 @@ class CodeView(Static):
         code_view = self.query_one("#cv_code", Static)
         
         try:
-            syntax = Syntax.from_path(
-                str(event.path),
-                line_numbers=True,
-                word_wrap=False,
-                indent_guides=True,
-                theme="github-dark",
-                highlight_lines=[1, 2, 4, 6, 7],
-            )
+            syntax = None
+            extension = event.path.suffix
+
+            if extension == ".docx":
+                if OS == "win":
+                    os.startfile(event.path)
+                else:
+                    subprocess.call(('open', event.path))
+            else:
+                syntax = Syntax.from_path(
+                    str(event.path),
+                    line_numbers=True,
+                    word_wrap=False,
+                    indent_guides=True,
+                    theme="github-dark",
+                    highlight_lines=[1, 2, 4, 6, 7],
+                )
         except Exception:
             code_view.update(Traceback(theme="github-dark", width=None))
             self.sub_title = "ERROR"
         else:
-            code_view.update(syntax)
-            self.query_one("#cv_code_scroll").scroll_home(animate=False)
-            self.sub_title = str(event.path)
+            if syntax is not None:
+                code_view.update(syntax)
+                self.query_one("#cv_code_scroll").scroll_home(animate=False)
+                self.sub_title = str(event.path)
 
     def action_toggle_files(self) -> None:
         """Called in response to key binding."""
