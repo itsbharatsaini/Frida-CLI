@@ -6,24 +6,29 @@ programming_languages = {
         "C#",
         """
     /// <summary>
-    /// Purpose of the code.
-    /// Detailed description of the code.
-    /// </summary>
-    """,
-        """
-    /// <summary>
     /// Purpose of the funtion.
     /// Detailed description of the function.
     /// </summary>
     /// <param name="param_name">Description of the parameter.</param>
-    /// <returns>Return values.</returns>
+    /// <returns>Return value.</returns>
     /// <exception cref="exception_name">Description of the exception.</exception>""",
-    """
-    /// <summary>
-    /// Purpose of the class.
-    /// Detailed description of the class.
-    /// </summary>
-    """
+    ],
+    ".py": [
+        "Python",
+        '''
+        """
+        Detailed description of the function and it\'s purpose.
+
+        Args:
+            param_name (param_type): Description of the parameter.
+
+        Returns:
+            return_type: Return value.
+
+        Raises:
+            Exception_name: Description of the exception.
+        """
+        ''',
     ]
 }
 
@@ -32,25 +37,20 @@ def generate_full_document_prompt(code, extension):
     You are a professional coding and documentation assitant.
     You will be given a code written in {programming_languages[extension][0]} and your job is to generate and add the appropiate documentation for it.
     
-    Create a comprehensive documentatio for the file, and each class and function.
+    Create a comprehensive documentation for each function.
     You MUST responde with a code block that contains both the generated documentation and the given code.
     
-    The documentation should start with the purpose of the code with a detailed description of what it does.
-
-    Each class must be documented with:
-    - A detailed description of the class.
-
     Each function must be documented with:
     - Purpose of the function with a detailed description of what the function does.
-    - Descriptions of input parameters
-    - Return values
-    - Exceptions handled in the function
+    - Descriptions of input parameters if any.
+    - Return values if any.
+    - Exceptions handled in the function if any.
 
-    ALWAYS use this documentation style for the code: {programming_languages[extension][1]}
+    ALWAYS use this documentation style for the functions: {programming_languages[extension][1]}
 
-    ALWAYS use this documentation style for the classes: {programming_languages[extension][3]}
+    Do NOT document classes.
 
-    ALWAYS use this documentation style for the functions: {programming_languages[extension][2]}
+    Do NOT add 'Example usage' in the documentation of the function.
 
     Do NOT generate anything else besides the documentation.
 
@@ -82,15 +82,17 @@ def generate_document_for_funct_prompt(code, extension):
     - Return values
     - Exceptions handled in the function
 
-    The description of the function MUST be within the code block in the 'summary' section.
+    The description of the function MUST be within the code block.
 
     The description of the function MUST be written with natural language.
 
     You have to return a code block with the function and the documentation.
 
-    Do NOT omit the implementation of the function.
+    Always follow the best documentation practices.
 
-    Do NOT alter the functions or omit them; only add the documentation.
+    Do NOT omit the function.
+
+    Do NOT alter the function; only add the documentation.
 
     Do NOT add anything to the code block besides the documentation and the function.
 

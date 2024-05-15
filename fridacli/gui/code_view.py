@@ -22,7 +22,7 @@ asp_voyager
 
 class FilteredDirectoryTree(DirectoryTree):
     def filter_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
-        return [path for path in paths if not path.name.startswith(".")]
+        return [path for path in paths if not path.name.startswith((".", "~"))]
     
 class CodeView(Static):
     show_tree = var(True)
