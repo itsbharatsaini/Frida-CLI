@@ -31,9 +31,8 @@ class NewObjectPushScreen(Screen):
         )
 
     def on_radio_set_changed(self, event: RadioSet.Changed):
+        # Update the value of the RadioSet selection
         self.radio_set_value = str(event.pressed.label)
-        logger.info(__name__, self.radio_set_value)
-        #input = self.query_one("#epic_name_input", Input)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "create_epic_quit":

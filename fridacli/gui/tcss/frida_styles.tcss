@@ -377,6 +377,12 @@ UserStory {
     background: #808080;
     color: #E1E1E1;
 }
+.user_story_textarea_title_f {
+    height: 3;
+    background: #808080;
+    color: #E1E1E1;
+    margin-left: 2;
+}
 
 .user_story_horizontal {
     margin-left: 10;
@@ -421,4 +427,15 @@ NewObjectPushScreen {
 
 .new_epic_push_components{
     margin: 1 1 1 5;
+}
+
+#vertical_del_button {
+    width: 2;
+    margin-right: 0;
+}
+.user_story_del_btn {
+    width: 2;
+    height: 6;
+    margin-top: 0;
+    margin-right: 0;
 }

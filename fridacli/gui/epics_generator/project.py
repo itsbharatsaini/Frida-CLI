@@ -1,3 +1,4 @@
+from os import error
 from textual.screen import Screen
 from textual.widgets import Static
 from rich.text import Text
@@ -13,7 +14,8 @@ from .utils import (
     create_generated_epic,
     create_empty_epic,
     create_generated_user_story,
-    save_project
+    save_project,
+    complete_epic
 )
 from .push_screens import NewObjectPushScreen
 
@@ -31,12 +33,19 @@ ROWS = [
 
 
 class UserStory(Static):
+    """
+
+    """
     def __init__(self, user_story) -> None:
         super().__init__()
         self.user_story = user_story
 
     def compose(self):
         with Horizontal(classes="user_story_horizontal"):
+            yield Vertical(
+                Button("",variant="error", classes="user_story_del_btn"),
+                id="vertical_del_button"
+            )
             yield TextArea(self.user_story["user_story"], classes="user_story_textarea", id="userstory_name")
             yield TextArea(self.user_story["description"], classes="user_story_textarea", id="userstory_description")
             yield TextArea(
@@ -45,6 +54,21 @@ class UserStory(Static):
                 id="userstory_acceptance_criteria"
             )
             yield TextArea(self.user_story["out_of_scope"], classes="user_story_textarea", id="userstory_out_of_scope")
+
+
+    def get_data(self):
+        #return the text in the TextAreas
+        user_story = self.query_one("#userstory_name", TextArea).text
+        description = self.query_one("#userstory_description", TextArea).text
+        acceptance_criteria = self.query_one("#userstory_acceptance_criteria", TextArea).text
+        out_of_scope = self.query_one("#userstory_out_of_scope")
+        return {
+            "user_story": user_story,
+            "description": description,
+            "acceptance_criteria": acceptance_criteria,
+            "out_of_scope": out_of_scope
+        }
+
 
     def complete_cell(self):
         username_name = self.query_one("#userstory_name", TextArea)
@@ -56,11 +80,21 @@ class UserStory(Static):
 
         username_name.value
 
-    async def on_focus_in(self, event):
+    def on_button_pressed(self, event: Button.Pressed):
+        button_pressed = str(event.button.id)
+        if button_pressed == "vertical_del_button":
+            logger.info(__name__, "p")
+
+    def on_text_area_pressed(self, event):
         logger.info(__name__, f"TextArea gained focus")
 
 
 class Epic(Static):
+    """
+    Component to abstract the Epic, listing the user stories, actions related with the Epic like delete,
+    create a new User Story
+    """
+
     def __init__(self, epic) -> None:
         self.epic = epic
         self.userstories_names = []
@@ -71,7 +105,7 @@ class Epic(Static):
     def compose(self):
         yield Label(Text(self.epic["epic_name"], style="font-size: 30"), id="epic_label")
         with Horizontal(classes="user_story_horizontal_title"):
-            yield TextArea("User story", classes="user_story_textarea_title", disabled=True)
+            yield TextArea("User story", classes="user_story_textarea_title_f", disabled=True)
             yield TextArea("Description", classes="user_story_textarea_title", disabled=True)
             yield TextArea("Acceptance Criteria", classes="user_story_textarea_title", disabled=True)
             yield TextArea("Out of Scope", classes="user_story_textarea_title", disabled=True)
@@ -79,12 +113,28 @@ class Epic(Static):
         yield Vertical(classes="user_story_vertical", id="user_story_vertical")
         with Horizontal(classes="user_story_horizontal"):
             yield Button("Create New User Story", id="create_new_user_story_btn")
-            yield Button("Complete Cells", variant="success")
+            yield Button("Complete Cells", variant="success", id="complete_cell_btn")
 
     def on_mount(self):
         user_stories_component = self.query_one("#user_story_vertical", Vertical)
         for user_story in self.epic["user_stories"]:
             user_stories_component.mount(UserStory(user_story))
+
+    def update_user_stories(self, user_stories):
+        user_stories_component = self.query_one("#user_story_vertical", Vertical)
+        user_stories_component.remove_children(UserStory)
+        for user_story in user_stories:
+            user_stories_component.mount(UserStory(user_story))
+
+
+    def get_data(self):
+        user_stories_component = self.query_one("#user_story_vertical", Vertical)
+        user_stories = user_stories_component.query(UserStory)
+        user_stories_list = []
+        for user_story in user_stories:
+            user_stories_list.append(user_story.get_data())
+        logger.info(__name__, str(user_stories_list))
+
 
     def create_new_user_story(self, user_story):
         user_stories_component = self.query_one("#user_story_vertical", Vertical)
@@ -96,13 +146,19 @@ class Epic(Static):
         user_story = create_generated_user_story(self.epic, name, is_empty)
         self.create_new_user_story(user_story)
 
-
     def on_button_pressed(self, event: Button.Pressed):
         button_pressed = str(event.button.id)
         vertical = self.query_one("#user_story_vertical", Vertical)
         if button_pressed == "new_epic_btn":
             empty_userstory = create_empty_userstory()
             vertical.mount(UserStory(empty_userstory))
+
+        elif button_pressed == "complete_cell_btn":
+            #self.get_data()
+            response = complete_epic(self.epic)
+            self.update_user_stories(response["user_stories"])
+            logger.info(__name__, str(response))
+
 
         elif button_pressed == "create_new_user_story_btn":
             self.app.push_screen(NewObjectPushScreen("user story"), self.create_new_user_story_callback)
@@ -115,6 +171,10 @@ class Epic(Static):
 
 
 class Options(TabbedContent):
+    """
+        Component to abstract all the actions that involve the project, like change the project description,
+        create a new Epic
+    """
     BORDER_TITLE = "Data Catalog"
 
     def __init__(self, project_drescription, epics) -> None:
@@ -150,6 +210,10 @@ class Options(TabbedContent):
 
 
 class Project(Static):
+    """
+        Project component to list all the Epics presented, also the options
+    """
+
     versions_names = """Version 1
     Version 2
     Version 3
@@ -179,6 +243,12 @@ class Project(Static):
                     self.project["project_description"],
                     self.project["versions"][0] if self.version == "" else list(filter(lambda x: x["epic_name"], self.project["versions"]))[0]
                 )
+
+    def get_data(self):
+        epics_list_components = self.query_one("#epics_list", VerticalScroll)
+        epics = epics_list_components.query(Epic)
+        for epic in epics:
+            logger.info(__name__,epic.get_data())
 
     def on_mount(self):
         self.populate_components("")
@@ -228,3 +298,9 @@ class Project(Static):
         version_selected = event.value
         self.query_one("#epics_list", VerticalScroll).remove_children("*")
         self.populate_components(version_selected)
+
+    def on_button_pressed(self, event: Button.Pressed):
+        button_pressed = str(event.button.id)
+
+        if button_pressed == "epic_download_btn":
+            self.get_data()

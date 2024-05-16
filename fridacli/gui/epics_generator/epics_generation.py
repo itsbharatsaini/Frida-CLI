@@ -100,4 +100,4 @@ class EpicsGeneration(Static):
         content = self.query_one("#project_content", VerticalScroll)
         #Delete the projects list since a proyect has been selected
         content.remove_children("#list_view_container")
-        content.mount(Project(self.PATH, selected.project, selected.index))
+        content.mount(Project(self.PATH, selected.project, selected.idx))
