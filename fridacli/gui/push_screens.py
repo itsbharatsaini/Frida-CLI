@@ -63,7 +63,7 @@ class DocGenerator(Screen):
     def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
         """Called when the worker state changes."""
         if WorkerState.SUCCESS == event.worker.state and event.worker.name == "document_files":
-            self.app.pop_screen(PathSelector)
+            self.app.pop_screen()
             self.dismiss("OK")
         logger.info(__name__, f"{event}")
     
@@ -75,12 +75,13 @@ class DocGenerator(Screen):
         elif event.button.id == "generate_documentation":
             docx = self.query_one("#docx_check", Checkbox).value
             md = self.query_one("#md_check", Checkbox).value
-            path = self.query_one("#input_doc_path", Input).value
+            doc_path = self.query_one("#input_doc_path", Input).value
+            logger.info(__name__, f"path: {doc_path}")
             method = self.query_one("#select_method", Select)
-            if (docx or md) and path != "" and not method.is_blank():
+            if (docx or md) and doc_path != "" and not method.is_blank():
                 use_formatter = self.query_one("#use_formater", Checkbox).value
                 self.app.push_screen(DocLoader())
-                self.run_worker(document_files({"docx": docx, "md": md}, method.value.split(" ")[0]), exclusive=False, thread=True)
+                self.run_worker(document_files({"docx": docx, "md": md}, method.value.split(" ")[0], doc_path, use_formatter), exclusive=False, thread=True)
             else:
                 self.notify(f"You must select at least one format and a method for the documentation.")
 

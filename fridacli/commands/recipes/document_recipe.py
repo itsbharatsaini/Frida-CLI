@@ -147,13 +147,14 @@ def get_code_block(text, extension, one_function, funct_name=None):
         logger.error(__name__, f"Error get code block from text using regex: {e}")
 
 
-def write_code_to_path(path: str, code: str, extension: str):
+def write_code_to_path(path: str, code: str, extension: str, use_formatter: bool):
     try:
         with open(path, "w", encoding="utf-8") as f:
             f.write(code)
 
-        if extension == ".py":
-            os.system(f"python -m black {path}")
+        if use_formatter:
+            if extension == ".py":
+                os.system(f"python -m black {path}")
     except Exception as e:
         pass
         # logger.error(__name__, f"Error writing code to path: {e}")
@@ -162,6 +163,8 @@ def write_code_to_path(path: str, code: str, extension: str):
 def document_file(
     formats,
     method,
+    doc_path,
+    use_formatter,
     file,
     thread_semaphore,
     chatbot_agent,
@@ -175,7 +178,6 @@ def document_file(
             logger.info(__name__, f"working on {file}")
 
             full_path = file_manager.get_file_path(file)
-            doc_path = "".join(full_path.split(file)[:-1])
 
             code = frida_coder.get_code_from_path(full_path)
             num_lines = code.count("\n")
@@ -263,7 +265,7 @@ def document_file(
                 pass
 
             if new_code is not None:
-                write_code_to_path(full_path, new_code, extension)
+                write_code_to_path(full_path, new_code, extension, use_formatter)
             else:
                 logger.info(__name__, f"Could not write new code for file {file}")
 
@@ -275,7 +277,7 @@ def document_file(
                             if doctype == "md"
                             else (("doc_" + file).replace(extension, ".docx"))
                         )
-                        save_documentation(doc_path + filename, new_doc)
+                        save_documentation(os.path.join(doc_path, filename), new_doc)
             else:
                 logger.info(
                     __name__, f"Could not write new documentation for file {file}"
@@ -287,7 +289,7 @@ def document_file(
 
 
 async def exec_document(
-    formats, method, chatbot_agent, file_manager: FileManager, frida_coder: FridaCoder
+    formats, method, doc_path, use_formatter, chatbot_agent, file_manager: FileManager, frida_coder: FridaCoder
 ):
     """
     Documenting all the files using threads
@@ -306,6 +308,8 @@ async def exec_document(
             args=(
                 formats,
                 method,
+                doc_path,
+                use_formatter,
                 file,
                 thread_semaphore,
                 chatbot_agent,
