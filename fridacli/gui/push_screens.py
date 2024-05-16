@@ -3,12 +3,14 @@ from textual.widgets import Label, Input, Button, DirectoryTree, LoadingIndicato
 from textual.containers import Vertical, Horizontal
 from fridacli.commands.recipes import generate_epics, document_files
 from textual.worker import Worker, WorkerState
+from fridacli.file_manager import FileManager
 from fridacli.logger import Logger
 from fridacli.config import HOME_PATH
 from typing import Iterable
 from pathlib import Path
 
 logger = Logger()
+file_manager = FileManager()
 
 LINES = """Quick (ChatGPT-3.5)
 Slow (ChatGPT-4)
@@ -50,8 +52,8 @@ class DocGenerator(Screen):
         yield Vertical(
             Label("Select the format(s) you need for your documentation:", classes="format_selection", shrink=True),
             Vertical(Checkbox("Word Document", id = "docx_check"), Checkbox("Markdown Readme", id = "md_check"), classes="vertical_documentation"),
-            Label("Select the path to save your documentation:", classes="format_selection"),
-            Horizontal(Button("Select path", id="select_path_button"), Input(id="input_doc_path",  disabled=True), classes="doc_generator_horizontal"),
+            Label("Select the path to save your documentation (the current directory is taken by default):", classes="format_selection"),
+            Horizontal(Button("Select path", id="select_path_button"), Input(id="input_doc_path",  disabled=True, value=file_manager.get_folder_path()), classes="doc_generator_horizontal"),
             Label("Select if you want your code formatted after the documentation (only for C# and Python code):", classes="format_selection", shrink=True),
             Checkbox("Yes, use the formatter", id="use_formater"),
             Label("Select a method to generate the documentation:", classes="format_selection", shrink=True),
