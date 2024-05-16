@@ -9,7 +9,6 @@ from typing import Iterable
 from pathlib import Path
 from .push_screens import EpicGenerator, DocGenerator
 from fridacli.config import OS
-import sys
 import subprocess
 import os
 
