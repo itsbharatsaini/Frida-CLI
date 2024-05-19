@@ -76,7 +76,7 @@ Input {
 .configuration_label{
     content-align: center middle;
     margin: 1;
-    width: 15;
+    width: 20;
 }
 
 .chat_markdown{
