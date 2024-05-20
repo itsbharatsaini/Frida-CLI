@@ -43,6 +43,7 @@ def get_config_vars(path: str = config_file_path) -> Dict:
         keys["LOGS_PATH"] = ""
         keys["LLMOPS_API_KEY"] = ""
         keys["CHAT_MODEL_NAME"] = ""
+        keys["CHAT_MODEL_NAME_V4"] = ""
         keys["PYTHON_ENV_PATH"] = ""
         write_config_to_file(keys)
         

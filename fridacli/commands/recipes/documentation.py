@@ -33,7 +33,6 @@ def extract_functions_python(code):
         tabs = code[start - 1].rstrip().count("    ")
         additional_lines = match[0].strip().count("    ") + 1
         next_lines = code[start + additional_lines :]
-        # logger.info(__name__, f"func {match[1]}, tabs {tabs}, next lines {next_lines} additional_lines {additional_lines}")
         i = 0
         end = None
 
@@ -153,7 +152,6 @@ def extract_documentation_python(information, one_function, funct_name):
                     for line in doc[1:]:
                         sep = line.split("\n")
                         if "Args:" in sep[0]:
-                            logger.info(__name__, f"Args {funct_name}: {sep}")
                             for arg in sep[1:]:
                                 if "None" not in arg and arg.strip() != "":
                                     if first_parameter:
@@ -181,7 +179,6 @@ def extract_documentation_python(information, one_function, funct_name):
                                             lines[-1][1] + "\n" + arg.rstrip(),
                                         )
                         elif "Returns:" in sep[0]:
-                            logger.info(__name__, f"Returns {funct_name}: {sep}")
                             for ret in sep[1:]:
                                 if "None" not in ret and ret.strip() != "":
                                     if first_return:
@@ -209,7 +206,6 @@ def extract_documentation_python(information, one_function, funct_name):
                                             lines[-1][1] + "\n" + ret.rstrip(),
                                         )
                         elif "Raises:" in sep[0]:
-                            logger.info(__name__, f"Raises {funct_name}: {sep}")
                             for rai in sep[1:]:
                                 if "None" not in rai and rai.strip() != "":
                                     if first_exception:

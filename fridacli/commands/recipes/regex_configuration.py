@@ -1,3 +1,4 @@
+CODE_FROM_ALL_EXTENSIONS = R"```(javascript|java)*(.*)```"
 SUMMARY_AND_CODE_FROM_ALL_FUNCTIONS_PYTHON = r"```(python)*\s*((?:\"\"\"([\w\(\)=\"\[\]\{\}#:\'_\-.,`\s]*)\"\"\"\s*)*(?:[\w\s.\(\)s]*)def\s*[\w\d_]*\s*\(\s*(?:[\w\[\],.|=:_\s]*)\s*\)\s*(?:-\s*>\s*[\w.]*)*\s*:\s*(?:\"\"\"([\{\}\w\"\(\)#:_\'\-\[\].,`\s]*)\"\"\"\s*)*.*)```"
 CODE_FROM_PYTHON = r"```(python)*\s*(.*)```"
 SUMMARY_AND_CODE_FROM_CSHARP = r"```([\w#]*)\s*([\w.;\s]*\s*(?:///\s*<\s*summary\s*>\s*///\s*([\w.\-,:#\[()\]\d\s]*)///\s*<\s*/\s*summary\s*>)*\s*.*)```"
