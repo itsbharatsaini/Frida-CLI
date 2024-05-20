@@ -154,7 +154,7 @@ def write_code_to_path(path: str, code: str, extension: str, use_formatter: bool
 
         if use_formatter:
             if extension == ".py":
-                os.system(f"python -m black {path}")
+                os.system(f"python -m black {path} -q")
     except Exception as e:
         pass
         # logger.error(__name__, f"Error writing code to path: {e}")
@@ -188,81 +188,77 @@ def document_file(
 
             i = 1
 
-            if method == "Quick":
+            if method == "Slow" or num_lines <= 300:
+                prompt = generate_full_document_prompt(code, extension)
+                response = chatbot_agent.chat(prompt, True)
 
-                if num_lines <= 300:
-                    prompt = generate_full_document_prompt(code, extension)
+                while (
+                    "```" not in response
+                    or EXTENSIONS[extension][1] not in response
+                ) and i <= MAX_RETRIES:
+                    logger.info(__name__, f"Retry # {i} for file {file}")
+                    response = chatbot_agent.chat(prompt, True)
+                    i += 1
+                logger.info(__name__, f"file {file}, resp: {response}")
+                if "```" in response and EXTENSIONS[extension][1] in response:
+                    information = get_code_block(response, extension, False)
+                    if information:
+                        new_code = information["code"]
+                        if "documentation" in information.keys():
+                            new_doc.extend(information["documentation"])
+                    else:
+                        new_file = code.splitlines()
+                else:
+                    logger.info(__name__, f"Check response: {response}")
+                    new_file = code.splitlines()
+
+            else:
+                code = code.splitlines()
+                functions = EXTENSIONS[extension][0](code)
+
+                start_line = functions[0]["start_line"]
+                end_line = functions[-1]["end_line"]
+
+                new_file.extend(code[0 : start_line - 1])
+
+                for func in functions:
+                    funct_name = func["name_of_function"]
+                    prompt = generate_document_for_funct_prompt(
+                        func["code"], extension
+                    )
                     response = chatbot_agent.chat(prompt, True)
 
                     while (
                         "```" not in response
                         or EXTENSIONS[extension][1] not in response
                     ) and i <= MAX_RETRIES:
-                        logger.info(__name__, f"Retry # {i} for file {file}")
+                        logger.info(
+                            __name__,
+                            f"Retry # {i} for file {file} function {funct_name}",
+                        )
                         response = chatbot_agent.chat(prompt, True)
                         i += 1
-                    logger.info(__name__, f"file {file}, resp: {response}")
+
                     if "```" in response and EXTENSIONS[extension][1] in response:
-                        information = get_code_block(response, extension, False)
+                        information = get_code_block(
+                            response, extension, True, funct_name
+                        )
                         if information:
-                            new_code = information["code"]
+                            document_code = information["code"]
+                            document_code = ("\n" + document_code).splitlines()
+                            new_file.extend(document_code)
                             if "documentation" in information.keys():
                                 new_doc.extend(information["documentation"])
                         else:
-                            new_file = code.splitlines()
-                    else:
-                        logger.info(__name__, f"Check response: {response}")
-                        new_file = code.splitlines()
-
-                else:
-                    code = code.splitlines()
-                    functions = EXTENSIONS[extension][0](code)
-
-                    start_line = functions[0]["start_line"]
-                    end_line = functions[-1]["end_line"]
-
-                    new_file.extend(code[0 : start_line - 1])
-
-                    for func in functions:
-                        funct_name = func["name_of_function"]
-                        prompt = generate_document_for_funct_prompt(
-                            func["code"], extension
-                        )
-                        response = chatbot_agent.chat(prompt, True)
-
-                        while (
-                            "```" not in response
-                            or EXTENSIONS[extension][1] not in response
-                        ) and i <= MAX_RETRIES:
-                            logger.info(
-                                __name__,
-                                f"Retry # {i} for file {file} function {funct_name}",
-                            )
-                            response = chatbot_agent.chat(prompt, True)
-                            i += 1
-
-                        if "```" in response and EXTENSIONS[extension][1] in response:
-                            information = get_code_block(
-                                response, extension, True, funct_name
-                            )
-                            if information:
-                                document_code = information["code"]
-                                document_code = ("\n" + document_code).splitlines()
-                                new_file.extend(document_code)
-                                if "documentation" in information.keys():
-                                    new_doc.extend(information["documentation"])
-                            else:
-                                code = ("\n" + func["code"]).splitlines()
-                                new_file.extend(code)
-                        else:
-                            logger.info(__name__, f"Check response: {response}")
                             code = ("\n" + func["code"]).splitlines()
                             new_file.extend(code)
+                    else:
+                        logger.info(__name__, f"Check response: {response}")
+                        code = ("\n" + func["code"]).splitlines()
+                        new_file.extend(code)
 
-                    new_file.extend(code[end_line::])
-                    new_code = "\n".join(new_file)
-            else:
-                pass
+                new_file.extend(code[end_line::])
+                new_code = "\n".join(new_file)
 
             if new_code is not None:
                 write_code_to_path(full_path, new_code, extension, use_formatter)
@@ -273,9 +269,9 @@ def document_file(
                 for doctype, selected in formats.items():
                     if selected:
                         filename = (
-                            (("readme_" + file).replace(extension, ".md"))
+                            ("readme_" + file + ".md")
                             if doctype == "md"
-                            else (("doc_" + file).replace(extension, ".docx"))
+                            else ("doc_" + file + ".docx")
                         )
                         save_documentation(os.path.join(doc_path, filename), new_doc)
             else:
@@ -294,8 +290,11 @@ async def exec_document(
     """
     Documenting all the files using threads
     """
-    logger.info(__name__, "Documenting files")
+    logger.info(__name__, f"Documenting files {method}")
     file_manager.load_folder(file_manager.get_folder_path())
+
+    if method == "Slow":
+        chatbot_agent.change_version(4)
 
     files = file_manager.get_files()
     thread_semaphore = threading.Semaphore(5)
@@ -322,3 +321,6 @@ async def exec_document(
 
     for thread in threads:
         thread.join()
+
+    if method == "Slow":
+        chatbot_agent.change_version(3)

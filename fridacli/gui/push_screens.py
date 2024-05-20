@@ -5,12 +5,13 @@ from fridacli.commands.recipes import generate_epics, document_files
 from textual.worker import Worker, WorkerState
 from fridacli.file_manager import FileManager
 from fridacli.logger import Logger
-from fridacli.config import HOME_PATH
+from fridacli.config import HOME_PATH, get_config_vars
 from typing import Iterable
 from pathlib import Path
 
 logger = Logger()
 file_manager = FileManager()
+env_vars = get_config_vars()
 
 LINES = """Quick (ChatGPT-3.5)
 Slow (ChatGPT-4)

@@ -187,6 +187,10 @@ DocGenerator {
     margin: 1;
 }
 
+#confirm_path_doc{
+    margin: 1;
+}
+
 #quit{
     margin: 1;
 }
