@@ -167,6 +167,7 @@ def write_code_to_path(path: str, code: str, extension: str, use_formatter: bool
         if use_formatter:
             if extension == ".py":
                 os.system(f"python -m black {path} -q")
+
     except Exception as e:
         pass
         # logger.error(__name__, f"Error writing code to path: {e}")
