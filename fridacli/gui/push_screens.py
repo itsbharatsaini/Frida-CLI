@@ -40,8 +40,7 @@ class PathSelector(ModalScreen):
             else:
                 self.notify(f"You must select a valid path.")
         else:
-            path = self.query_one("#input_documentation_path", Input).value
-            self.dismiss(path)
+            self.dismiss("")
 
     def on_directory_tree_directory_selected(self, event: DirectoryTree.DirectorySelected):
         tree_id = event.control.id
@@ -89,7 +88,8 @@ class DocGenerator(Screen):
                 self.notify(f"You must select at least one format and a method for the documentation.")
 
     def select_doc_path_callback(self, path):
-        self.query_one("#input_doc_path", Input).value = path
+        if path != "":
+            self.query_one("#input_doc_path", Input).value = path
             
 
 class DocLoader(Screen):

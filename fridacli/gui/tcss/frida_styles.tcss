@@ -188,7 +188,7 @@ DocGenerator {
 }
 
 #confirm_path_doc{
-    margin: 1;
+    margin-left: 1;
 }
 
 #quit{
