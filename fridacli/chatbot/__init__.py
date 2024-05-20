@@ -35,11 +35,11 @@ class ChatbotAgent:
         self.__file_manager = FileManager()
         self.__build_model()
 
-    def __build_model(self, context = WindowMemory(window_size=10)):
+    def __build_model(self):
         model = SofttekOpenAI(
             api_key=self.__LLMOPS_API_KEY, model_name=self.__CHAT_MODEL_NAME
         )
-        self.context = context
+        self.context = WindowMemory(window_size=10)
         self.__chatbot = Chatbot(model=model, description=system_prompt, memory=self.context)
 
     def is_files_open(self):
@@ -50,13 +50,13 @@ class ChatbotAgent:
         if version == 3:
             if self.__CHAT_MODEL_NAME != env_vars["CHAT_MODEL_NAME"]:
                 self.__CHAT_MODEL_NAME = env_vars["CHAT_MODEL_NAME"]
-                self.__build_model(self.context)
-                logger.info(__name__, f"Model changed to: {self.__chatbot.model.model_name} {self.context.messages_to_dict()}")
+                self.__build_model()
+                logger.info(__name__, f"Model changed to: {self.__chatbot.model.model_name}")
         elif version == 4:
             if self.__CHAT_MODEL_NAME != env_vars["CHAT_MODEL_NAME_V4"]:
                 self.__CHAT_MODEL_NAME = env_vars["CHAT_MODEL_NAME_V4"]
                 self.__build_model()
-                logger.info(__name__, f"Model changed to: {self.__chatbot.model.model_name} {self.context.messages_to_dict()}")
+                logger.info(__name__, f"Model changed to: {self.__chatbot.model.model_name}")
 
     def get_files_required(self):
         return self.__files_required
