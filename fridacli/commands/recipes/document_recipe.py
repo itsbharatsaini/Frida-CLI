@@ -17,6 +17,7 @@ from .documentation import (
     extract_functions_csharp,
 )
 from .regex_configuration import (
+    CODE_FROM_ALL_EXTENSIONS,
     SUMMARY_AND_CODE_FROM_ALL_FUNCTIONS_PYTHON,
     CODE_FROM_PYTHON,
     SUMMARY_AND_CODE_FROM_CSHARP,
@@ -25,6 +26,7 @@ from .regex_configuration import (
 logger = Logger()
 
 MAX_RETRIES = 2
+SUPPORTED_DOC_EXTENSION = [".py", ".cs"]
 EXTENSIONS = {
     ".py": [
         extract_functions_python,
@@ -39,6 +41,8 @@ EXTENSIONS = {
         SUMMARY_AND_CODE_FROM_CSHARP,
         "/",
     ],
+    ".java": [None, "*", CODE_FROM_ALL_EXTENSIONS],
+    ".js": [None, "*", CODE_FROM_ALL_EXTENSIONS],
 }
 
 
@@ -101,7 +105,14 @@ def extract_documentation(information, extension, one_function, funct_name):
 
 def get_code_block(text, extension, one_function, funct_name=None):
     try:
-        code_pattern = re.compile(EXTENSIONS[extension][4] if (not one_function and extension == ".py") else EXTENSIONS[extension][2], re.DOTALL)
+        code_pattern = re.compile(
+            (
+                EXTENSIONS[extension][4]
+                if (not one_function and extension == ".py")
+                else EXTENSIONS[extension][2]
+            ),
+            re.DOTALL,
+        )
         matches = code_pattern.findall(text)
 
         logger.info(__name__, matches)
@@ -118,7 +129,7 @@ def get_code_block(text, extension, one_function, funct_name=None):
                     "`", ""
                 )
                 description = description.split("\n\n")[0]
-            elif extension == ".py":
+            elif extension != ".cs":
                 description = ""
             else:
                 description = (
@@ -131,17 +142,18 @@ def get_code_block(text, extension, one_function, funct_name=None):
             }
             logger.info(__name__, information)
 
-            lines = extract_documentation(
-                information, extension, one_function, funct_name
-            )
-            if lines is not None and lines != []:
-                information["documentation"] = lines
-                logger.info(__name__, f"lines on doc: {lines}")
-            else:
-                logger.info(
-                    __name__,
-                    f"Could not generate documentation for function {funct_name}",
+            if extension in SUPPORTED_DOC_EXTENSION:
+                lines = extract_documentation(
+                    information, extension, one_function, funct_name
                 )
+                if lines is not None and lines != []:
+                    information["documentation"] = lines
+                    logger.info(__name__, f"lines on doc: {lines}")
+                else:
+                    logger.info(
+                        __name__,
+                        f"Could not generate documentation for function {funct_name}",
+                    )
             return information
     except Exception as e:
         logger.error(__name__, f"Error get code block from text using regex: {e}")
@@ -188,13 +200,16 @@ def document_file(
 
             i = 1
 
-            if method == "Slow" or num_lines <= 300:
+            if (
+                method == "Slow"
+                or num_lines <= 300
+                or extension not in SUPPORTED_DOC_EXTENSION
+            ):
                 prompt = generate_full_document_prompt(code, extension)
                 response = chatbot_agent.chat(prompt, True)
 
                 while (
-                    "```" not in response
-                    or EXTENSIONS[extension][1] not in response
+                    "```" not in response or EXTENSIONS[extension][1] not in response
                 ) and i <= MAX_RETRIES:
                     logger.info(__name__, f"Retry # {i} for file {file}")
                     response = chatbot_agent.chat(prompt, True)
@@ -223,9 +238,7 @@ def document_file(
 
                 for func in functions:
                     funct_name = func["name_of_function"]
-                    prompt = generate_document_for_funct_prompt(
-                        func["code"], extension
-                    )
+                    prompt = generate_document_for_funct_prompt(func["code"], extension)
                     response = chatbot_agent.chat(prompt, True)
 
                     while (
@@ -285,7 +298,13 @@ def document_file(
 
 
 async def exec_document(
-    formats, method, doc_path, use_formatter, chatbot_agent, file_manager: FileManager, frida_coder: FridaCoder
+    formats,
+    method,
+    doc_path,
+    use_formatter,
+    chatbot_agent,
+    file_manager: FileManager,
+    frida_coder: FridaCoder,
 ):
     """
     Documenting all the files using threads

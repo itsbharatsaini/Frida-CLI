@@ -10,27 +10,49 @@ programming_languages = {
     /// Detailed description of the function.
     /// </summary>
     /// <param name="param_name">Description of the parameter.</param>
-    /// <returns>Return value.</returns>
+    /// <returns>Description of the return value.</returns>
     /// <exception cref="exception_name">Description of the exception.</exception>""",
     ],
     ".py": [
         "Python",
         '''
+    """
+    Detailed description of the function and it\'s purpose.
+
+    Args:
+        param_name (param_type): Description of the parameter.
+
+    Returns:
+        return_type: Description of the return value.
+
+    Raises:
+        Exception_name: Description of the exception.
+    """''',
+    ],
+    ".java": [
+        "Java",
         """
-        Detailed description of the function and it\'s purpose.
-
-        Args:
-            param_name (param_type): Description of the parameter.
-
-        Returns:
-            return_type: Return value.
-
-        Raises:
-            Exception_name: Description of the exception.
+    /**
+     * Detailed description of the function and it's purpose.
+     *
+     * @param paramName description of the parameter.
+     * @return description of the return value.
+     * @throws ExceptionName description of the exception.
+     */""",
+    ],
+    ".js": [
+        "Javascript",
         """
-        ''',
-    ]
+    /**
+    * Calculates the square root of a number.
+    *
+    * @param {param_type} paramName - Description of the parameter.
+    * @returns {return_type} Description of the return value.
+    * @throws {ErrorName} Description of the exception.
+    */""",
+    ],
 }
+
 
 def generate_full_document_prompt(code, extension):
     return f"""
@@ -47,6 +69,12 @@ def generate_full_document_prompt(code, extension):
     - Exceptions handled in the function if any.
 
     ALWAYS use this documentation style for the functions: {programming_languages[extension][1]}
+
+    DO NOT OMIT ANYTHING.
+
+    DO NOT OMIT ANY FUNCTION.
+    
+    DO NOT OMIT THE BODY OF ANY FUNCTION.
 
     Do NOT document classes.
 
@@ -65,6 +93,7 @@ def generate_full_document_prompt(code, extension):
     This is the code to document:
     {code}
     """
+
 
 def generate_document_for_funct_prompt(code, extension):
     return f"""
@@ -104,7 +133,9 @@ def generate_document_for_funct_prompt(code, extension):
     {code}
     """
 
-generate_epic = lambda epic_name: f"""Generate at least 5 user stories for the Epic {epic_name} in the project Innovasports Mobile, which is a mobile application designed for selling shoes.
+
+generate_epic = (
+    lambda epic_name: f"""Generate at least 5 user stories for the Epic {epic_name} in the project Innovasports Mobile, which is a mobile application designed for selling shoes.
 Each user story should consist of a title, a detailed description, and acceptance criteria to ensure clarity and understanding.
 
 Use the following format for each user story:
@@ -125,3 +156,4 @@ Out of scope:
 ***
 Use '***' to separate every user story
 """
+)
