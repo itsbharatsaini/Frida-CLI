@@ -4,7 +4,7 @@ from textual.containers import  VerticalScroll, Vertical, Horizontal, Center, Gr
 from textual.widgets import Static, Select, Button, Label, Rule, Input, ListView, ListItem
 from fridacli.gui.push_screens import CreateNewEpic
 from fridacli.logger import Logger
-from .utils import get_data_from_file, get_project_versions, generate_empty_project
+from .utils import get_data_from_file, get_project_versions, generate_empty_project, save_project
 from datetime import datetime
 from .project import Project
 
@@ -26,10 +26,14 @@ class ListProjectItem(Static):
 
 class EpicsGeneration(Static):
     PATH = "data.json"
+    AUX_PATH = "data2.json"
     #Contains all of the version
     versions = {}
     validation = False
     project_size = 0
+    selected_project = ""
+    projects = {}
+
     def __init__(self) -> None:
         super().__init__()
 
@@ -52,7 +56,8 @@ class EpicsGeneration(Static):
 
     def load_projects(self):
         #Get the raw data from file
-        data = get_data_from_file(self.PATH)
+        data = get_data_from_file(self.AUX_PATH)
+        self.projects = data
         logger.info(__name__, str(data))
 
         if data != None:
@@ -74,6 +79,24 @@ class EpicsGeneration(Static):
         else:
             pass
             #self.notify("No file found", severity="error")
+
+    def save_projects(self):
+        logger.info(__name__, "saving projetcsssss")
+        content = self.query_one("#project_content", VerticalScroll)
+        project = content.query_one(Project)
+        project_new_data = project.get_data()
+
+        for project in self.projects["projects"]:
+            if project["project_name"] == self.selected_project:
+                project = project_new_data
+
+        status = save_project(self.AUX_PATH, self.projects)
+
+        if status:
+            self.notify("The project was saved successfully")
+        else:
+            self.notify("An error occurred while saving the project.")
+
 
 
     def create_new_project_callback(self, params):
@@ -98,6 +121,7 @@ class EpicsGeneration(Static):
     def on_list_view_selected(self, event: ListView.Selected):
         selected = event.item.query_one(ListProjectItem)
         content = self.query_one("#project_content", VerticalScroll)
+        self.selected_project = selected.project["project_name"]
         #Delete the projects list since a proyect has been selected
         content.remove_children("#list_view_container")
-        content.mount(Project(self.PATH, selected.project, selected.idx))
+        content.mount(Project(self.PATH, selected.project, selected.idx, self.save_projects))

@@ -4,12 +4,19 @@ import datetime
 from fridacli.chatbot import ChatbotAgent
 from fridacli.logger import Logger
 
+import csv
+
 chatbot_agent = ChatbotAgent()
 logger = Logger()
 
-def save_project(path, project):
-    with open(path, "w") as f:
-        f.write(project)
+def save_project(path, projects):
+    try:
+        json_string = json.dumps(projects)
+        with open(path, "w") as f:
+            f.write(json_string)
+        return True
+    except Exception as e:
+        return False
 
 def get_data_from_file(path):
     try:
@@ -18,6 +25,25 @@ def get_data_from_file(path):
         return json.loads(data)
     except Exception as e:
         return None
+
+def save_csv(path, project):
+    try:
+        with open(path, "w") as file:
+            writer = csv.DictWriter(file, fieldnames=['epic', 'user_story', 'description', 'acceptance_criteria', 'out_of_scope'])
+            writer.writeheader()
+            for epic in project["epics"]:
+                for user_stories in epic["user_stories"]:
+                    dictionary = {
+                        'epic': epic["epic_name"],
+                        'user_story': user_stories["user_story"],
+                        'description': user_stories["description"],
+                        'acceptance_criteria': user_stories["acceptance_criteria"],
+                        'out_of_scope': user_stories["out_of_scope"]
+                    }
+                    writer.writerow(dictionary)
+                    return True
+    except Exception as e:
+        return False
 
 def get_project_versions(project_name, data):
     for project in data["project"]:

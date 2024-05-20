@@ -15,7 +15,8 @@ from .utils import (
     create_empty_epic,
     create_generated_user_story,
     save_project,
-    complete_epic
+    complete_epic,
+    save_csv
 )
 from .push_screens import NewObjectPushScreen
 
@@ -34,7 +35,16 @@ ROWS = [
 
 class UserStory(Static):
     """
+        A class representing a user story in a horizontal layout.
+        Args:
+            user_story (dict): The user story data.
 
+        Methods:
+            compose(): Composes and yields the elements of the user story in a horizontal layout.
+            get_data(): Gets the text data from the TextArea elements.
+            complete_cell(): Retrieves the value from the username_name TextArea.
+            on_button_pressed(event: Button.Pressed): Handles the event when a button is pressed.
+            on_text_area_pressed(event): Handles the event when a TextArea gains focus.
     """
     def __init__(self, user_story) -> None:
         super().__init__()
@@ -61,7 +71,7 @@ class UserStory(Static):
         user_story = self.query_one("#userstory_name", TextArea).text
         description = self.query_one("#userstory_description", TextArea).text
         acceptance_criteria = self.query_one("#userstory_acceptance_criteria", TextArea).text
-        out_of_scope = self.query_one("#userstory_out_of_scope")
+        out_of_scope = self.query_one("#userstory_out_of_scope").text
         return {
             "user_story": user_story,
             "description": description,
@@ -91,8 +101,20 @@ class UserStory(Static):
 
 class Epic(Static):
     """
-    Component to abstract the Epic, listing the user stories, actions related with the Epic like delete,
-    create a new User Story
+        Class representing an Epic, which abstracts the Epic and contains functionality related to managing user stories within the Epic.
+
+        Attributes:
+            epic (any): The Epic object.
+        Methods:
+            init(epic: any) -> None: Initializes the Epic instance with the given epic object.
+            compose() -> Generator: Yields the UI components required to display the Epic and user stories.
+            on_mount() -> None: Mounts the UserStory components for each user story in the Epic.
+            update_user_stories(user_stories: List[any]) -> None: Updates the UserStory components based on the provided user stories.
+            get_data() -> Dict[str, any]: Returns the data of the Epic and user stories.
+            create_new_user_story(user_story: any) -> None: Creates a new UserStory component with the provided user story and mounts it.
+            create_new_user_story_callback(result: Tuple[bool, str]) -> None: Callback function for creating a new user story. Creates a new UserStory component with the generated user story based on the result.
+            on_button_pressed(event: Button.Pressed) -> None: Event handler for button presses. Handles creating a new user story, completing the Epic, and creating an empty user story.
+            create_new_userstory() -> None: Placeholder method for creating a new user story.
     """
 
     def __init__(self, epic) -> None:
@@ -126,15 +148,18 @@ class Epic(Static):
         for user_story in user_stories:
             user_stories_component.mount(UserStory(user_story))
 
-
     def get_data(self):
         user_stories_component = self.query_one("#user_story_vertical", Vertical)
         user_stories = user_stories_component.query(UserStory)
         user_stories_list = []
+
         for user_story in user_stories:
             user_stories_list.append(user_story.get_data())
-        logger.info(__name__, str(user_stories_list))
-
+        logger.info(__name__, "Epic" + str(user_stories_list))
+        return {
+            "epic_name": self.epic["epic_name"],
+            "user_stories": user_stories_list
+        }
 
     def create_new_user_story(self, user_story):
         user_stories_component = self.query_one("#user_story_vertical", Vertical)
@@ -154,7 +179,6 @@ class Epic(Static):
             vertical.mount(UserStory(empty_userstory))
 
         elif button_pressed == "complete_cell_btn":
-            #self.get_data()
             response = complete_epic(self.epic)
             self.update_user_stories(response["user_stories"])
             logger.info(__name__, str(response))
@@ -172,8 +196,16 @@ class Epic(Static):
 
 class Options(TabbedContent):
     """
-        Component to abstract all the actions that involve the project, like change the project description,
-        create a new Epic
+       The Options class is a component that abstracts all the actions involving a project, such as changing the project description and creating a new Epic. It inherits from the TabbedContent class.
+
+        Attributes:
+        - BORDER_TITLE: A constant containing the title of the border.
+
+        Methods:
+        - __init__(self, project_description, epics): Constructor method to initialize the Options component.
+        - compose(self): A generator method that yields different UI components to be rendered.
+        - create_new_epics_callback(self, result): A method that handles the callback when creating a new epic.
+        - on_button_pressed(self, event: Button.Pressed): A method that handles the logic when a button is pressed.
     """
     BORDER_TITLE = "Data Catalog"
 
@@ -211,19 +243,44 @@ class Options(TabbedContent):
 
 class Project(Static):
     """
-        Project component to list all the Epics presented, also the options
-    """
+        Represents a Project component that lists all the Epics presented and displays various options.
+
+        Args:
+            path (str): The path of the project.
+            project (dict): The project details.
+            idx (int): The project index.
+
+        Attributes:
+            path (str): The path of the project.
+            project (dict): The project details.
+            version (str): The version of the project.
+            idx (int): The project index.
+            versions_names (list): The list of available version names.
+
+        Methods:
+            compose(): Generates the structure of the project component.
+            get_data(): Retrieves the data of the project, including the epics and versions.
+            on_mount(): Initializes the project component when mounted.
+            populate_components(version_name: str): Populates the components of the project based on the provided version.
+            save_project_description(description: str): Saves the project description.
+            populate_epics(version: dict): Populates the epics based on the provided version.
+            update_select_options(options: list, disabled: bool): Updates the options of the version select component.
+            create_new_epic(epic: str = ""): Creates a new epic within the project.
+            on_select_changed(event: Select.Changed): Event handler for the select component's change event.
+            on_button_pressed(event: Button.Pressed): Event handler for the button component's press event.
+        """
 
     versions_names = """Version 1
     Version 2
     Version 3
     """.splitlines()
-    def __init__(self, path, project, idx) -> None:
+    def __init__(self, path, project, idx, save_data_callback) -> None:
         super().__init__()
         self.path = path
         self.project = project
         self.version = ""
         self.idx = idx
+        self.save_data_callback = save_data_callback
     def compose(self):
         with Horizontal():
             with Vertical(id="epics_container"):
@@ -235,6 +292,7 @@ class Project(Static):
                         disabled=True
                     )
                     yield Button("Edit", id="epic_edit_btn", disabled=True)
+                    yield Button("Save", id="epic_save_btn")
                     yield Button("Download", id="epic_download_btn", disabled=True)
 
                 yield VerticalScroll(id="epics_list")
@@ -245,10 +303,25 @@ class Project(Static):
                 )
 
     def get_data(self):
+        logger.info(__name__,"Version: " + str(self.version))
         epics_list_components = self.query_one("#epics_list", VerticalScroll)
         epics = epics_list_components.query(Epic)
+        # TO DO: Return also the versions
+        epics_list = []
         for epic in epics:
-            logger.info(__name__,epic.get_data())
+            epics_list.append(epic.get_data())
+
+        versions = self.project["versions"]
+        #selected_version = list(filter(lambda x: x["version_name"] == self.version, versions))
+        for version in versions:
+            if version["version_name"] == self.version:
+                version["epics"] = epics_list
+                break
+        aux_project = self.project
+        aux_project["versions"] = versions
+        return aux_project
+
+        logger.info(__name__,"Getting project" + str(versions))
 
     def on_mount(self):
         self.populate_components("")
@@ -265,13 +338,12 @@ class Project(Static):
         version = {}
         if version_name == "":
             version = self.project["versions"][0]
-            self.version = version
+            self.version = version["version_name"]
         else:
             self.project["versions"]
             version = list(filter(lambda x: x["version_name"] == version_name, self.project["versions"]))
             if len(version) > 0:
                 version = version[0]
-        logger.info(__name__,"version " + str(version))
         self.populate_epics(version)
 
     def save_project_description(self, description):
@@ -301,6 +373,14 @@ class Project(Static):
 
     def on_button_pressed(self, event: Button.Pressed):
         button_pressed = str(event.button.id)
-
         if button_pressed == "epic_download_btn":
-            self.get_data()
+            versions = self.project["versions"]
+            for version in versions:
+                if version["version_name"] == self.version:
+                    status = save_csv(f"{self.project['project_name']}.csv", version)
+                    if status:
+                        self.notify("The project CSV file was created")
+                    else:
+                        self.notify("Some error creating CSV file")
+        elif button_pressed == "epic_save_btn":
+            self.save_data_callback()
