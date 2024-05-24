@@ -1,7 +1,4 @@
-CODE_FROM_ALL_EXTENSIONS = R"```(javascript|java)*(.*)```"
-SUMMARY_AND_CODE_FROM_ALL_FUNCTIONS_PYTHON = r"```(python)*\s*((?:\"\"\"([\w\(\)=\"\[\]\{\}#:\'_\-.,`\s]*)\"\"\"\s*)*(?:[\w\s.\(\)s]*)def\s*[\w\d_]*\s*\(\s*(?:[\w\[\],.|=:_\s]*)\s*\)\s*(?:-\s*>\s*[\w.]*)*\s*:\s*(?:\"\"\"([\{\}\w\"\(\)#:_\'\-\[\].,`\s]*)\"\"\"\s*)*.*)```"
-CODE_FROM_PYTHON = r"```(python)*\s*(.*)```"
-SUMMARY_AND_CODE_FROM_CSHARP = r"```([\w#]*)\s*([\w.;\s]*\s*(?:///\s*<\s*summary\s*>\s*///\s*([\w.\-,:#\[()\]\d\s]*)///\s*<\s*/\s*summary\s*>)*\s*.*)```"
+CODE_FROM_ALL_EXTENSIONS = r"```(?:javascript|java|csharp|c#|C#|python)*(.*)```"
 DOCUMENTATION_FROM_ALL_FUNCTIONS_PYTHON = r"(?:\s*(?:\"\"\"([\w\(\)|:\[\]\'#_\-.,`\s]*)\"\"\"\s*)*def\s*([\w\d_]*)\s*\(\s*(?:[\w\[\],.|=:_\s]*)\s*\)\s*(?:-\s*>\s*[\w.]*)*\s*:\s*(?:\"\"\"([\w\(\)|#:\[\]\'_\-.,`\s]*)\"\"\"\s*)*)"
 DEFINITION_OF_FUNCTION_PYTHON = r"(\s*def\s*([\w\d_]*)\s*\(\s*(?:[\w\[\],.|=:_\s]*)\s*\)\s*(?:-\s*>\s*[\w.]*)*\s*:\s*)"
 DEFINITION_OF_FUNCTION_CSHARP = r"^\s*(?:(?:public|private|protected|internal|static|async|unsafe|sealed|new|override|virtual|abstract)\s+)+([\w<>\[\],\.]+\s+)+([\w_]+)\s*\((.*)\)\s*(?:where.*)?\s*$"

@@ -12,37 +12,27 @@ from .predefined_phrases import (
 )
 from .documentation import (
     extract_documentation_python,
-    extract_documentation_csharp,
     extract_functions_python,
-    extract_functions_csharp,
+    find_csharp_all_func,
+    extract_doc_csharp_one_func,
+    extract_doc_csharp_all_func,
 )
-from .regex_configuration import (
-    CODE_FROM_ALL_EXTENSIONS,
-    SUMMARY_AND_CODE_FROM_ALL_FUNCTIONS_PYTHON,
-    CODE_FROM_PYTHON,
-    SUMMARY_AND_CODE_FROM_CSHARP,
-)
+from .regex_configuration import CODE_FROM_ALL_EXTENSIONS
+import tree_sitter_c_sharp as tscsharp
+from tree_sitter import Language, Parser
+
+CS_LANGUAGE = Language(tscsharp.language())
+parser = Parser(CS_LANGUAGE)
 
 logger = Logger()
 
 MAX_RETRIES = 2
 SUPPORTED_DOC_EXTENSION = [".py", ".cs"]
-EXTENSIONS = {
-    ".py": [
-        extract_functions_python,
-        '"""',
-        SUMMARY_AND_CODE_FROM_ALL_FUNCTIONS_PYTHON,
-        "",
-        CODE_FROM_PYTHON,
-    ],
-    ".cs": [
-        extract_functions_csharp,
-        "///",
-        SUMMARY_AND_CODE_FROM_CSHARP,
-        "/",
-    ],
-    ".java": [None, "*", CODE_FROM_ALL_EXTENSIONS],
-    ".js": [None, "*", CODE_FROM_ALL_EXTENSIONS],
+COMMENT_CHARS = {
+    ".py": '"""',
+    ".cs": "///",
+    ".java": "*",
+    ".js": "*",
 }
 
 
@@ -98,49 +88,25 @@ def extract_documentation(information, extension, one_function, funct_name):
     if extension == ".py":
         return extract_documentation_python(information, one_function, funct_name)
     elif extension == ".cs":
-        return extract_documentation_csharp(information, one_function, funct_name)
+        tree = parser.parse(bytes(information["code"], encoding="utf8"))
+        return (
+            extract_doc_csharp_one_func(tree.root_node, funct_name)
+            if one_function
+            else extract_doc_csharp_all_func(tree.root_node)
+        )
     else:
         logger.info(__name__, f"Do not support {extension} extension by now.")
 
 
 def get_code_block(text, extension, one_function, funct_name=None):
     try:
-        code_pattern = re.compile(
-            (
-                EXTENSIONS[extension][4]
-                if (not one_function and extension == ".py")
-                else EXTENSIONS[extension][2]
-            ),
-            re.DOTALL,
-        )
+        code_pattern = re.compile(CODE_FROM_ALL_EXTENSIONS, re.DOTALL)
         matches = code_pattern.findall(text)
-
-        logger.info(__name__, matches)
 
         if matches == []:
             logger.info(__name__, f"Did not match: {text}")
         else:
-            if one_function and extension == ".py":
-                description = matches[0][2].replace(
-                    EXTENSIONS[extension][3], ""
-                ).replace("`", "") or matches[0][3].replace(
-                    EXTENSIONS[extension][3], ""
-                ).replace(
-                    "`", ""
-                )
-                description = description.split("\n\n")[0]
-            elif extension != ".cs":
-                description = ""
-            else:
-                description = (
-                    matches[0][2].replace(EXTENSIONS[extension][3], "").replace("`", "")
-                )
-            information = {
-                "language": matches[0][0],
-                "code": matches[0][1],
-                "description": description,
-            }
-            logger.info(__name__, information)
+            information = {"code": matches[0]}
 
             if extension in SUPPORTED_DOC_EXTENSION:
                 lines = extract_documentation(
@@ -148,7 +114,7 @@ def get_code_block(text, extension, one_function, funct_name=None):
                 )
                 if lines is not None and lines != []:
                     information["documentation"] = lines
-                    logger.info(__name__, f"lines on doc: {lines}")
+                    logger.info(__name__, f"Lines on doc: {lines}")
                 else:
                     logger.info(
                         __name__,
@@ -201,7 +167,7 @@ def document_file(
 
             i = 1
 
-            if extension not in SUPPORTED_DOC_EXTENSION.keys():
+            if extension not in SUPPORTED_DOC_EXTENSION:
                 logger.info(
                     __name__,
                     f"Could not document {file} because {extension} is not supported.",
@@ -215,13 +181,13 @@ def document_file(
                 response = chatbot_agent.chat(prompt, True)
 
                 while (
-                    "```" not in response or EXTENSIONS[extension][1] not in response
+                    "```" not in response or COMMENT_CHARS[extension] not in response
                 ) and i <= MAX_RETRIES:
                     logger.info(__name__, f"Retry # {i} for file {file}")
                     response = chatbot_agent.chat(prompt, True)
                     i += 1
                 logger.info(__name__, f"file {file}, resp: {response}")
-                if "```" in response and EXTENSIONS[extension][1] in response:
+                if "```" in response and COMMENT_CHARS[extension] in response:
                     information = get_code_block(response, extension, False)
                     if information:
                         new_code = information["code"]
@@ -234,69 +200,84 @@ def document_file(
                     new_file = code.splitlines()
 
             else:
-                code = code.splitlines()
-                functions = EXTENSIONS[extension][0](code)
+                tree = parser.parse(bytes(code, encoding="utf8"))
 
-                start_line = functions[0]["start_line"]
-                end_line = functions[-1]["end_line"]
+                functions, classes = find_csharp_all_func(tree.root_node)
 
-                new_file.extend(code[0 : start_line - 1])
+                start_line = functions[0]["range"][0]
+                end_line = functions[-1]["range"][-1]
+
+                new_file.append(code[0 : start_line - 1])
 
                 for func in functions:
-                    funct_name = func["name_of_function"]
-                    prompt = generate_document_for_funct_prompt(func["code"], extension)
-                    response = chatbot_agent.chat(prompt, True)
-
-                    while (
-                        "```" not in response
-                        or EXTENSIONS[extension][1] not in response
-                    ) and i <= MAX_RETRIES:
-                        logger.info(
-                            __name__,
-                            f"Retry # {i} for file {file} function {funct_name}",
+                    funct_name = func["name"]
+                    if func["comments"] == "":
+                        prompt = generate_document_for_funct_prompt(
+                            func["definition"] + func["body"], extension
                         )
                         response = chatbot_agent.chat(prompt, True)
-                        i += 1
 
-                    if "```" in response and EXTENSIONS[extension][1] in response:
-                        information = get_code_block(
-                            response, extension, True, funct_name
-                        )
-                        if information:
-                            document_code = information["code"]
-                            document_code = ("\n" + document_code).splitlines()
-                            new_file.extend(document_code)
-                            if "documentation" in information.keys():
-                                new_doc.extend(information["documentation"])
+                        while (
+                            "```" not in response
+                            or COMMENT_CHARS[extension] not in response
+                        ) and i <= MAX_RETRIES:
+                            logger.info(
+                                __name__,
+                                f"Retry # {i} for file {file} function {funct_name}",
+                            )
+                            response = chatbot_agent.chat(prompt, True)
+                            i += 1
+                        logger.info(__name__, f"Response: {response}")
+
+                        if "```" in response and COMMENT_CHARS[extension] in response:
+                            information = get_code_block(
+                                response, extension, True, funct_name
+                            )
+                            if information:
+                                document_code = information["code"]
+                                document_code = ("\n" + document_code).splitlines()
+                                new_file.extend(document_code)
+                                if "documentation" in information.keys():
+                                    new_doc.extend(information["documentation"])
+                            else:
+                                code = ("\n" + func["code"]).splitlines()
+                                new_file.extend(code)
                         else:
+                            logger.info(__name__, f"Check response: {response}")
                             code = ("\n" + func["code"]).splitlines()
                             new_file.extend(code)
                     else:
-                        logger.info(__name__, f"Check response: {response}")
-                        code = ("\n" + func["code"]).splitlines()
+                        logger.info(
+                            __name__, f"function already commented: {funct_name}"
+                        )
+                        code = (
+                            "\n"
+                            + func["comments"]
+                            + "\n"
+                            + func["definition"]
+                            + func["body"]
+                        ).splitlines()
                         new_file.extend(code)
 
                 new_file.extend(code[end_line::])
                 new_code = "\n".join(new_file)
 
-            if new_code is not None:
-                write_code_to_path(full_path, new_code, extension, use_formatter)
-            else:
-                logger.info(__name__, f"Could not write new code for file {file}")
+        if new_code is not None:
+            write_code_to_path(full_path, new_code, extension, use_formatter)
+        else:
+            logger.info(__name__, f"Could not write new code for file {file}")
 
-            if len(new_doc) > 1:
-                for doctype, selected in formats.items():
-                    if selected:
-                        filename = (
-                            ("readme_" + file + ".md")
-                            if doctype == "md"
-                            else ("doc_" + file + ".docx")
-                        )
-                        save_documentation(os.path.join(doc_path, filename), new_doc)
-            else:
-                logger.info(
-                    __name__, f"Could not write new documentation for file {file}"
-                )
+        if len(new_doc) > 1:
+            for doctype, selected in formats.items():
+                if selected:
+                    filename = (
+                        ("readme_" + file + ".md")
+                        if doctype == "md"
+                        else ("doc_" + file + ".docx")
+                    )
+                    save_documentation(os.path.join(doc_path, filename), new_doc)
+        else:
+            logger.info(__name__, f"Could not write new documentation for file {file}")
     except Exception as e:
         logger.info(__name__, f"Error in file: {file}: {e}")
     finally:

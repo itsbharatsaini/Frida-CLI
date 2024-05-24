@@ -61,55 +61,6 @@ def extract_functions_python(code):
     return functions
 
 
-def extract_functions_csharp(code):
-    functions = []
-    current_function = None
-    current_function_lines = []
-    brace_count = 0
-    order = 0
-    start_line = 0
-
-    for idx, line in enumerate(code, 1):
-        line = line.strip()
-
-        # Check if it's a function definition
-        function_match = re.match(
-            DEFINITION_OF_FUNCTION_CSHARP,
-            line,
-        )
-        if function_match:
-            order += 1
-            start_line = idx
-            return_type = function_match.group(1)
-            function_name = function_match.group(2)
-            # logger.info(__name__, f"line: {idx} Return: {function_match.group(1)} Name: {function_match.group(2)} Args: {function_match.group(3)}")
-            current_function = function_name
-            current_function_lines = [line]
-            brace_count = 1 if line.endswith("{") else 0
-            continue
-
-        # If inside a function, add lines to its list
-        if current_function:
-            current_function_lines.append(line)
-            brace_count += line.count("{")
-            brace_count -= line.count("}")
-
-        # Check if the function ends
-        if brace_count == 0 and current_function:
-            functions.append(
-                {
-                    "order": order,
-                    "start_line": start_line,
-                    "end_line": idx,
-                    "name_of_function": current_function,
-                    "code": "\n".join(current_function_lines),
-                }
-            )
-            current_function = None
-            current_function_lines = []
-    return functions
-
-
 def extract_documentation_python(information, one_function, funct_name):
     lines = []
     first_parameter = True
@@ -255,167 +206,192 @@ def extract_documentation_python(information, one_function, funct_name):
         logger.info(__name__, f"{e}")
 
 
-def extract_documentation_csharp(information, one_function, funct_name):
-    lines = []
+def extract_doc_csharp(comments):
     first_parameter = True
     first_return = True
     first_exception = True
+    start = comments.find("<summary>")
+    end = comments.find("</summary>")
+    description = comments[start + 9 : end]
+    comments = comments[end + 10 + 1 :]
 
-    if one_function:
-        lines = [("subheader", f"Function: {funct_name}")]
-        if information["description"].rstrip() != "":
-            lines.extend(
-                [
-                    ("bold", "Description:"),
-                    ("text", information["description"].rstrip()),
-                ]
+    if description != "":
+        lines = [
+            ("bold", "Description:"),
+            ("text", description.strip()),
+        ]
+    else:
+        lines = []
+
+    logger.info(__name__, comments.splitlines())
+
+    for comment in comments.splitlines():
+        try:
+            param_match = re.match(
+                r"^\s*<\s*param\s*name\s*=\s*\"([\w\s]*)\">([\w\.\-\s<>=\"/{}]*)</param>\s*$",
+                comment,
+            )
+            returns_match = re.match(
+                r"^\s*<\s*returns\s*>([\w\.\-\s<>=\"/{}]*)</returns>\s*$",
+                comment,
+            )
+            exception_match = re.match(
+                r"^\s*<\s*exception\s*cref\s*=\s*\"([\w\s.]*)\">([\w\.\-\s<>=\"/{}]*)</exception>\s*$",
+                comment,
             )
 
-        for idx, line in enumerate(information["code"].splitlines(), 1):
-            try:
-                param_match = re.match(
-                    PARAM_CSHARP,
-                    line,
-                )
-                returns_match = re.match(
-                    RETURN_CSHARP,
-                    line,
-                )
-                exception_match = re.match(
-                    EXCEPTION_CSHARP,
-                    line,
-                )
-
-                if param_match:
-                    if first_parameter:
-                        lines.append(("bold", "Arguments:"))
-                        lines.append(
-                            (
-                                "bullet",
-                                f"{param_match.group(1)}. {param_match.group(2)}",
-                            )
+            if param_match:
+                if first_parameter:
+                    lines.append(("bold", "Arguments:"))
+                    lines.append(
+                        (
+                            "bullet",
+                            f"{param_match.group(1)}. {param_match.group(2)}",
                         )
-                        first_parameter = False
-                    else:
-                        lines.append(
-                            (
-                                "bullet",
-                                f"{param_match.group(1)}. {param_match.group(2)}",
-                            )
-                        )
-
-                elif returns_match:
-                    if first_return:
-                        lines.append(("bold", "Return:"))
-                        lines.append(("bullet", f"{returns_match.group(1)}"))
-                        first_return = False
-                    else:
-                        lines.append(("bullet", f"{returns_match.group(1)}"))
-                elif exception_match:
-                    if first_exception:
-                        lines.append(("bold", "Exception:"))
-                        lines.append(
-                            (
-                                "bullet",
-                                f"{exception_match.group(1)}. {exception_match.group(2)}",
-                            )
-                        )
-                        first_exception = False
-                    else:
-                        lines.append(
-                            (
-                                "bullet",
-                                f"{exception_match.group(1)}. {exception_match.group(2)}",
-                            )
-                        )
-
-            except Exception as e:
-                logger.error(
-                    __name__,
-                    f"func: {function['name_of_function']} | idx: {idx} | line: {line} error: {e}",
-                )
-    else:
-        function = []
-        for idx, line in enumerate(information["code"].splitlines(), 1):
-            try:
-                param_match = re.match(
-                    PARAM_CSHARP,
-                    line,
-                )
-                returns_match = re.match(
-                    RETURN_CSHARP,
-                    line,
-                )
-                exception_match = re.match(
-                    EXCEPTION_CSHARP,
-                    line,
-                )
-                function_match = re.match(
-                    DEFINITION_OF_FUNCTION_CSHARP_2,
-                    line,
-                )
-
-                if param_match:
-                    if first_parameter:
-                        function.append(("bold", "Arguments:"))
-                        function.append(
-                            (
-                                "bullet",
-                                f"{param_match.group(1)}. {param_match.group(2)}",
-                            )
-                        )
-                        first_parameter = False
-                    else:
-                        function.append(
-                            (
-                                "bullet",
-                                f"{param_match.group(1)}. {param_match.group(2)}",
-                            )
-                        )
-
-                elif returns_match:
-                    if first_return:
-                        function.append(("bold", "Return:"))
-                        function.append(("bullet", f"{returns_match.group(1)}"))
-                        first_return = False
-                    else:
-                        function.append(("bullet", f"{returns_match.group(1)}"))
-                elif exception_match:
-                    if first_exception:
-                        function.append(("bold", "Exception:"))
-                        function.append(
-                            (
-                                "bullet",
-                                f"{exception_match.group(1)}. {exception_match.group(2)}",
-                            )
-                        )
-                        first_exception = False
-                    else:
-                        function.append(
-                            (
-                                "bullet",
-                                f"{exception_match.group(1)}. {exception_match.group(2)}",
-                            )
-                        )
-                elif function_match:
-                    lines.extend(
-                        [("subheader", f"Function: {function_match.group(1)}")]
                     )
-                    if information["description"].rstrip() != "":
-                        lines.extend(
-                            [
-                                ("bold", "Description:"),
-                                ("text", information["description"].rstrip()),
-                            ]
+                    first_parameter = False
+                else:
+                    lines.append(
+                        (
+                            "bullet",
+                            f"{param_match.group(1)}. {param_match.group(2)}",
                         )
-                    lines.extend(function)
+                    )
 
-                    function = []
-                    first_parameter = True
-                    first_return = True
-                    first_exception = True
+            elif returns_match:
+                if first_return:
+                    lines.append(("bold", "Return:"))
+                    lines.append(("bullet", f"{returns_match.group(1)}"))
+                    first_return = False
+                else:
+                    lines.append(("bullet", f"{returns_match.group(1)}"))
+            elif exception_match:
+                if first_exception:
+                    lines.append(("bold", "Exception:"))
+                    lines.append(
+                        (
+                            "bullet",
+                            f"{exception_match.group(1)}. {exception_match.group(2)}",
+                        )
+                    )
+                    first_exception = False
+                else:
+                    lines.append(
+                        (
+                            "bullet",
+                            f"{exception_match.group(1)}. {exception_match.group(2)}",
+                        )
+                    )
 
-            except Exception as e:
-                logger.error(__name__, f"idx: {idx} | line: {line} error: {e}")
+        except Exception as e:
+            logger.error(__name__, e)
+
+    return lines
+
+
+def find_csharp_all_func(node):
+    comments, definition, body, name, class_name, class_defintion = (
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+    )
+    start, end = -1, -1
+    functions, classes = [], []
+
+    for n in node.children:
+        if node.type == "declaration_list":
+            if n.type == "class_declaration":
+                for data in n.children:
+                    if data.type == "identifier":
+                        class_defintion += data.text.decode("utf8") + " "
+                        class_name = data.text.decode("utf8")
+                    elif data.type != "declaration_list":
+                        class_defintion += data.text.decode("utf8") + " "
+                    else:
+                        classes.append(
+                            {"name": class_name, "definition": class_defintion}
+                        )
+                        class_name = ""
+                        class_defintion = ""
+            if n.type == "comment":
+                comments += n.text.decode("utf8") + "\n"
+                if start == -1:
+                    start = n.range.start_byte
+                end = n.range.end_byte
+            if n.type == "method_declaration" or n.type == "constructor_declaration":
+                for data in n.children:
+                    if data.type == "block":
+                        body = data.text.decode("utf8")
+                        functions.append(
+                            {
+                                "name": name,
+                                "definition": definition,
+                                "body": body,
+                                "comments": comments,
+                                "range": (n.range.start_byte, n.range.end_byte),
+                                "comments_range": (start, end),
+                            }
+                        )
+                        (
+                            comments,
+                            definition,
+                            body,
+                            name,
+                            class_name,
+                            class_defintion,
+                        ) = ("", "", "", "", "", "")
+                        start, end = -1, -1
+                    elif data.type == "identifier":
+                        definition += data.text.decode("utf8") + " "
+                        name = data.text.decode("utf8")
+                    else:
+                        definition += data.text.decode("utf8") + " "
+        if n.children != []:
+            f, c = find_csharp_all_func(n)
+            if f != []:
+                functions.extend(f)
+            if c != []:
+                classes.extend(c)
+    return functions, classes
+
+
+def extract_doc_csharp_all_func(node):
+    comments, name = "", ""
+    docs = []
+
+    for n in node.children:
+        if node.type == "declaration_list":
+            if n.type == "comment":
+                comments += n.text.decode("utf8") + "\n"
+            if n.type == "method_declaration" or n.type == "constructor_declaration":
+                for data in n.children:
+                    if data.type == "block":
+                        logger.info(__name__, f"func: {name}, comments: {comments}")
+                        documentation = extract_doc_csharp(comments.replace("///", ""))
+                        if documentation != []:
+                            docs.append(("subheader", f"Function: {name}"))
+                            docs.extend(documentation)
+                        comments = ""
+                    elif data.type == "identifier":
+                        name = data.text.decode("utf8")
+        if n.children != []:
+            d = extract_doc_csharp_all_func(n)
+            if d != []:
+                docs.extend(d)
+    return docs
+
+
+def extract_doc_csharp_one_func(node, name):
+    comments = ""
+    lines = [("subheader", f"Function: {name}")]
+
+    for n in node.children:
+        if n.type == "comment":
+            comments += n.text.decode("utf8") + "\n"
+    logger.info(__name__, comments)
+    lines.extend(extract_doc_csharp(comments.replace("///", "")))
 
     return lines
