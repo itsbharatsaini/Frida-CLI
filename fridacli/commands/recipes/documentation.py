@@ -3,8 +3,6 @@ from fridacli.logger import Logger
 from .regex_configuration import (
     DOCUMENTATION_FROM_ALL_FUNCTIONS_PYTHON,
     DEFINITION_OF_FUNCTION_PYTHON,
-    DEFINITION_OF_FUNCTION_CSHARP,
-    DEFINITION_OF_FUNCTION_CSHARP_2,
     PARAM_CSHARP,
     RETURN_CSHARP,
     EXCEPTION_CSHARP,
@@ -228,15 +226,15 @@ def extract_doc_csharp(comments):
     for comment in comments.splitlines():
         try:
             param_match = re.match(
-                r"^\s*<\s*param\s*name\s*=\s*\"([\w\s]*)\">([\w\.\-\s<>=\"/{}]*)</param>\s*$",
+                PARAM_CSHARP,
                 comment,
             )
             returns_match = re.match(
-                r"^\s*<\s*returns\s*>([\w\.\-\s<>=\"/{}]*)</returns>\s*$",
+                RETURN_CSHARP,
                 comment,
             )
             exception_match = re.match(
-                r"^\s*<\s*exception\s*cref\s*=\s*\"([\w\s.]*)\">([\w\.\-\s<>=\"/{}]*)</exception>\s*$",
+                EXCEPTION_CSHARP,
                 comment,
             )
 
@@ -289,11 +287,8 @@ def extract_doc_csharp(comments):
     return lines
 
 
-def find_csharp_all_func(node):
-    comments, definition, body, name, class_name, class_defintion = (
-        "",
-        "",
-        "",
+def find_all_func_csharp(node):
+    comments, definition, class_defintion = (
         "",
         "",
         "",
@@ -338,11 +333,8 @@ def find_csharp_all_func(node):
                         (
                             comments,
                             definition,
-                            body,
-                            name,
-                            class_name,
                             class_defintion,
-                        ) = ("", "", "", "", "", "")
+                        ) = ("", "", "")
                         start, end = -1, -1
                     elif data.type == "identifier":
                         definition += data.text.decode("utf8") + " "
@@ -350,7 +342,7 @@ def find_csharp_all_func(node):
                     else:
                         definition += data.text.decode("utf8") + " "
         if n.children != []:
-            f, c = find_csharp_all_func(n)
+            f, c = find_all_func_csharp(n)
             if f != []:
                 functions.extend(f)
             if c != []:
@@ -359,28 +351,19 @@ def find_csharp_all_func(node):
 
 
 def extract_doc_csharp_all_func(node):
-    comments, name = "", ""
     docs = []
 
-    for n in node.children:
-        if node.type == "declaration_list":
-            if n.type == "comment":
-                comments += n.text.decode("utf8") + "\n"
-            if n.type == "method_declaration" or n.type == "constructor_declaration":
-                for data in n.children:
-                    if data.type == "block":
-                        logger.info(__name__, f"func: {name}, comments: {comments}")
-                        documentation = extract_doc_csharp(comments.replace("///", ""))
-                        if documentation != []:
-                            docs.append(("subheader", f"Function: {name}"))
-                            docs.extend(documentation)
-                        comments = ""
-                    elif data.type == "identifier":
-                        name = data.text.decode("utf8")
-        if n.children != []:
-            d = extract_doc_csharp_all_func(n)
-            if d != []:
-                docs.extend(d)
+    functions, classes = find_all_func_csharp(node)
+
+    for func in functions:
+        name = func["name"]
+        comments = func["comments"]
+        logger.info(__name__, f"func: {name}, comments: {comments}")
+        documentation = extract_doc_csharp(comments.replace("///", ""))
+        if documentation != []:
+            docs.append(("subheader", f"Function: {name}"))
+            docs.extend(documentation)
+
     return docs
 
 
