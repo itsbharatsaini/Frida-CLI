@@ -52,7 +52,7 @@ class CodeView(Static):
         """Called when the user click a file in the directory tree."""
         event.stop()
         code_view = self.query_one("#cv_code", Static)
-        
+
         try:
             syntax = None
             extension = event.path.suffix
@@ -86,18 +86,18 @@ class CodeView(Static):
 
     def on_select_changed(self, event: Select.Changed) -> None:
         self.recipe_selected = str(event.value)
-    
+
     def on_button_pressed(self, event: Button.Pressed):
         button_pressed = str(event.button.id)
         logger.info(__name__, button_pressed)
         if button_pressed == "btn_recipe" :
             """
-            TODO: Assure that the threads are syncroniced and do not stop the GUI  thread 
+            TODO: Assure that the threads are syncroniced and do not stop the GUI  thread
             """
             if self.recipe_selected == "Generate Documentation" :
                 logger.info(__name__, "On UI calling to document files")
                 self.app.push_screen(DocGenerator(), self.doc_generator_callback)
-            
+
             elif self.recipe_selected == "generate_epics":
                 logger.info(__name__, "epics")
                 self.app.push_screen(EpicGenerator())

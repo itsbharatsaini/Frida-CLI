@@ -22,7 +22,7 @@ CodeView.-show-tree #cv_tree_view {
 }
 
 CodeView{
-   width: 65%; 
+   width: 65%;
 }
 
 SystemFridaResponse{
@@ -223,8 +223,8 @@ DocGenerator {
 .dialog {
     grid-size: 1;
     width: 100;
-    height: 32;
-    border: thick $background 80%;
+    height: 35;
+    border: thick $background 50%;
     background: $surface;
 }
 
@@ -239,6 +239,264 @@ DocGenerator {
 
 #configuration_directorytree_pythonenv {
     height: 25
+}
+
+/* epics generator */
+
+#epics_side_bar {
+    background: #283237;
+    width: 10%;
+}
+
+.epics_header_cls {
+    height: 3;
+    margin-bottom: 2;
+}
+
+#epics_search_input {
+    width: 50
+}
+
+#epics_search_btn {
+    margin-right: 80
+}
+
+#epics_container {
+}
+
+
+CreateNewEpic {
+    width: 50;
+    align: center middle;
+}
+
+#upload_excel_button{
+    margin: 1 0 1 5;
+}
+
+#download_template_button{
+    margin: 1 0 1 2;
+}
+
+#epic_name_input{
+    margin: 2 32 1 4;
+}
+
+#platform_label{
+    margin: 1 0 1 5;
+}
+
+#platform_radio{
+    margin: 1 4 1 4;
+}
+
+#project_context_label{
+    margin: 1 0 1 5;
+}
+
+#project_context_input{
+    width: 62;
+    margin: 1 4 1 4;
+    background: #808080;
+}
+
+#upload_excel_label{
+    margin: 1 0 0 5
+}
+
+#create_epic_quit{
+    margin: 1 0 1 5;
+}
+
+#create_epic_generate{
+    margin: 1 0 1 2;
+}
+
+#list_project_item {
+    height: 3;
+    grid-gutter: 0 1;
+}
+
+#a{
+    align: center top;
+}
+
+#list_view_container {
+    width: 60%
+}
+
+.list_project_label {
+    width: 30;
+}
+
+#epics_options {
+    width: 20%
+}
+
+Epic {
+    margin: 0;
+    padding: 0;
+    height: auto;
+}
+
+UserStory {
+    padding: 0;
+    margin: 0;
+}
+
+#epics_list {
+    width: 100%;
+    margin-left: 1;
+    margin-right: 1;
+}
+
+.user_story_vertical {
+    margin: 0;
+    margin-bottom: 1;
+    padding: 0;
+    height: auto;
+}
+
+#project_content{
+    align: center top;
+}
+
+#selected_cell_text {
+    height: 10;
+}
+
+#project_description_textarea {
+    height: 10;
+    background: #808080;
+    color: #000000;
+}
+
+#text_cell {
+    height: 5
+}
+
+.user_story_textarea {
+    height: 6;
+    background: #808080;
+    color: #000000;
+}
+
+.user_story_textarea_title {
+    height: 3;
+    background: #808080;
+    color: #E1E1E1;
+}
+.user_story_textarea_title_f {
+    height: 3;
+    background: #808080;
+    color: #E1E1E1;
+    margin-left: 5;
+}
+
+.user_story_horizontal {
+    margin-left: 10;
+    padding-left: 5;
+    height: 6;
+}
+
+.user_story_horizontal_title {
+    padding: 0 0 0 0;
+    margin: 0;
+    height: 2;
+}
+
+.user_story_header_horizontal {
+    padding: 0 0 0 0;
+    margin: 0;
+}
+
+.user_story_horizontal {
+    padding: 0 0 0 0;
+    margin: 0;
+}
+
+.user_story_horizontal_btns {
+    margin: 0;
+    padding: 0 0 0 6;
+    height: 4;
+}
+
+#epics_horizontal_buttons {
+    height: 4;
+}
+
+#epics_select {
+    width: 30
+}
+
+#new_epic_btn {
+    width: 100%;
+    margin-bottom: 2;
+}
+
+NewObjectPushScreen {
+    width: 50;
+    align: center middle;
+    height: 5;
+}
+
+.new_epic_push_components{
+    margin: 1 1 1 5;
+}
+
+#vertical_del_button {
+    width: 5;
+    margin-right: 0;
+    margin: 0 0 0 0;
+    padding: 0 0 0 0;
+}
+
+.user_story_del_btn {
+    margin: 0 0 0 0;
+    padding: 0 0 0 0;
+}
+
+ConfirmPushView {
+    width: 50;
+    align: center middle;
+    height: 5;
+}
+
+#confirm_btns {
+    margin-left: 6;
+}
+
+.dialog_small {
+grid-size: 1;
+    width: 50;
+    height: 10;
+    border: thick $background 50%;
+    background: $surface;
+}
+
+#back_btn {
+    width: 5;
+    margin-left: 5
+}
+
+.user_story_radio_button {
+    margin: 0 0 0 0;
+}
+
+.epic_title_horizontal {
+    margin: 0 0 0 0;
+    padding: 0 0 0 0;
+    height: 3;
+    align: left middle;
+}
+
+.epic_label {
+    margin-top: 1;
+}
+
+.epic_del_btn {
+    margin: 0 0 0 0;
+    padding: 0 0 0 0;
 }
 
 #configuration_documentation_path {
