@@ -7,6 +7,7 @@ from fridacli.logger import Logger
 from fridacli.config import HOME_PATH
 from typing import Iterable
 from pathlib import Path
+import csv
 
 logger = Logger()
 
@@ -79,6 +80,7 @@ class EpicGenerator(Screen):
 class CreateNewEpic(Screen):
     path = HOME_PATH
     radio_set_value = ""
+    csv_data = {}
     def compose(self):
         yield Vertical(
             Input(placeholder="Name of project", id="epic_name_input"),
@@ -101,15 +103,64 @@ class CreateNewEpic(Screen):
         self.radio_set_value = event.pressed.label
         logger.info(__name__, self.radio_set_value)
 
+    def get_data_from_csv(self, path):
+        try:
+            epics = {}
+            with open(path, "r") as file:
+                csv_reader = csv.DictReader(file)
+                for row in csv_reader:
+                    epic_name = row["epic"]
+                    del row["epic"]
+                    if epic_name != "":
+                        if epics.get(epic_name, -1) == -1:
+                            epics[epic_name] = [row]
+                        else:
+                            epics[epic_name].append(row)
+            return epics
+        except Exception as e:
+            return {}
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "create_epic_quit":
+        button_pressed = event.button.id
+        if button_pressed == "create_epic_quit":
             self.app.pop_screen()
-        elif event.button.id == "create_epic_generate":
+        elif button_pressed == "create_epic_generate":
             epic_name_input = self.query_one("#epic_name_input", Input).value
             plataform = str(self.radio_set_value)
             project_context_input = self.query_one("#project_context_input", TextArea).text
             if len(epic_name_input) > 0  and len(plataform) > 0 and len(project_context_input) > 0:
-                params = (epic_name_input, plataform, project_context_input)
+                params = {"epic_name": epic_name_input, "plataform": plataform, "project_description": project_context_input}
+                if self.csv_data != {}:
+                    params["csv_data"] = self.csv_data
+                #params = (epic_name_input, plataform, project_context_input)
                 self.dismiss(params)
             else:
                 self.notify("Some of the values are empty", severity="error")
+        elif button_pressed == "upload_excel_button":
+            path = "Online Bookstore.csv"
+            csv_data = self.get_data_from_csv(path)
+            if csv_data != {}:
+                self.csv_data = self.get_data_from_csv(path)
+                self.notify("CSV data retrived successfully")
+            else:
+                self.notify("An error occurred while trying to get the data from the CSV file", severity="error")
+            logger.info(__name__, "data from csv" + str(self.csv_data))
+
+
+class ConfirmPushView(Screen):
+    def __init__(self, text) -> None:
+        super().__init__()
+        self.text = text
+    def compose(self):
+        with Vertical(classes = "dialog_small"):
+            yield Label(str(self.text), id="platform_label")
+            with Horizontal(id="confirm_btns"):
+                yield Button("Cancel", variant="error", id="cancel")
+                yield Button("Confirm", variant="success", id="confirm")
+
+    def on_button_pressed(self, event: Button.Pressed):
+        button_pressed =  event.button.id
+        if button_pressed == "cancel":
+            self.app.pop_screen()
+        elif button_pressed == "confirm":
+            self.dismiss("")

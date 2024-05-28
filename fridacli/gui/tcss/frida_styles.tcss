@@ -214,7 +214,7 @@ DocGenerator {
 .dialog {
     grid-size: 1;
     width: 100;
-    height: 25;
+    height: 35;
     border: thick $background 50%;
     background: $surface;
 }
@@ -237,7 +237,7 @@ DocGenerator {
 
 #epics_side_bar {
     background: #283237;
-    width: 15%;
+    width: 10%;
 }
 
 .epics_header_cls {
@@ -287,6 +287,7 @@ CreateNewEpic {
 }
 
 #project_context_input{
+    width: 62;
     margin: 1 4 1 4;
     background: #808080;
 }
@@ -381,7 +382,7 @@ UserStory {
     height: 3;
     background: #808080;
     color: #E1E1E1;
-    margin-left: 2;
+    margin-left: 5;
 }
 
 .user_story_horizontal {
@@ -406,6 +407,12 @@ UserStory {
     margin: 0;
 }
 
+.user_story_horizontal_btns {
+    margin: 0;
+    padding: 0 0 0 6;
+    height: 4;
+}
+
 #epics_horizontal_buttons {
     height: 4;
 }
@@ -415,7 +422,7 @@ UserStory {
 }
 
 #new_epic_btn {
-    width: 98%;
+    width: 100%;
     margin-bottom: 2;
 }
 
@@ -430,12 +437,56 @@ NewObjectPushScreen {
 }
 
 #vertical_del_button {
-    width: 2;
+    width: 5;
     margin-right: 0;
+    margin: 0 0 0 0;
+    padding: 0 0 0 0;
 }
+
 .user_story_del_btn {
-    width: 2;
-    height: 6;
-    margin-top: 0;
-    margin-right: 0;
+    margin: 0 0 0 0;
+    padding: 0 0 0 0;
+}
+
+ConfirmPushView {
+    width: 50;
+    align: center middle;
+    height: 5;
+}
+
+#confirm_btns {
+    margin-left: 6;
+}
+
+.dialog_small {
+grid-size: 1;
+    width: 50;
+    height: 10;
+    border: thick $background 50%;
+    background: $surface;
+}
+
+#back_btn {
+    width: 5;
+    margin-left: 5
+}
+
+.user_story_radio_button {
+    margin: 0 0 0 0;
+}
+
+.epic_title_horizontal {
+    margin: 0 0 0 0;
+    padding: 0 0 0 0;
+    height: 3;
+    align: left middle;
+}
+
+.epic_label {
+    margin-top: 1;
+}
+
+.epic_del_btn {
+    margin: 0 0 0 0;
+    padding: 0 0 0 0;
 }

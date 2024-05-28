@@ -3,7 +3,7 @@ import datetime
 
 from fridacli.chatbot import ChatbotAgent
 from fridacli.logger import Logger
-
+import re
 import csv
 
 chatbot_agent = ChatbotAgent()
@@ -27,6 +27,7 @@ def get_data_from_file(path):
         return None
 
 def save_csv(path, project):
+    logger.info(__name__, "project in save csv:" + str(project))
     try:
         with open(path, "w") as file:
             writer = csv.DictWriter(file, fieldnames=['epic', 'user_story', 'description', 'acceptance_criteria', 'out_of_scope'])
@@ -41,7 +42,7 @@ def save_csv(path, project):
                         'out_of_scope': user_stories["out_of_scope"]
                     }
                     writer.writerow(dictionary)
-                    return True
+            return True
     except Exception as e:
         return False
 
@@ -80,6 +81,48 @@ def generate_empty_project(project_name, project_description, plataform, date):
       ]
     }
     return project
+
+def generate_project_with_csv(project_name, project_description, plataform, date, csv_data):
+
+    epics = []
+    for key in csv_data.keys():
+        epic = {
+          "epic_name": key,
+          "user_stories": csv_data[key]
+        }
+        epics.append(epic)
+
+    project = {
+      "project_name": project_name,
+      "project_description": project_description,
+      "plataform": plataform,
+      "date": str(date),
+      "versions": [
+        {
+          "version_name": "v1",
+          "epics": epics
+        }
+      ]
+    }
+
+    return project
+
+def get_code_block(text):
+    try:
+        code_pattern = re.compile(r"```([\w#]*)\n(.*?)```", re.DOTALL)
+        matches = code_pattern.findall(text)
+        code_blocks = [
+            {
+                "language": match[0],
+                "code": match[1],
+            }
+            for match in matches
+        ]
+        if code_blocks == []:
+            logger.info(__name__, f"Revisar: {text}")
+        return code_blocks
+    except Exception as e:
+        pass
 
 def has_expected_epic_structure(expected_structure, json_obj):
     # Function to compare the structure of two JSON objects
@@ -213,7 +256,7 @@ def create_generated_user_story(user_story, name, empty):
             "out_of_scope": ""
         }
 
-def complete_epic(epic):
+def complete_epic(epic, description):
     # Create a new generated Epic using IA or a empty Epic
     expected_structure = {
         "epic_name": "",
@@ -230,13 +273,15 @@ def complete_epic(epic):
     prompt = f"""
     Given the following information:
     {epic}
+    and the project description:
+    {description}
     Complete the missing values respresenting with empty spaces, using the same structure
     NOT FORGET TO complete all
-    IMPORTANT Responde ONLY with the json updated:
+    IMPORTANT Responde ONLY with the json text updated with all the fields filled:
     """
     trys = 4
     # Try 3 times until the response is the expected
-    for i in range(3):
+    for i in range(trys):
         response = chatbot_agent.chat(prompt, True)
         logger.info(__name__, response)
         try:
@@ -246,9 +291,16 @@ def complete_epic(epic):
                 return json_response
             else:
                 logger.info(__name__, "not the same")
+                return None
         except Exception as e:
-            logger.info(__name__, "error")
-    return expected_structure
+            blocks = get_code_block(response)
+            if len(blocks) > 0:
+                json_response = blocks[0]["code"]
+                json_response = json.loads(json_response)
+                logger.info(__name__, "blocks " + str(json_response))
+                if has_expected_epic_structure(expected_structure, json_response):
+                    return json_response
+    return None
 
 
 def create_empty_userstory():
