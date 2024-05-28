@@ -10,12 +10,92 @@ programming_languages = {
     /// Detailed description of the function.
     /// </summary>
     /// <param name="param_name">Description of the parameter.</param>
-    /// <returns>Return values.</returns>
+    /// <returns>Description of the return value.</returns>
     /// <exception cref="exception_name">Description of the exception.</exception>""",
-    ]
+    ],
+    ".py": [
+        "Python",
+        '''
+    """
+    Detailed description of the function and it\'s purpose.
+
+    Args:
+        param_name (param_type): Description of the parameter.
+
+    Returns:
+        return_type: Description of the return value.
+
+    Raises:
+        Exception_name: Description of the exception.
+    """''',
+    ],
+    ".java": [
+        "Java",
+        """
+    /**
+     * Detailed description of the function and it's purpose.
+     *
+     * @param paramName description of the parameter.
+     * @return description of the return value.
+     * @throws ExceptionName description of the exception.
+     */""",
+    ],
+    ".js": [
+        "Javascript",
+        """
+    /**
+    * Calculates the square root of a number.
+    *
+    * @param {param_type} paramName - Description of the parameter.
+    * @returns {return_type} Description of the return value.
+    * @throws {ErrorName} Description of the exception.
+    */""",
+    ],
 }
 
-def generate_document_prompt(code, extension):
+
+def generate_full_document_prompt(code, extension):
+    return f"""
+    You are a professional coding and documentation assitant.
+    You will be given a code written in {programming_languages[extension][0]} and your job is to generate and add the appropiate documentation for it.
+    
+    Create a comprehensive documentation for each function.
+    You MUST responde with a code block that contains both the generated documentation and the given code.
+    
+    Each function must be documented with:
+    - Purpose of the function with a detailed description of what the function does.
+    - Descriptions of input parameters if any.
+    - Return values if any.
+    - Exceptions handled in the function if any.
+
+    ALWAYS use this documentation style for the functions: {programming_languages[extension][1]}
+
+    DO NOT OMIT ANYTHING.
+
+    DO NOT OMIT ANY FUNCTION.
+    
+    DO NOT OMIT THE BODY OF ANY FUNCTION.
+
+    Do NOT document classes.
+
+    Do NOT add 'Example usage' in the documentation of the function.
+
+    Do NOT generate anything else besides the documentation.
+
+    Do NOT alter the code or omit them; only add the documentation.
+
+    Do NOT add anything to the code block besides the documentation and the code.
+
+    Do NOT write observations.
+
+    ONLY respond with a code block, omit anything else.
+
+    This is the code to document:
+    {code}
+    """
+
+
+def generate_document_for_funct_prompt(code, extension):
     return f"""
     You are a professional coding and documentation assistant.
     You will be given a function written in {programming_languages[extension][0]}, and your job is to generate the appropriate documentation for it.
@@ -31,15 +111,17 @@ def generate_document_prompt(code, extension):
     - Return values
     - Exceptions handled in the function
 
-    The description of the function MUST be within the code block in the 'summary' section.
+    The description of the function MUST be within the code block.
 
     The description of the function MUST be written with natural language.
 
     You have to return a code block with the function and the documentation.
 
-    Do NOT omit the implementation of the function.
+    Always follow the best documentation practices.
 
-    Do NOT alter the functions or omit them; only add the documentation.
+    Do NOT omit the function.
+
+    Do NOT alter the function; only add the documentation.
 
     Do NOT add anything to the code block besides the documentation and the function.
 
@@ -51,7 +133,9 @@ def generate_document_prompt(code, extension):
     {code}
     """
 
-generate_epic = lambda epic_name: f"""Generate at least 5 user stories for the Epic {epic_name} in the project Innovasports Mobile, which is a mobile application designed for selling shoes.
+
+generate_epic = (
+    lambda epic_name: f"""Generate at least 5 user stories for the Epic {epic_name} in the project Innovasports Mobile, which is a mobile application designed for selling shoes.
 Each user story should consist of a title, a detailed description, and acceptance criteria to ensure clarity and understanding.
 
 Use the following format for each user story:
@@ -72,3 +156,4 @@ Out of scope:
 ***
 Use '***' to separate every user story
 """
+)

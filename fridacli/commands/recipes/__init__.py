@@ -9,8 +9,8 @@ chatbot_agent = ChatbotAgent()
 file_manager = FileManager()
 frida_coder = FridaCoder()
 
-async def document_files(checkbox):
-    return await exec_document(checkbox, chatbot_agent, file_manager, frida_coder)
+async def document_files(formats, method, doc_path, use_formatter):
+    return await exec_document(formats, method, doc_path, use_formatter, chatbot_agent, file_manager, frida_coder)
 
 def generate_epics(text, path):
     exec_generate_epics(chatbot_agent, text, path)

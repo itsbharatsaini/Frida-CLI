@@ -10,6 +10,7 @@ azure-common==1.1.28
 azure-core==1.29.4
 azure-search-documents==11.4.0b9
 backcall==0.2.0
+black==24.4.2
 CacheControl==0.14.0
 cachetools==5.3.3
 certifi==2023.7.22

@@ -77,6 +77,7 @@ class FileManager:
         - None
         """
         root_node = Tree(path)
+        self.__files = {}
         self.__traverse(path, root_node)
         return root_node
 

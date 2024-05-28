@@ -35,8 +35,13 @@ class ConfigurationView(Static):
                         classes="configuration_line",
                     )
                     yield Horizontal(
-                        Label("CHAT_MODEL_NAME", classes="configuration_label"),
+                        Label("CHAT MODEL NAME V3", classes="configuration_label"),
                         Input(id="input_chat_model_name"),
+                        classes="configuration_line",
+                    )
+                    yield Horizontal(
+                        Label("CHAT MODEL NAME V4", classes="configuration_label"),
+                        Input(id="input_chat_model_name_v4"),
                         classes="configuration_line",
                     )
                     yield Button("Save configuration", id="btn_softtek_confirm")
@@ -60,12 +65,14 @@ class ConfigurationView(Static):
         input_logs_path = self.query_one("#input_logs_path", Input)
         input_llmops_api_key = self.query_one("#input_llmops_api_key", Input)
         input_chat_model_name = self.query_one("#input_chat_model_name", Input)
+        input_chat_model_name_v4 = self.query_one("#input_chat_model_name_v4", Input)
         input_python_env = self.query_one("#input_python_env", Input)
 
         input_project_path.value = env_vars["PROJECT_PATH"]
         input_logs_path.value = env_vars["LOGS_PATH"]
         input_llmops_api_key.value = env_vars["LLMOPS_API_KEY"]
         input_chat_model_name.value = env_vars["CHAT_MODEL_NAME"]
+        input_chat_model_name_v4.value = env_vars["CHAT_MODEL_NAME_V4"]
         input_python_env.value = env_vars["PYTHON_ENV_PATH"]
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -91,6 +98,8 @@ class ConfigurationView(Static):
             keys["LLMOPS_API_KEY"] = value
             value = self.query_one("#input_chat_model_name", Input).value
             keys["CHAT_MODEL_NAME"] = value
+            value = self.query_one("#input_chat_model_name_v4", Input).value
+            keys["CHAT_MODEL_NAME_V4"] = value
             write_config_to_file(keys)
         elif button_pressed == "btn_python_confirm":
             keys = get_vars_as_dict()

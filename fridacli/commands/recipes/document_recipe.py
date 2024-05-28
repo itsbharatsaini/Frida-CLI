@@ -6,53 +6,45 @@ from mdutils.mdutils import MdUtils
 from fridacli.logger import Logger
 from fridacli.frida_coder import FridaCoder
 from fridacli.file_manager import FileManager
-from .predefined_phrases import generate_document_prompt
+from .predefined_phrases import (
+    generate_document_for_funct_prompt,
+    generate_full_document_prompt,
+)
+from .documentation import (
+    extract_documentation_python,
+    extract_documentation_csharp,
+    extract_functions_python,
+    extract_functions_csharp,
+)
+from .regex_configuration import (
+    CODE_FROM_ALL_EXTENSIONS,
+    SUMMARY_AND_CODE_FROM_ALL_FUNCTIONS_PYTHON,
+    CODE_FROM_PYTHON,
+    SUMMARY_AND_CODE_FROM_CSHARP,
+)
 
 logger = Logger()
+
 MAX_RETRIES = 2
+SUPPORTED_DOC_EXTENSION = [".py", ".cs"]
+EXTENSIONS = {
+    ".py": [
+        extract_functions_python,
+        '"""',
+        SUMMARY_AND_CODE_FROM_ALL_FUNCTIONS_PYTHON,
+        "",
+        CODE_FROM_PYTHON,
+    ],
+    ".cs": [
+        extract_functions_csharp,
+        "///",
+        SUMMARY_AND_CODE_FROM_CSHARP,
+        "/",
+    ],
+    ".java": [None, "*", CODE_FROM_ALL_EXTENSIONS],
+    ".js": [None, "*", CODE_FROM_ALL_EXTENSIONS],
+}
 
-def get_documentation(block, function):
-    lines = [("subheader", f"Function: {function['name_of_function']}"), ("bold", "Description:"), ("text", block['description'].rstrip())]
-    first_parameter = True
-    first_return = True
-    first_exception = True
-
-    for idx, line in enumerate(block["code"].splitlines(), 1):
-        try:
-            param_match = re.match(r"^\s*///\s*<\s*param\s*name\s*=\s*\"([\w\s]*)\">([\w\.\-\s<>=\"/{}]*)</param>\s*$", line)
-            returns_match = re.match(r'^\s*///\s*<\s*returns\s*>([\w\.\-\s<>=\"/{}]*)</returns>\s*$', line)
-            exception_match = re.match(r'^\s*///\s*<\s*exception\s*cref\s*=\s*\"([\w\s]*)\">([\w\.\-\s<>=\"/{}]*)</exception>\s*$', line)
-
-            if param_match:
-                if first_parameter:
-                    lines.append(("bold", "Arguments:"))
-                    lines.append(("bullet", f"{param_match.group(1)}. {param_match.group(2)}"))
-                    first_parameter = False
-                else:
-                    lines.append(("bullet", f"{param_match.group(1)}. {param_match.group(2)}"))
-                
-            elif returns_match:
-                if first_return:
-                    lines.append(("bold", "Return:"))
-                    lines.append(("bullet", f"{returns_match.group(1)}"))
-                    first_return = False
-                else:
-                    lines.append(("bullet", f"{returns_match.group(1)}"))
-
-                logger.info(__name__, f"return: {returns_match.group(1)}")
-            elif exception_match:
-                if first_exception:
-                    lines.append(("bold", "Exception:"))
-                    lines.append(("bullet", f"{exception_match.group(1)}. {exception_match.group(2)}"))
-                    first_exception = False
-                else:
-                    lines.append(("bullet", f"{exception_match.group(1)}. {exception_match.group(2)}"))
-   
-        except Exception as e:
-            logger.error(__name__, f"func: {function['name_of_function']} | idx: {idx} | line: {line} error: {e}")
-            continue
-    
-    return lines
 
 def save_documentation(path, lines):
     if "docx" in path:
@@ -69,15 +61,17 @@ def save_documentation(path, lines):
             elif format == "text":
                 doc.add_paragraph(text)
             elif format == "bullet":
-                doc.add_paragraph(text, style='List Bullet')
+                doc.add_paragraph(text, style="List Bullet")
 
+        logger.info(__name__, f"Creating docx file in... {path}")
         doc.save(path)
     else:
         mdFile = None
         bullets = []
         for format, text in lines:
             if format == "title":
-                mdFile = MdUtils(file_name=path, title=text)
+                mdFile = MdUtils(file_name=path)
+                mdFile.new_header(level=1, title=text, add_table_of_contents="n")
             elif format == "subheader":
                 if bullets:
                     mdFile.new_list(bullets)
@@ -96,87 +90,94 @@ def save_documentation(path, lines):
             mdFile.new_list(bullets)
             bullets = []
 
-        logger.info(__name__, "Creating doc...")
+        logger.info(__name__, f"Creating md file in... {path}")
         mdFile.create_md_file()
 
-def get_code_block(text):
-    try:
-        code_pattern = re.compile(r"```([\w#]*)\n(.*?)```", re.DOTALL)
-        matches = code_pattern.findall(text)
-        code_blocks = [
-            {
-                "language": match[0],
-                "code": match[1],
-                "description": match[1][match[1].find("/// <summary>\n/// ") + len("/// <summary>\n/// "): match[1].find("\n/// </summary>")].replace("/// ", ""),
-            }
-            for match in matches
-        ]
-        if code_blocks == []:
-            logger.info(__name__, f"Revisar: {text}")
-        return code_blocks
-    except Exception as e:
-        pass
-        #logger.error(__name__, f"Error get code block from text using regex: {e}")
 
-def write_code_to_path(path: str, code: str):
+def extract_documentation(information, extension, one_function, funct_name):
+    if extension == ".py":
+        return extract_documentation_python(information, one_function, funct_name)
+    elif extension == ".cs":
+        return extract_documentation_csharp(information, one_function, funct_name)
+    else:
+        logger.info(__name__, f"Do not support {extension} extension by now.")
+
+
+def get_code_block(text, extension, one_function, funct_name=None):
+    try:
+        code_pattern = re.compile(
+            (
+                EXTENSIONS[extension][4]
+                if (not one_function and extension == ".py")
+                else EXTENSIONS[extension][2]
+            ),
+            re.DOTALL,
+        )
+        matches = code_pattern.findall(text)
+
+        logger.info(__name__, matches)
+
+        if matches == []:
+            logger.info(__name__, f"Did not match: {text}")
+        else:
+            if one_function and extension == ".py":
+                description = matches[0][2].replace(
+                    EXTENSIONS[extension][3], ""
+                ).replace("`", "") or matches[0][3].replace(
+                    EXTENSIONS[extension][3], ""
+                ).replace(
+                    "`", ""
+                )
+                description = description.split("\n\n")[0]
+            elif extension != ".cs":
+                description = ""
+            else:
+                description = (
+                    matches[0][2].replace(EXTENSIONS[extension][3], "").replace("`", "")
+                )
+            information = {
+                "language": matches[0][0],
+                "code": matches[0][1],
+                "description": description,
+            }
+            logger.info(__name__, information)
+
+            if extension in SUPPORTED_DOC_EXTENSION:
+                lines = extract_documentation(
+                    information, extension, one_function, funct_name
+                )
+                if lines is not None and lines != []:
+                    information["documentation"] = lines
+                    logger.info(__name__, f"lines on doc: {lines}")
+                else:
+                    logger.info(
+                        __name__,
+                        f"Could not generate documentation for function {funct_name}",
+                    )
+            return information
+    except Exception as e:
+        logger.error(__name__, f"Error get code block from text using regex: {e}")
+
+
+def write_code_to_path(path: str, code: str, extension: str, use_formatter: bool):
     try:
         with open(path, "w", encoding="utf-8") as f:
             f.write(code)
+
+        if use_formatter:
+            if extension == ".py":
+                os.system(f"python -m black {path} -q")
+
     except Exception as e:
         pass
-        #logger.error(__name__, f"Error writing code to path: {e}")
-
-def extract_functions(code):
-    functions = []
-    current_function = None
-    current_function_lines = []
-    brace_count = 0
-    order = 0
-    start_line = 0
-
-    for idx, line in enumerate(code, 1):
-        line = line.strip()
-
-        # Check if it's a function definition
-        function_match = re.match(
-            r"^\s*(?:(?:public|private|protected|internal|static|async|unsafe|sealed|new|override|virtual|abstract)\s+)+([\w<>\[\],\.]+\s+)+([\w_]+)\s*\((.*)\)\s*(?:where.*)?\s*$",
-            line,
-        )
-        if function_match:
-            order += 1
-            start_line = idx
-            return_type = function_match.group(1)
-            function_name = function_match.group(2)
-            #logger.info(__name__, f"line: {idx} Return: {function_match.group(1)} Name: {function_match.group(2)} Args: {function_match.group(3)}")
-            current_function = function_name
-            current_function_lines = [line]
-            brace_count = 1 if line.endswith("{") else 0
-            continue
-
-        # If inside a function, add lines to its list
-        if current_function:
-            current_function_lines.append(line)
-            brace_count += line.count("{")
-            brace_count -= line.count("}")
-
-        # Check if the function ends
-        if brace_count == 0 and current_function:
-            functions.append(
-                {
-                    "order": order,
-                    "start_line": start_line,
-                    "end_line": idx,
-                    "name_of_function": current_function,
-                    "code": "\n".join(current_function_lines),
-                }
-            )
-            current_function = None
-            current_function_lines = []
-    return functions
+        # logger.error(__name__, f"Error writing code to path: {e}")
 
 
 def document_file(
-    checkbox,
+    formats,
+    method,
+    doc_path,
+    use_formatter,
     file,
     thread_semaphore,
     chatbot_agent,
@@ -188,70 +189,138 @@ def document_file(
         _, extension = os.path.splitext(file)
         if frida_coder.is_programming_language_extension(extension):
             logger.info(__name__, f"working on {file}")
+
             full_path = file_manager.get_file_path(file)
+
             code = frida_coder.get_code_from_path(full_path)
-            code = code.splitlines()
-            functions = extract_functions(code)
+            num_lines = code.count("\n")
 
             new_file = []
             new_doc = [("title", f"Documentation of the file '{file}'")]
+            new_code = None
 
-            start_line = functions[0]["start_line"]
-            end_line = functions[-1]["end_line"]
+            i = 1
 
-            new_file.extend(code[0:start_line - 1])
-
-            for func in functions:
-                prompt = generate_document_prompt(func["code"], extension)
+            if extension not in SUPPORTED_DOC_EXTENSION.keys():
+                logger.info(
+                    __name__,
+                    f"Could not document {file} because {extension} is not supported.",
+                )
+            elif (
+                method == "Slow"
+                or num_lines <= 300
+                or extension not in SUPPORTED_DOC_EXTENSION
+            ):
+                prompt = generate_full_document_prompt(code, extension)
                 response = chatbot_agent.chat(prompt, True)
-                i = 0
 
-                while ("```" not in response or "///" not in response) and i  < MAX_RETRIES:
+                while (
+                    "```" not in response or EXTENSIONS[extension][1] not in response
+                ) and i <= MAX_RETRIES:
+                    logger.info(__name__, f"Retry # {i} for file {file}")
                     response = chatbot_agent.chat(prompt, True)
                     i += 1
-
-                if len(response) > 0:
-                    code_blocks = get_code_block(response)
-                    if len(code_blocks) > 0:
-                        document_code = code_blocks[0]["code"]
-                        document_code = ("\n" + document_code).splitlines()
-                        new_file.extend(document_code)
-                        
-                        documentation = get_documentation(code_blocks[0], func)
-                        new_doc.extend(documentation)
+                logger.info(__name__, f"file {file}, resp: {response}")
+                if "```" in response and EXTENSIONS[extension][1] in response:
+                    information = get_code_block(response, extension, False)
+                    if information:
+                        new_code = information["code"]
+                        if "documentation" in information.keys():
+                            new_doc.extend(information["documentation"])
                     else:
+                        new_file = code.splitlines()
+                else:
+                    logger.info(__name__, f"Check response: {response}")
+                    new_file = code.splitlines()
+
+            else:
+                code = code.splitlines()
+                functions = EXTENSIONS[extension][0](code)
+
+                start_line = functions[0]["start_line"]
+                end_line = functions[-1]["end_line"]
+
+                new_file.extend(code[0 : start_line - 1])
+
+                for func in functions:
+                    funct_name = func["name_of_function"]
+                    prompt = generate_document_for_funct_prompt(func["code"], extension)
+                    response = chatbot_agent.chat(prompt, True)
+
+                    while (
+                        "```" not in response
+                        or EXTENSIONS[extension][1] not in response
+                    ) and i <= MAX_RETRIES:
+                        logger.info(
+                            __name__,
+                            f"Retry # {i} for file {file} function {funct_name}",
+                        )
+                        response = chatbot_agent.chat(prompt, True)
+                        i += 1
+
+                    if "```" in response and EXTENSIONS[extension][1] in response:
+                        information = get_code_block(
+                            response, extension, True, funct_name
+                        )
+                        if information:
+                            document_code = information["code"]
+                            document_code = ("\n" + document_code).splitlines()
+                            new_file.extend(document_code)
+                            if "documentation" in information.keys():
+                                new_doc.extend(information["documentation"])
+                        else:
+                            code = ("\n" + func["code"]).splitlines()
+                            new_file.extend(code)
+                    else:
+                        logger.info(__name__, f"Check response: {response}")
                         code = ("\n" + func["code"]).splitlines()
                         new_file.extend(code)
-                else:
-                    code = ("\n" + func["code"]).splitlines()
-                    new_file.extend(code)
 
+                new_file.extend(code[end_line::])
+                new_code = "\n".join(new_file)
 
-            new_file.extend(code[end_line::])
-            new_code = "\n".join(new_file)
+            if new_code is not None:
+                write_code_to_path(full_path, new_code, extension, use_formatter)
+            else:
+                logger.info(__name__, f"Could not write new code for file {file}")
 
-            full_path = file_manager.get_file_path(file)
-            path = ''.join(full_path.split(file)[:-1])
-
-            write_code_to_path(full_path, new_code)
-
-            for doctype, selected in checkbox.items():
-                if selected:
-                    filename = (("readme_" + file).replace(extension, ".md")) if doctype == "md" else (("doc_" + file).replace(extension, ".docx"))
-                    save_documentation(path + filename, new_doc)
+            if len(new_doc) > 1:
+                for doctype, selected in formats.items():
+                    if selected:
+                        filename = (
+                            ("readme_" + file + ".md")
+                            if doctype == "md"
+                            else ("doc_" + file + ".docx")
+                        )
+                        save_documentation(os.path.join(doc_path, filename), new_doc)
+            else:
+                logger.info(
+                    __name__, f"Could not write new documentation for file {file}"
+                )
     except Exception as e:
-        logger.info(__name__, f"{e}")
+        logger.info(__name__, f"Error in file: {file}: {e}")
     finally:
         thread_semaphore.release()
 
 
 async def exec_document(
-    checkbox, chatbot_agent, file_manager: FileManager, frida_coder: FridaCoder
+    formats,
+    method,
+    doc_path,
+    use_formatter,
+    chatbot_agent,
+    file_manager: FileManager,
+    frida_coder: FridaCoder,
 ):
     """
     Documenting all the files using threads
     """
-    logger.info(__name__, "Documenting files")
+    logger.info(__name__, f"Documenting files {method}")
+    file_manager.load_folder(file_manager.get_folder_path())
+
+    if method == "Slow":
+        chatbot_agent.change_version(4)
+
     files = file_manager.get_files()
     thread_semaphore = threading.Semaphore(5)
 
@@ -261,7 +330,10 @@ async def exec_document(
         thread = threading.Thread(
             target=document_file,
             args=(
-                checkbox,
+                formats,
+                method,
+                doc_path,
+                use_formatter,
                 file,
                 thread_semaphore,
                 chatbot_agent,
@@ -274,3 +346,6 @@ async def exec_document(
 
     for thread in threads:
         thread.join()
+
+    if method == "Slow":
+        chatbot_agent.change_version(3)
