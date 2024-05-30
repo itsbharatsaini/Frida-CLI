@@ -4,6 +4,7 @@ from textual.widgets import Header, TabbedContent, TabPane, Label
 from .chat_view import ChatView
 from .code_view import CodeView
 from .configuration_view import ConfigurationView
+from .epics_generator.epics_generation import EpicsGeneration
 
 
 class FridaCLI(App):
@@ -21,5 +22,5 @@ class FridaCLI(App):
             with TabPane("Frida Chat", id="frida_chat"):  # First tab
                 # yield CodeView()
                 yield Horizontal(CodeView(id="code_view_pather"), ChatView())
-            with TabPane("Code Snippets", id="code_snippets"):
-                yield Label("Holaaa")
+            with TabPane("Epics Generation", id="epics_generation"):
+                yield EpicsGeneration()

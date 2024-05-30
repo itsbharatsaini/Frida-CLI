@@ -7,6 +7,7 @@ from fridacli.commands.subcommands.path_utilities import (
     get_current_dir,
 )
 
+
 from fridacli.commands.subcommands.predefined_phrases import (
     ERROR_PATH_NOT_GIVEN,
     ERROR_PATH_DOES_NOT_EXIST,
