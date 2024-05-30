@@ -1,8 +1,6 @@
 import re
 from fridacli.logger import Logger
 from .regex_configuration import (
-    DOCUMENTATION_FROM_ALL_FUNCTIONS_PYTHON,
-    DEFINITION_OF_FUNCTION_PYTHON,
     PARAM_CSHARP,
     RETURN_CSHARP,
     EXCEPTION_CSHARP,
@@ -11,197 +9,225 @@ from .regex_configuration import (
 logger = Logger()
 
 
-def extract_functions_python(code):
-    def get_function_line(code, function):
-        for id, line in enumerate(code, 1):
-            if function.strip().split("    ")[0] in line:
-                return id
-
-    full_code = "".join(code)
-    code_pattern = re.compile(
-        DEFINITION_OF_FUNCTION_PYTHON,
-        re.DOTALL,
-    )
-    matches = code_pattern.findall(full_code)
-    functions = []
-
-    for id, match in enumerate(matches, 0):
-        full_function = ""
-        start = get_function_line(code, match[0])
-        tabs = code[start - 1].rstrip().count("    ")
-        additional_lines = match[0].strip().count("    ") + 1
-        next_lines = code[start + additional_lines :]
-        i = 0
-        end = None
-
-        for line in next_lines:
-            line_tabs = line.rstrip().count("    ")
-            if ("def" in line or line.strip() != "") and line_tabs <= tabs:
-                end = start + i + additional_lines
-                break
-            i += 1
-            full_function += line
-
-        if end is None:
-            end = len(code)
-
-        functions.append(
-            {
-                "order": id,
-                "start_line": start,
-                "end_line": end,
-                "name_of_function": match[1],
-                "code": match[0] + full_function,
-            }
-        )
-        # logger.info(__name__, functions[-1])
-
-    return functions
-
-
-def extract_documentation_python(information, one_function, funct_name):
+def extract_doc_python(comments):
     lines = []
     first_parameter = True
     first_return = True
     first_exception = True
-    first_function = True
 
     try:
-        if not one_function:
-            if information["description"].strip() != "":
-                lines.extend(
-                    [
-                        ("bold", "Description:"),
-                        ("text", information["description"].strip()),
-                    ]
-                )
+        doc = comments.replace("\n    \n", "\n\n")
+        doc = doc.split("\n\n")
 
-        code_pattern = re.compile(
-            DOCUMENTATION_FROM_ALL_FUNCTIONS_PYTHON,
-            re.DOTALL,
-        )
+        logger.info(__name__, f"Lines comments: {doc}")
 
-        matches = code_pattern.findall(information["code"])
+        if doc[0].strip() != "":
+            lines.extend([("bold", "Description:"), ("text", doc[0].strip())])
 
-        logger.info(__name__, f"Matches found: {matches}")
-
-        for match in matches:
-            funct_name = match[1]
-            doc = match[2] if first_function else (match[0] or match[2])
-
-            if doc != "":
-                doc = doc.replace("\n    \n", "\n\n")
-                doc = doc.split("\n\n")
-                lines.append(("subheader", f"Function: {funct_name}"))
-
-                if doc[0].strip() != "":
-                    lines.extend([("bold", "Description:"), ("text", doc[0].strip())])
-
-                if len(doc) >= 2:
-                    for line in doc[1:]:
-                        sep = line.split("\n")
-                        if "Args:" in sep[0]:
-                            for arg in sep[1:]:
-                                if "None" not in arg and arg.strip() != "":
-                                    if first_parameter:
-                                        lines.append(("bold", "Arguments:"))
-                                        first_parameter = False
-                                    if ":" in arg:
-                                        sep_arg = arg.strip().split(":", 1)
-                                        if sep_arg[1] != "" and "-" not in sep_arg[0]:
-                                            lines.append(
-                                                (
-                                                    "bullet",
-                                                    f"{sep_arg[0]}. {sep_arg[1]}",
-                                                )
-                                            )
-                                        else:
-                                            sep_arg = arg.strip()
-                                            lines[-1] = (
-                                                lines[-1][0],
-                                                lines[-1][1] + "\n" + arg.strip(),
-                                            )
-                                    else:
-                                        sep_arg = arg.strip()
-                                        lines[-1] = (
-                                            lines[-1][0],
-                                            lines[-1][1] + "\n" + arg.rstrip(),
+        if len(doc) >= 2:
+            for line in doc[1:]:
+                sep = line.split("\n")
+                if "Args:" in sep[0]:
+                    for arg in sep[1:]:
+                        if "None" not in arg and arg.strip() != "":
+                            if first_parameter:
+                                lines.append(("bold", "Arguments:"))
+                                first_parameter = False
+                            if ":" in arg:
+                                sep_arg = arg.strip().split(":", 1)
+                                if sep_arg[1] != "" and "-" not in sep_arg[0]:
+                                    lines.append(
+                                        (
+                                            "bullet",
+                                            f"{sep_arg[0]}. {sep_arg[1]}",
                                         )
-                        elif "Returns:" in sep[0]:
-                            for ret in sep[1:]:
-                                if "None" not in ret and ret.strip() != "":
-                                    if first_return:
-                                        lines.append(("bold", "Returns:"))
-                                        first_return = False
-                                    if ":" in ret:
-                                        sep_ret = ret.strip().split(":", 1)
-                                        if sep_ret[1] != "" and "-" not in sep_ret[0]:
-                                            lines.append(
-                                                (
-                                                    "bullet",
-                                                    f"{sep_ret[0]}. {sep_ret[1]}",
-                                                )
-                                            )
-                                        else:
-                                            sep_ret = ret.strip()
-                                            lines[-1] = (
-                                                lines[-1][0],
-                                                lines[-1][1] + "\n" + ret.rstrip(),
-                                            )
-                                    else:
-                                        sep_ret = ret.strip()
-                                        lines[-1] = (
-                                            lines[-1][0],
-                                            lines[-1][1] + "\n" + ret.rstrip(),
+                                    )
+                                else:
+                                    sep_arg = arg.strip()
+                                    lines[-1] = (
+                                        lines[-1][0],
+                                        lines[-1][1] + "\n" + arg.strip(),
+                                    )
+                            else:
+                                sep_arg = arg.strip()
+                                lines[-1] = (
+                                    lines[-1][0],
+                                    lines[-1][1] + "\n" + arg.rstrip(),
+                                )
+                elif "Returns:" in sep[0]:
+                    for ret in sep[1:]:
+                        if "None" not in ret and ret.strip() != "":
+                            if first_return:
+                                lines.append(("bold", "Returns:"))
+                                first_return = False
+                            if ":" in ret:
+                                sep_ret = ret.strip().split(":", 1)
+                                if sep_ret[1] != "" and "-" not in sep_ret[0]:
+                                    lines.append(
+                                        (
+                                            "bullet",
+                                            f"{sep_ret[0]}. {sep_ret[1]}",
                                         )
-                        elif "Raises:" in sep[0]:
-                            for rai in sep[1:]:
-                                if "None" not in rai and rai.strip() != "":
-                                    if first_exception:
-                                        lines.append(("bold", "Raises:"))
-                                        first_exception = False
-                                    if ":" in rai:
-                                        sep_rai = rai.strip().split(":", 1)
-                                        if sep_rai[1] != "" and "-" not in sep_rai[0]:
-                                            lines.append(
-                                                (
-                                                    "bullet",
-                                                    f"{sep_rai[0]}. {sep_rai[1]}",
-                                                )
-                                            )
-                                        else:
-                                            sep_rai = rai.strip()
-                                            lines[-1] = (
-                                                lines[-1][0],
-                                                lines[-1][1] + "\n" + rai.rstrip(),
-                                            )
-                                    else:
-                                        sep_rai = rai.strip()
-                                        lines[-1] = (
-                                            lines[-1][0],
-                                            lines[-1][1] + "\n" + rai.rstrip(),
+                                    )
+                                else:
+                                    sep_ret = ret.strip()
+                                    lines[-1] = (
+                                        lines[-1][0],
+                                        lines[-1][1] + "\n" + ret.rstrip(),
+                                    )
+                            else:
+                                sep_ret = ret.strip()
+                                lines[-1] = (
+                                    lines[-1][0],
+                                    lines[-1][1] + "\n" + ret.rstrip(),
+                                )
+                elif "Raises:" in sep[0]:
+                    for rai in sep[1:]:
+                        if "None" not in rai and rai.strip() != "":
+                            if first_exception:
+                                lines.append(("bold", "Raises:"))
+                                first_exception = False
+                            if ":" in rai:
+                                sep_rai = rai.strip().split(":", 1)
+                                if sep_rai[1] != "" and "-" not in sep_rai[0]:
+                                    lines.append(
+                                        (
+                                            "bullet",
+                                            f"{sep_rai[0]}. {sep_rai[1]}",
                                         )
-                        elif (
-                            first_parameter
-                            and first_return
-                            and first_exception
-                            and line.strip() != ""
-                        ):
-                            lines[2] = (
-                                "text",
-                                lines[2][1] + "\n" + line.strip().replace("    ", ""),
-                            )
-
-                first_parameter = True
-                first_return = True
-                first_exception = True
-
-            if one_function:
-                break
-
+                                    )
+                                else:
+                                    sep_rai = rai.strip()
+                                    lines[-1] = (
+                                        lines[-1][0],
+                                        lines[-1][1] + "\n" + rai.rstrip(),
+                                    )
+                            else:
+                                sep_rai = rai.strip()
+                                lines[-1] = (
+                                    lines[-1][0],
+                                    lines[-1][1] + "\n" + rai.rstrip(),
+                                )
+                elif (
+                    first_parameter
+                    and first_return
+                    and first_exception
+                    and line.strip() != ""
+                ):
+                    lines[-1] = (
+                        "text",
+                        lines[-1][1] + "\n" + line.strip().replace("    ", ""),
+                    )
         return lines
     except Exception as e:
-        logger.info(__name__, f"{e}")
+        logger.info(__name__, f"More here... {e}")
+
+
+def find_all_func_python(node):
+    definition, class_defintion = "", ""
+    functions, classes = [], []
+
+    for n in node.children:
+        if n.type == "class_definition":
+            for data in n.children:
+                if data.type == "block":
+                    classes.append({"name": class_name, "definition": class_defintion})
+                    class_defintion, class_name = "", ""
+                elif data.type == "identifier":
+                    class_defintion += data.text.decode("utf8")
+                    class_name = data.text.decode("utf8")
+                else:
+                    class_defintion += data.text.decode("utf8")
+                    class_defintion += (
+                        " " if (data.type != ":" and data.type != "parameters") else ""
+                    )
+        if n.type == "function_definition":
+            for data in n.children:
+                if data.type == "block":
+                    body = data.text.decode("utf8")
+                    temp = data.children[0].text.decode("utf8")
+                    comments, range = (
+                        (
+                            temp,
+                            (
+                                data.children[0].range.start_byte,
+                                data.children[0].range.end_byte,
+                            ),
+                        )
+                        if '"""' in temp
+                        else ("", ())
+                    )
+                    functions.append(
+                        {
+                            "name": name,
+                            "definition": definition,
+                            "body": body,
+                            "range": (n.range.start_byte, n.range.end_byte),
+                            "comments": comments,
+                            "comments_range": range,
+                        }
+                    )
+                    definition = ""
+                elif data.type == "identifier":
+                    definition += data.text.decode("utf8")
+                    name = data.text.decode("utf8")
+                else:
+                    definition += data.text.decode("utf8")
+                    definition += (
+                        " " if (data.type != ":" and data.type != "parameters") else ""
+                    )
+        if n.children != []:
+            f, c = find_all_func_python(n)
+            if f != []:
+                functions.extend(f)
+            if c != []:
+                classes.extend(c)
+    return functions, classes
+
+
+def extract_doc_python_all_func(node):
+    docs = []
+
+    functions, classes = find_all_func_python(node)
+
+    for func in functions:
+        name = func["name"]
+        comments = func["comments"]
+        logger.info(__name__, f"func: {name}, comments: {comments}")
+        if comments != "":
+            documentation = extract_doc_python(comments.replace('"""', ""))
+            if documentation != []:
+                docs.append(("subheader", f"Function: {name}"))
+                docs.extend(documentation)
+
+    return docs
+
+
+def extract_doc_python_one_func(node, name):
+    docs = []
+    comments = ""
+    try:
+        logger.info(__name__, f"func '{name}': 1")
+        for n in node.children:
+            if n.type == "expression_statement":
+                if '"""' in n.text.decode("utf8"):
+                    comments = n.text.decode("utf8")
+                    break
+            if n.type == "function_definition":
+                for data in n.children[-1].children:
+                    if data.type == "expression_statement":
+                        comments = data.text.decode("utf8")
+                        break
+                break
+        logger.info(__name__, f"Comments for func '{name}': {comments}")
+        if '"""' in comments:
+            documentation = extract_doc_python(comments.replace('"""', ""))
+            if documentation != []:
+                docs.append(("subheader", f"Function: {name}"))
+                docs.extend(documentation)
+    except Exception as e:
+        logger.info(__name__, f"Something here... {e}")
+    return docs
 
 
 def extract_doc_csharp(comments):
@@ -359,22 +385,28 @@ def extract_doc_csharp_all_func(node):
         name = func["name"]
         comments = func["comments"]
         logger.info(__name__, f"func: {name}, comments: {comments}")
-        documentation = extract_doc_csharp(comments.replace("///", ""))
-        if documentation != []:
-            docs.append(("subheader", f"Function: {name}"))
-            docs.extend(documentation)
+        if comments != "":
+            documentation = extract_doc_csharp(comments.replace("///", ""))
+            if documentation != []:
+                docs.append(("subheader", f"Function: {name}"))
+                docs.extend(documentation)
 
     return docs
 
 
 def extract_doc_csharp_one_func(node, name):
     comments = ""
-    lines = [("subheader", f"Function: {name}")]
+    lines = []
 
     for n in node.children:
         if n.type == "comment":
             comments += n.text.decode("utf8") + "\n"
     logger.info(__name__, comments)
-    lines.extend(extract_doc_csharp(comments.replace("///", "")))
+    if comments != "":
+        documentation = extract_doc_csharp(comments.replace("///", ""))
+
+        if documentation != []:
+            lines.append(("subheader", f"Function: {name}"))
+            lines.extend(documentation)
 
     return lines

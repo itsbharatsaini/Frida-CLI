@@ -1,6 +1,4 @@
 CODE_FROM_ALL_EXTENSIONS = r"```(?:javascript|java|csharp|c#|C#|python)*(.*)```"
-DOCUMENTATION_FROM_ALL_FUNCTIONS_PYTHON = r"(?:\s*(?:\"\"\"([\w\(\)|:\[\]\'#_\-.,`\s]*)\"\"\"\s*)*def\s*([\w\d_]*)\s*\(\s*(?:[\w\[\],.|=:_\s]*)\s*\)\s*(?:-\s*>\s*[\w.]*)*\s*:\s*(?:\"\"\"([\w\(\)|#:\[\]\'_\-.,`\s]*)\"\"\"\s*)*)"
-DEFINITION_OF_FUNCTION_PYTHON = r"(\s*def\s*([\w\d_]*)\s*\(\s*(?:[\w\[\],.|=:_\s]*)\s*\)\s*(?:-\s*>\s*[\w.]*)*\s*:\s*)"
 PARAM_CSHARP = r"^\s*<\s*param\s*name\s*=\s*\"([\w\s]*)\">([\w\.\-\s<>=\"/{}]*)</param>\s*$"
 RETURN_CSHARP = r"^\s*<\s*returns\s*>([\w\.\-\s<>=\"/{}]*)</returns>\s*$"
 EXCEPTION_CSHARP = r"^\s*<\s*exception\s*cref\s*=\s*\"([\w\s.]*)\">([\w\.\-\s<>=\"/{}]*)</exception>\s*$"
