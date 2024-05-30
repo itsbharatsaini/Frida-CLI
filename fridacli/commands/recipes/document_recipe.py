@@ -201,12 +201,7 @@ def document_file(
 
             i = 1
 
-            if extension not in SUPPORTED_DOC_EXTENSION.keys():
-                logger.info(
-                    __name__,
-                    f"Could not document {file} because {extension} is not supported.",
-                )
-            elif (
+            if (
                 method == "Slow"
                 or num_lines <= 300
                 or extension not in SUPPORTED_DOC_EXTENSION
