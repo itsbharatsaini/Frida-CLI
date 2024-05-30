@@ -2,7 +2,7 @@ from logging import disable
 from typing_extensions import Text
 from textual.containers import  VerticalScroll, Vertical, Horizontal, Center, Grid, Middle
 from textual.widgets import Static, Select, Button, Label, Rule, Input, ListView, ListItem
-from fridacli.gui.push_screens import CreateNewEpic
+from .push_screens import CreateNewProject
 from fridacli.logger import Logger
 from .utils import get_data_from_file, get_project_versions, generate_empty_project, save_project, generate_project_with_csv
 from datetime import datetime
@@ -165,7 +165,7 @@ class EpicsGeneration(Static):
         """
         button_pressed = str(event.button.id)
         if button_pressed == "create_new_project_btn":
-            self.app.push_screen(CreateNewEpic(), self.create_new_project_callback)
+            self.app.push_screen(CreateNewProject(), self.create_new_project_callback)
         elif button_pressed == "epics_search_btn":
             logger.info(__name__, "helllo")
         elif button_pressed == "back_btn":

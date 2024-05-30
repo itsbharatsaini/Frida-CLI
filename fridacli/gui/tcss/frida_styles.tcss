@@ -164,7 +164,7 @@ EpicGenerator {
     align: center middle;
 }
 
-DocLoader {
+Loader {
     width: 50;
     align: center middle;
 }
@@ -210,7 +210,7 @@ DocGenerator {
 .loader {
     grid-size: 1;
     width: 50;
-    height: 18;
+    height: 12;
     border: thick $background 80%;
     background: $surface;
 }
@@ -224,6 +224,14 @@ DocGenerator {
     grid-size: 1;
     width: 100;
     height: 35;
+    border: thick $background 50%;
+    background: $surface;
+}
+
+.new_object_dialog {
+    grid-size: 1;
+    width: 100;
+    height: 28;
     border: thick $background 50%;
     background: $surface;
 }
@@ -265,7 +273,7 @@ DocGenerator {
 }
 
 
-CreateNewEpic {
+CreateNewProject {
     width: 50;
     align: center middle;
 }
@@ -366,7 +374,7 @@ UserStory {
 }
 
 #project_description_textarea {
-    height: 10;
+    height: 35;
     background: #808080;
     color: #000000;
 }
@@ -432,6 +440,12 @@ UserStory {
 #new_epic_btn {
     width: 100%;
     margin-bottom: 2;
+}
+
+#enhance_description_btn {
+    width: 98%;
+    margin-bottom: 2;
+    margin-left: 1;
 }
 
 NewObjectPushScreen {

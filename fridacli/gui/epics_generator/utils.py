@@ -10,6 +10,7 @@ chatbot_agent = ChatbotAgent()
 logger = Logger()
 
 def save_project(path, projects):
+    """Save the projects in a json file"""
     try:
         json_string = json.dumps(projects)
         with open(path, "w") as f:
@@ -19,6 +20,7 @@ def save_project(path, projects):
         return False
 
 def get_data_from_file(path):
+    """Get the data from a json file"""
     try:
         with open(path, "r")  as f:
             data = f.read()
@@ -27,6 +29,7 @@ def get_data_from_file(path):
         return None
 
 def save_csv(path, project):
+    """Save the project in a csv file"""
     logger.info(__name__, "project in save csv:" + str(project))
     try:
         with open(path, "w") as file:
@@ -47,11 +50,15 @@ def save_csv(path, project):
         return False
 
 def get_project_versions(project_name, data):
+    """Get the versions of a project"""
+
     for project in data["project"]:
         if project["project_name"] == project_name:
             return project
 
 def get_versions_names(project):
+    """Get the names of the versions of a project"""
+
     versions = project["versions"]
     return [ version["version_name"] for version in versions]
 
@@ -83,6 +90,7 @@ def generate_empty_project(project_name, project_description, plataform, date):
     return project
 
 def generate_project_with_csv(project_name, project_description, plataform, date, csv_data):
+    """Generate a project with the data from a csv file"""
 
     epics = []
     for key in csv_data.keys():
@@ -108,6 +116,8 @@ def generate_project_with_csv(project_name, project_description, plataform, date
     return project
 
 def get_code_block(text):
+    """Get the code blocks from a text"""
+
     try:
         code_pattern = re.compile(r"```([\w#]*)\n(.*?)```", re.DOTALL)
         matches = code_pattern.findall(text)
@@ -125,7 +135,8 @@ def get_code_block(text):
         pass
 
 def has_expected_epic_structure(expected_structure, json_obj):
-    # Function to compare the structure of two JSON objects
+    """Check if the json object has the expected structure"""
+
     def compare_structure(json1, json2):
         if isinstance(json1, dict) and isinstance(json2, dict):
             if set(json1.keys()) != set(json2.keys()):
@@ -150,7 +161,7 @@ def has_expected_epic_structure(expected_structure, json_obj):
     # Call the compare structure function with the expected structure and the provided JSON object
     return compare_structure(expected_structure, json_obj)
 
-def create_generated_epic(epic, name, empty):
+async def create_generated_epic(epic, name, empty, project_description):
     # Create a new generated Epic using IA or a empty Epic
     expected_structure = {
         "epic_name": "",
@@ -171,6 +182,8 @@ def create_generated_epic(epic, name, empty):
     prompt = f"""
     Given the following information:
     {epic}
+    and the project description:
+    {project_description}
 
     {
         "Create a new different Epic from the already given with this format"
@@ -190,9 +203,10 @@ def create_generated_epic(epic, name, empty):
         ]
     }}
     """
+    logger.info(__name__, "Prompttt: " + prompt)
     trys = 3
     # Try 3 times until the response is the expected
-    for i in range(3):
+    for i in range(trys):
         response = chatbot_agent.chat(prompt, True)
         try:
             json_response = json.loads(response)
@@ -202,10 +216,16 @@ def create_generated_epic(epic, name, empty):
             else:
                 logger.info(__name__, "not the same")
         except Exception as e:
-            logger.info(__name__, "error")
-    return expected_structure
+            blocks = get_code_block(response)
+            if len(blocks) > 0:
+                json_response = blocks[0]["code"]
+                json_response = json.loads(json_response)
+                logger.info(__name__, "blocks " + str(json_response))
+                if has_expected_epic_structure(expected_structure, json_response):
+                    return json_response
+    return {}
 
-def create_generated_user_story(user_story, name, empty):
+async def create_generated_user_story(user_story, name, empty, project_description):
     expected_structure = {
         "user_story": "",
         "description": "",
@@ -220,7 +240,8 @@ def create_generated_user_story(user_story, name, empty):
     prompt = f"""
     Given the following information:
     {user_story}
-
+    and the project description:
+    {project_description}
     {
         "Create a new different User Story from the already given with this format"
         if len(name) == 0
@@ -235,8 +256,9 @@ def create_generated_user_story(user_story, name, empty):
         "out_of_scope": ""
     }}
     """
+    logger.info(__name__, "Prompttt: " + prompt)
     trys = 3
-    for i in range(3):
+    for i in range(trys):
         response = chatbot_agent.chat(prompt, True)
         logger.info(__name__, "response" + str(response))
 
@@ -248,15 +270,15 @@ def create_generated_user_story(user_story, name, empty):
             else:
                 logger.info(__name__, "not the same")
         except Exception as e:
-            logger.info(__name__, "error")
-    return {
-            "user_story": "",
-            "description": "",
-            "acceptance_criteria": "",
-            "out_of_scope": ""
-        }
-
-def complete_epic(epic, description):
+            blocks = get_code_block(response)
+            if len(blocks) > 0:
+                json_response = blocks[0]["code"]
+                json_response = json.loads(json_response)
+                logger.info(__name__, "blocks " + str(json_response))
+                if has_expected_epic_structure(expected_structure, json_response):
+                    return json_response
+    return {}
+async def complete_epic(epic, description):
     # Create a new generated Epic using IA or a empty Epic
     expected_structure = {
         "epic_name": "",
@@ -273,8 +295,6 @@ def complete_epic(epic, description):
     prompt = f"""
     Given the following information:
     {epic}
-    and the project description:
-    {description}
     Complete the missing values respresenting with empty spaces, using the same structure
     NOT FORGET TO complete all
     IMPORTANT Responde ONLY with the json text updated with all the fields filled:
@@ -300,8 +320,54 @@ def complete_epic(epic, description):
                 logger.info(__name__, "blocks " + str(json_response))
                 if has_expected_epic_structure(expected_structure, json_response):
                     return json_response
-    return None
+    return {}
 
+async def enhance_project_description(description):
+    prompt = f"""
+    Enhance the project description below by providing more detail without introducing any new elements:
+    {description}
+    IMPORTANT Response ONLY with the enhanced project description.
+    """
+    response = chatbot_agent.chat(prompt, True)
+    return response
+
+async def complete_epic_cell(user_story, id):
+    text_type = ""  
+    if id == "userstory_name":
+        text_type = "user story name"
+    elif id == "userstory_description":
+        text_type = "user story description"
+    elif id == "userstory_acceptance_criteria":
+        text_type = "user story acceptance criteria"
+    elif id == "userstory_out_of_scope":
+        text_type = "user story out of scope"
+
+    prompt = f"""
+    Complete the {text_type} in the follow user story:
+    {user_story}
+    IMPORTANT Response ONLY with the {text_type}.
+    """
+    response = chatbot_agent.chat(prompt, True)
+    return response
+
+async def enhance_text(text, id):
+    text_type = ""  
+    if id == "userstory_name":
+        text_type = "user story name"
+    elif id == "userstory_description":
+        text_type = "user story description"
+    elif id == "userstory_acceptance_criteria":
+        text_type = "user story acceptance criteria"
+    elif id == "userstory_out_of_scope":
+        text_type = "user story out of scope"
+
+    prompt = f"""
+    Enhance the {text_type} below by providing more detail without introducing any new elements:
+    {text}
+    IMPORTANT Response ONLY with the enhanced text.
+    """
+    response = chatbot_agent.chat(prompt, True)
+    return response
 
 def create_empty_userstory():
     return {

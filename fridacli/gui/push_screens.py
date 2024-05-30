@@ -1,14 +1,13 @@
-from textual.screen import Screen, ModalScreen
 from textual.widgets import Label, Input, Button, DirectoryTree, LoadingIndicator, Checkbox, Select, RadioSet, RadioButton, TextArea
-from textual.containers import Vertical, Horizontal
 from fridacli.commands.recipes import generate_epics, document_files
+from fridacli.config import HOME_PATH, get_config_vars
+from textual.containers import Vertical, Horizontal
+from textual.screen import Screen, ModalScreen
 from textual.worker import Worker, WorkerState
 from fridacli.file_manager import FileManager
 from fridacli.logger import Logger
-from fridacli.config import HOME_PATH, get_config_vars
 from typing import Iterable
 from pathlib import Path
-import csv
 
 logger = Logger()
 file_manager = FileManager()
@@ -48,6 +47,12 @@ class PathSelector(ModalScreen):
         if tree_id == "configuration_documentation_path":
             self.query_one("#input_documentation_path", Input).value = str(event.path)
 
+    def on_directory_tree_file_selected(self, event: DirectoryTree.FileSelected):
+        tree_id = event.control.id
+        if tree_id == "configuration_documentation_path":
+            self.query_one("#input_documentation_path", Input).value = str(event.path)
+        logger.info(__name__, f"File selected: {str(event.path)}")
+
 class DocGenerator(Screen):
     def compose(self):
         yield Vertical(
@@ -83,7 +88,7 @@ class DocGenerator(Screen):
             method = self.query_one("#select_method", Select)
             if (docx or md) and doc_path != "" and not method.is_blank():
                 use_formatter = self.query_one("#use_formater", Checkbox).value
-                self.app.push_screen(DocLoader())
+                self.app.push_screen(Loader("Working on your documentation!"))
                 self.run_worker(document_files({"docx": docx, "md": md}, method.value.split(" ")[0], doc_path, use_formatter), exclusive=False, thread=True)
             else:
                 self.notify(f"You must select at least one format and a method for the documentation.")
@@ -93,10 +98,14 @@ class DocGenerator(Screen):
             self.query_one("#input_doc_path", Input).value = path
             
 
-class DocLoader(Screen):
+class Loader(Screen):
+    def __init__(self, text) -> None:
+        self.text = text
+        super().__init__()
+
     def compose(self):
         yield Vertical(
-            Label("Working on your documentation!", id = "doc_title"),
+            Label(self.text, id = "doc_title"),
             LoadingIndicator(),
             classes="loader",
         )
@@ -125,75 +134,6 @@ class EpicGenerator(Screen):
     def on_directory_tree_directory_selected(self, event: DirectoryTree.DirectorySelected):
         self.path = event.path
         logger.info(__name__, self.path)
-
-class CreateNewEpic(Screen):
-    path = HOME_PATH
-    radio_set_value = ""
-    csv_data = {}
-    def compose(self):
-        yield Vertical(
-            Input(placeholder="Name of project", id="epic_name_input"),
-            Label("Type of Platform", id="platform_label"),
-            RadioSet(RadioButton("Mobile"), RadioButton("Web"), RadioButton("Tablet"), id="platform_radio"),
-            Label("Tell us more about your project", id="project_context_label"),
-            TextArea("", id="project_context_input"),
-            Label("Upload your Excel", id="upload_excel_label"),
-            Horizontal(
-                Button("Upload your Excel", variant="default", id="upload_excel_button"),
-                Button("Download Template", variant="default", id="download_template_button")
-            ),
-            Horizontal(
-                Button("Cancel", variant="error", id="create_epic_quit"),
-                Button("Create epic", variant="success", id="create_epic_generate")
-            ),
-            classes="dialog",
-        )
-    def on_radio_set_changed(self, event: RadioSet.Changed):
-        self.radio_set_value = event.pressed.label
-        logger.info(__name__, self.radio_set_value)
-
-    def get_data_from_csv(self, path):
-        try:
-            epics = {}
-            with open(path, "r") as file:
-                csv_reader = csv.DictReader(file)
-                for row in csv_reader:
-                    epic_name = row["epic"]
-                    del row["epic"]
-                    if epic_name != "":
-                        if epics.get(epic_name, -1) == -1:
-                            epics[epic_name] = [row]
-                        else:
-                            epics[epic_name].append(row)
-            return epics
-        except Exception as e:
-            return {}
-
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        button_pressed = event.button.id
-        if button_pressed == "create_epic_quit":
-            self.app.pop_screen()
-        elif button_pressed == "create_epic_generate":
-            epic_name_input = self.query_one("#epic_name_input", Input).value
-            plataform = str(self.radio_set_value)
-            project_context_input = self.query_one("#project_context_input", TextArea).text
-            if len(epic_name_input) > 0  and len(plataform) > 0 and len(project_context_input) > 0:
-                params = {"epic_name": epic_name_input, "plataform": plataform, "project_description": project_context_input}
-                if self.csv_data != {}:
-                    params["csv_data"] = self.csv_data
-                #params = (epic_name_input, plataform, project_context_input)
-                self.dismiss(params)
-            else:
-                self.notify("Some of the values are empty", severity="error")
-        elif button_pressed == "upload_excel_button":
-            path = "Online Bookstore.csv"
-            csv_data = self.get_data_from_csv(path)
-            if csv_data != {}:
-                self.csv_data = self.get_data_from_csv(path)
-                self.notify("CSV data retrived successfully")
-            else:
-                self.notify("An error occurred while trying to get the data from the CSV file", severity="error")
-            logger.info(__name__, "data from csv" + str(self.csv_data))
 
 
 class ConfirmPushView(Screen):
