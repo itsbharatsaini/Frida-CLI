@@ -30,18 +30,33 @@ from tree_sitter import Language, Parser
 CS_LANGUAGE = Language(tscsharp.language())
 PY_LANGUAGE = Language(tspython.language())
 JAVA_LANGUAGE = Language(tsjava.language())
-parser_cs = Parser(CS_LANGUAGE)
-parser_py = Parser(PY_LANGUAGE)
-parser_java = Parser(JAVA_LANGUAGE)
 
 logger = Logger()
 
 MAX_RETRIES = 2
 SUPPORTED_DOC_EXTENSION = [".py", ".cs", ".java"]
 COMMENT_EXTENSION = {
-    ".py": ['"""', find_all_func_python, parser_py, extract_doc_python_one_func, extract_doc_python_all_func],
-    ".cs": ["///", find_all_func_csharp, parser_cs, extract_doc_csharp_one_func, extract_doc_csharp_all_func],
-    ".java": ["/**", find_all_func_java, parser_java, extract_doc_java_one_func, extract_doc_java_all_func],
+    ".py": [
+        '"""',
+        find_all_func_python,
+        Parser(PY_LANGUAGE),
+        extract_doc_python_one_func,
+        extract_doc_python_all_func,
+    ],
+    ".cs": [
+        "///",
+        find_all_func_csharp,
+        Parser(CS_LANGUAGE),
+        extract_doc_csharp_one_func,
+        extract_doc_csharp_all_func,
+    ],
+    ".java": [
+        "/**",
+        find_all_func_java,
+        Parser(JAVA_LANGUAGE),
+        extract_doc_java_one_func,
+        extract_doc_java_all_func,
+    ],
     ".js": ["*", None, None],
 }
 
@@ -97,7 +112,9 @@ def save_documentation(path, lines):
 def extract_documentation(information, extension, one_function, funct_name):
     try:
         if extension in SUPPORTED_DOC_EXTENSION:
-            tree = COMMENT_EXTENSION[extension][2].parse(bytes(information["code"], encoding="utf8"))
+            tree = COMMENT_EXTENSION[extension][2].parse(
+                bytes(information["code"], encoding="utf8")
+            )
             return (
                 COMMENT_EXTENSION[extension][3](tree.root_node, funct_name)
                 if one_function
@@ -132,6 +149,11 @@ def get_code_block(text, extension, one_function, funct_name=None):
                         __name__,
                         f"Could not generate documentation for function {funct_name}",
                     )
+            else:
+                logger.info(
+                    __name__,
+                    f"Could not generate extract documentation for extension {extension}",
+                )
             return information
     except Exception as e:
         logger.error(__name__, f"Error get code block from text using regex: {e}")
@@ -191,7 +213,7 @@ def document_file(
                     "```" not in response
                     or COMMENT_EXTENSION[extension][0] not in response
                 ) and i <= MAX_RETRIES:
-                    logger.info(__name__, f"Retry # {i} for file {file}")
+                    logger.info(__name__, f"Retry # {i} for file {file} response: {response}")
                     response = chatbot_agent.chat(prompt, True)
                     i += 1
                 logger.info(__name__, f"file {file}, resp: {response}")
@@ -236,7 +258,7 @@ def document_file(
                         ) and i <= MAX_RETRIES:
                             logger.info(
                                 __name__,
-                                f"Retry # {i} for file {file} function {funct_name}",
+                                f"Retry # {i} for file {file} function {funct_name} response: {response}",
                             )
                             response = chatbot_agent.chat(prompt, True)
                             i += 1
@@ -257,7 +279,9 @@ def document_file(
                                 new_doc.extend(information["documentation"])
                         else:
                             logger.info(__name__, f"Check response: {response}")
-                            new_lines = ("\n" + func["definition"] + func["body"]).splitlines()
+                            new_lines = (
+                                "\n" + func["definition"] + func["body"]
+                            ).splitlines()
                             new_file.extend(new_lines)
                     else:
                         logger.info(
