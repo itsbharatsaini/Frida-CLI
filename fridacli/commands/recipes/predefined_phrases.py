@@ -76,6 +76,8 @@ def generate_full_document_prompt(code, extension):
     
     DO NOT OMIT THE BODY OF ANY FUNCTION.
 
+    RETURN ONLY ONE CODE BLOCK.
+
     Do NOT document classes.
 
     Do NOT add 'Example usage' in the documentation of the function.
@@ -120,6 +122,8 @@ def generate_document_for_funct_prompt(code, extension):
     Always follow the best documentation practices.
 
     Do NOT omit the function.
+
+    RETURN ONLY ONE CODE BLOCK.
 
     Do NOT alter the function; only add the documentation.
 
