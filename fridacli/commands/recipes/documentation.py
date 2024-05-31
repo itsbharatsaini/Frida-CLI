@@ -8,6 +8,95 @@ from .regex_configuration import (
 
 logger = Logger()
 
+# Documentacion Java
+
+def extract_doc_java(comments):
+    pass
+
+
+def find_all_func_java(node):
+    definition, class_defintion, comments = "", "", ""
+    functions, classes = [], []
+    range = None
+    
+    for n in node.children:
+        if n.type == "class_declaration":
+            for data in n.children:
+                if data.type == "class_body":
+                    classes.append({"name": class_name, "definition": class_defintion})
+                    class_defintion, class_name = "", ""
+                elif data.type == "identifier":
+                    class_defintion += data.text.decode('utf8')
+                    class_name = data.text.decode('utf8')
+                else:
+                    class_defintion += data.text.decode('utf8')
+                    class_defintion += " "
+        if n.type == "block_comment":
+            if comments is None:
+                comments = n.text.decode('utf8')
+                if "/**" in comments:
+                    range = (n.range.start_byte, n.range.end_byte)
+                else:
+                    comments = None
+        if n.type == "method_declaration":
+            for data in n.children:
+                if data.type == "block":
+                    body = data.text.decode('utf8')
+                    functions.append({"name": name, "definition": definition, "body": body, "range": (n.range.start_byte, n.range.end_byte), "comments": comments, "comments_range": range})
+                    definition, comments = "", ""
+                    range = None
+                elif data.type == "identifier":
+                    definition += data.text.decode('utf8')
+                    name = data.text.decode('utf8')
+                else:
+                    definition += data.text.decode('utf8')
+                    definition += " "
+        if n.children != []:
+            f, c = find_all_func_java(n)
+            if f != []:
+                functions.extend(f)
+            if c != []:
+                classes.extend(c)
+    return functions, classes
+
+
+def extract_doc_java_all_func(node):
+    docs = []
+
+    functions, classes = find_all_func_java(node)
+
+    for func in functions:
+        name = func["name"]
+        comments = func["comments"]
+        logger.info(__name__, f"func: {name}, comments: {comments}")
+        if comments != "":
+            documentation = extract_doc_python(comments.replace('"""', "")) # change
+            if documentation != []:
+                docs.append(("subheader", f"Function: {name}"))
+                docs.extend(documentation)
+
+    return docs
+
+
+def extract_doc_java_one_func(node, name):
+    comments = ""
+    docs = []
+    
+    for n in node.children:
+        if n.type == "block_comment":
+            comments = n.text.decode('utf8')
+            break
+    logger.info(__name__, f"Comments for func '{name}': {comments}")
+    if comments != "":
+        documentation = extract_doc_python(comments.replace('"""', "")) # change
+        if documentation != []:
+            docs.append(("subheader", f"Function: {name}"))
+            docs.extend(documentation)
+
+    return docs
+
+
+# Documentacion Python
 
 def extract_doc_python(comments):
     lines = []
@@ -229,6 +318,8 @@ def extract_doc_python_one_func(node, name):
         logger.info(__name__, f"Something here... {e}")
     return docs
 
+
+# Documentacion C#
 
 def extract_doc_csharp(comments):
     first_parameter = True

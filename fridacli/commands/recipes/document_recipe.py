@@ -11,6 +11,9 @@ from .predefined_phrases import (
     generate_full_document_prompt,
 )
 from .documentation import (
+    find_all_func_java,
+    extract_doc_java_one_func,
+    extract_doc_java_all_func,
     find_all_func_python,
     extract_doc_python_one_func,
     extract_doc_python_all_func,
@@ -21,21 +24,24 @@ from .documentation import (
 from .regex_configuration import CODE_FROM_ALL_EXTENSIONS
 import tree_sitter_c_sharp as tscsharp
 import tree_sitter_python as tspython
+import tree_sitter_java as tsjava
 from tree_sitter import Language, Parser
 
 CS_LANGUAGE = Language(tscsharp.language())
 PY_LANGUAGE = Language(tspython.language())
+JAVA_LANGUAGE = Language(tsjava.language())
 parser_cs = Parser(CS_LANGUAGE)
 parser_py = Parser(PY_LANGUAGE)
+parser_java = Parser(JAVA_LANGUAGE)
 
 logger = Logger()
 
 MAX_RETRIES = 2
-SUPPORTED_DOC_EXTENSION = [".py", ".cs"]
+SUPPORTED_DOC_EXTENSION = [".py", ".cs", ".java"]
 COMMENT_EXTENSION = {
-    ".py": ['"""', find_all_func_python, parser_py],
-    ".cs": ["///", find_all_func_csharp, parser_cs],
-    ".java": ["*", None, None],
+    ".py": ['"""', find_all_func_python, parser_py, extract_doc_python_one_func, extract_doc_python_all_func],
+    ".cs": ["///", find_all_func_csharp, parser_cs, extract_doc_csharp_one_func, extract_doc_csharp_all_func],
+    ".java": ["/**", find_all_func_java, parser_java, extract_doc_java_one_func, extract_doc_java_all_func],
     ".js": ["*", None, None],
 }
 
@@ -89,22 +95,18 @@ def save_documentation(path, lines):
 
 
 def extract_documentation(information, extension, one_function, funct_name):
-    if extension == ".py":
-        tree = parser_py.parse(bytes(information["code"], encoding="utf8"))
-        return (
-            extract_doc_python_one_func(tree.root_node, funct_name)
-            if one_function
-            else extract_doc_python_all_func(tree.root_node)
-        )
-    elif extension == ".cs":
-        tree = parser_cs.parse(bytes(information["code"], encoding="utf8"))
-        return (
-            extract_doc_csharp_one_func(tree.root_node, funct_name)
-            if one_function
-            else extract_doc_csharp_all_func(tree.root_node)
-        )
-    else:
-        logger.info(__name__, f"Do not support {extension} extension by now.")
+    try:
+        if extension in SUPPORTED_DOC_EXTENSION:
+            tree = COMMENT_EXTENSION[extension][2].parse(bytes(information["code"], encoding="utf8"))
+            return (
+                COMMENT_EXTENSION[extension][3](tree.root_node, funct_name)
+                if one_function
+                else COMMENT_EXTENSION[extension][4](tree.root_node)
+            )
+        else:
+            logger.info(__name__, f"Do not support {extension} extension by now.")
+    except Exception as e:
+        logger.info(__name__, f"Somethin here.... {e}")
 
 
 def get_code_block(text, extension, one_function, funct_name=None):
@@ -200,24 +202,25 @@ def document_file(
                         if "documentation" in information.keys():
                             new_doc.extend(information["documentation"])
                     else:
-                        new_file = code.splitlines()
+                        logger.info(__name__, f"Check response: {response}")
                 else:
                     logger.info(__name__, f"Check response: {response}")
-                    new_file = code.splitlines()
 
             else:
+                logger.info(__name__, f"{file} - 1")
                 tree = COMMENT_EXTENSION[extension][2].parse(
                     bytes(code, encoding="utf8")
                 )
 
                 functions, classes = COMMENT_EXTENSION[extension][1](tree.root_node)
-
+                logger.info(__name__, f"{file} - 2")
                 start_line = functions[0]["range"][0]
                 end_line = functions[-1]["range"][-1]
 
-                new_file.append(code[0 : start_line - 1])
-
+                new_file.append(code[: start_line - 1])
+                logger.info(__name__, f"{file} - 2")
                 for func in functions:
+                    logger.info(__name__, f"{file} - 3")
                     funct_name = func["name"]
                     func_body = func["definition"] + "\n" + func["body"]
                     logger.info(__name__, f"name: {funct_name}, code: {func_body}")
@@ -253,26 +256,23 @@ def document_file(
                             if "documentation" in information.keys():
                                 new_doc.extend(information["documentation"])
                         else:
-                            code = ("\n" + func["code"]).splitlines()
-                            new_file.extend(code)
+                            logger.info(__name__, f"Check response: {response}")
+                            new_lines = ("\n" + func["definition"] + func["body"]).splitlines()
+                            new_file.extend(new_lines)
                     else:
-                        logger.info(__name__, f"Check response: {response}")
-                        code = ("\n" + func["code"]).splitlines()
-                        new_file.extend(code)
-                else:
-                    logger.info(
-                        __name__, f"function already commented: {funct_name}"
-                    )
-                    code = (
-                        "\n"
-                        + func["comments"]
-                        + "\n"
-                        + func["definition"]
-                        + func["body"]
-                    ).splitlines()
-                    new_file.extend(code)
+                        logger.info(
+                            __name__, f"function already commented: {funct_name}"
+                        )
+                        new_lines = (
+                            "\n"
+                            + func["comments"]
+                            + "\n"
+                            + func["definition"]
+                            + func["body"]
+                        ).splitlines()
+                        new_file.extend(new_lines)
 
-                new_file.extend(code[end_line::])
+                new_file.extend(code[end_line:])
                 new_code = "\n".join(new_file)
 
         if new_code is not None:
