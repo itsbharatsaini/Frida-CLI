@@ -33,9 +33,17 @@ class ChatbotAgent:
 
         self.__files_required = set()
         self.__file_manager = FileManager()
+        logger.info(__name__, f"""ChatbotAgent init
+            Model name: {self.__CHAT_MODEL_NAME}
+            LLMOPS API key: {self.__LLMOPS_API_KEY}
+        """)
         self.__build_model()
 
     def __build_model(self):
+        """
+            Build the chatbot model using the SofttekOpenAI model.
+        """
+        logger.info(__name__, "Building model")
         model = SofttekOpenAI(
             api_key=self.__LLMOPS_API_KEY, model_name=self.__CHAT_MODEL_NAME
         )
@@ -43,9 +51,14 @@ class ChatbotAgent:
         self.__chatbot = Chatbot(model=model, description=system_prompt, memory=self.context)
 
     def is_files_open(self):
+        """
+            Determine if there are files in context.
+        """
+        logger.info(__name__, f"(is_files_open) Files required: {len(self.__files_required)}")
         return len(self.__files_required) > 0
     
     def change_version(self, version=4):
+        logger.info(__name__, f"(change_version) Changing model version to: {version}")
         env_vars = get_config_vars()
         if version == 3:
             if self.__CHAT_MODEL_NAME != env_vars["CHAT_MODEL_NAME"]:
@@ -59,15 +72,39 @@ class ChatbotAgent:
                 logger.info(__name__, f"Model changed to: {self.__chatbot.model.model_name}")
 
     def get_files_required(self):
+        """
+            Get the files required in context.
+        """
+        logger.info(__name__, f"(get_files_required) Files required: {str(self.__files_required)}")
         return self.__files_required
 
+    def add_files_required(self, files, special_file):
+        """
+            Add files to the context.
+        """
+        logger.info(__name__, f"(add_files_required) Adding files to context with files: {str(files)} and special_file: {special_file}")
+        if len(files) > 0:
+            for file in files:
+                self.__files_required.add(file)
+
+        if special_file != "":
+            self.__files_required.add(special_file)
+
     def is_file_format(self, word):
-        # Determine if a word follows the file format (name.extension).
+        """
+            Determine if a word follows the file format (name.extension).
+        """
+        logger.info(__name__, f"(is_file_format) Checking if word: {word} is file format")
         pattern = f'^[a-zA-Z_][a-zA-Z0-9_]*({ "|".join(SUPPORTED_PROGRAMMING_LANGUAGES)})$'
         match = re.match(pattern, word)
+        logger.info(__name__, f"(is_file_format) Word: {word} is file format: {str(bool(match))}")
         return bool(match)
 
     def get_matching_files(self, message, available_files):
+        """
+            Get the matching files in the message.
+        """
+        logger.info(__name__, f"(get_matching_files) Getting matching files in message: {str(message)}")
         message_words = message.split(" ")
         located_files = []
 
@@ -79,91 +116,30 @@ class ChatbotAgent:
                     located_files.append(self.__file_manager.get_file_path(word))
 
         return located_files
+    
 
     def decorate_prompt(self, message):
-
-        def generate_talk_prompt(message):
-            return chatbot_talk_prompt(message)
-
         """
-        talk_or_solve = self.__chatbot.chat(chatbot_classification_prompt(message))
-        print("talk_or_solve", talk_or_solve.message.content)
-        if talk_or_solve.message.content == "solve":
+            Decorate the prompt with the required files.
         """
-        logger.info(__name__, f"Decorating prompt")
-        self.__files_required = set()
-        key_words = False
-        # Divide the user message into words.
-        words = message.split(" ")
-        for word in words:
-            # Search for words with file format (name.extension).
-            if self.is_file_format(word):
-                # Add files to context
-                self.__files_required.add(word)
-            # Search for key words related with files usage.
-            if word in ["files", "file", "archivo", "archivos"]:
-                key_words = True
-        # If files are not in the context but the is key words, they might be referring to files without specified formats.
-        if key_words and len(self.__file_manager.get_files()) == 0:
-            pass
-            # system.notification("NO PROJECT OPEN")
 
-        if not self.is_files_open() and key_words:
-            try:
-                """
-                TODO (IMPROVE) TWO SEARCHES NOT OPTIMAL
-                Get the files opened in dict format.
-                """
-                file_list = self.__file_manager.get_files()
-                files_to_search = {
-                    filename.rsplit(".", 1)[0]: filename for filename in file_list
-                }
-                for word in words:
-                    # Check all words for similarity with the open name files that meet the specified SIMILARITY_THRESHOLD.
-                    similarity_perc = [
-                        {fr: similarity}
-                        for fr, similarity in (
-                            (fr, td.jaccard.normalized_similarity(word, fr))
-                            for fr in list(files_to_search.keys())
-                        )
-                        if similarity >= self.SIMILARITY_THRESHOLD
-                    ]
-                    if len(similarity_perc) > 0:
-                        # Get the highest similarity file name, and get file name with extension.
-                        file_required = max(
-                            similarity_perc, key=lambda x: list(x.values())[0]
-                        )
-                        file_required = list(file_required.keys())[0]
-                        # Add files to context
-                        self.__files_required.add(files_to_search.get(file_required))
-            except Exception as e:
-                pass
-                # logger.error(__name__, f"Error seraching for similarity: {e}")
-
-        if key_words and len(self.__files_required) == 0:
-            # When keywords were mentioned but no files are present in the context, it indicates that no files were found.
-            # system.notification("NO FILES FOUND", bottom=0)
-            return message
+        logger.info(__name__, f"(decorate_prompt) Decorating prompt: {message}")
 
         if len(self.__files_required) > 0:
             # When files are in context, generate a prompt by incorporating the required files.
             message = generate_prompt_with_files(
                 message, self.__files_required, self.__file_manager
             )
-            logger.info(__name__, f"message: {message}")
             return message
         return chatbot_without_file_prompt(message)
 
     def __exec_chat(self, message: str):
-        # logger.info(__name__, f"Exec chat")
+        """
+            Execute the chat function.
+        """
         try:
             response = self.__chatbot.chat(message)
-            """
-            logger.stat_tokens(
-                prompt_tokens=response.usage.prompt_tokens,
-                completion_tokens=response.usage.completion_tokens,
-            )
-            """
+            logger.info(__name__, f"(__exec_chat) Chat response: {response}")
             return response.message.content
         except Exception as e:
             if e == "Unauthorized":
@@ -179,9 +155,13 @@ class ChatbotAgent:
                 error_message = chatbot_error
 
             # system.notification(error_message, bottom=0)
-            return "An error has occurred, see the message above."
+            return "An error has occurred"
 
     def clear_context(self):
+        """
+            Clear the context.
+        """
+        logger.info(__name__, "(clear_context) Clearing context")
         self.context.clear_messages()
 
     def chat(self, message, special_prompt=False):
@@ -190,11 +170,12 @@ class ChatbotAgent:
             The chatbot is incapable to response simple questions like:
             how are you, since it tries to responde with code
         """
-
+        logger.info(__name__, f"(chat) Chat with message: {message} and special_prompt: {special_prompt}")
         response = ""
         if not special_prompt:
             logger.info(__name__, "helloooo")
             message = self.decorate_prompt(message)
+            logger.info(__name__, f"Decorated message: {message}")
             response = self.__exec_chat(message)
             return response
 

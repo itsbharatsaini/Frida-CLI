@@ -18,16 +18,16 @@ class Python(Language):
     @override
     def run(self, path: None, file_extesion: str = None, file_exist: bool = False):
         """
+        Run the code in the given path.
         TODO:
             Change for all the code runs using file exisiting why aviod using python eval
         """
 
-        logger.info(__name__, "In python")
+        logger.info(__name__, f"(run) Running code in path: {path} with file extension: {str(file_extesion)} and file exist: {str(file_exist)}")
         preprocessed_code = ""
         result_path = f"{self.result_files_dir}/{path}.txt"
         code_path = f"{self.code_files_dir}/{path}.{file_extesion}"
 
-        logger.info(__name__, f"file_exist {file_exist}")
 
         if file_exist:
             directory, old_filename = os.path.split(path)
@@ -35,7 +35,7 @@ class Python(Language):
             result_path = f"{self.result_files_dir}/{file_name}_tmp.txt"
             code_path = path
 
-        logger.info(__name__, f"Code path {code_path}")
+        logger.info(__name__, f"(run) result path: {str(result_path)} code path: {str(code_path)}")
         result_status = None
         try:
             with open(code_path, encoding="utf-8") as fl:
@@ -51,8 +51,12 @@ class Python(Language):
             return self.__build_result(result_path, result_status)
         except Exception as e:
             logger.error(__name__, f"Error running: {e}")
-
+    
     def __get_env(self):
+        """
+            Get the python enviroment path
+        """
+        logger.info(__name__, "(get_env) Getting enviroment path")
         try:
             env_vars = get_config_vars()
             if "PYTHON_ENV_PATH" in env_vars:
@@ -63,6 +67,10 @@ class Python(Language):
             logger.error(__name__, f"Error getting enviroment path: {e}")
 
     def __build_result(self, result_path, result_status):
+        """
+            Build the result of the execution
+        """
+        logger.info(__name__, f"(build_result) Building result with result path: {result_path} and result status: {result_status}")
         if result_status == ExceptionMessage.EXEC_ERROR:
             return (result_status, None)
         result = self.__get_execution_result(result_path)
@@ -87,7 +95,10 @@ class Python(Language):
             return ExceptionMessage.EXEC_ERROR
 
     def __execute_existing_code(self, code_path: str, result_path):
-
+        """
+            Execute the code that already exists in the file
+        """
+        logger.info(__name__, f"(execute_existing_code) Executing existing code in path: {str(code_path)} and result path: {str(result_path)}")
         if len(self.__PYTHON_ENV_PATH) == 0:
             with open(result_path, "w") as f:
                 f.write("No env configured")
@@ -101,6 +112,7 @@ class Python(Language):
             result = subprocess.run(
                 [self.__PYTHON_ENV_PATH, code_path], capture_output=True, text=True
             )
+            logger.info(__name__, f"(execute_existing_code) Result: {str(result.stdout)}")
             with open(result_path, "w") as f:
                 f.write(result.stdout)
             return ExceptionMessage.EXEC_SUCCESS
@@ -108,18 +120,30 @@ class Python(Language):
             return ExceptionMessage.EXEC_ERROR
 
     def __get_execution_result(self, file_name):
+        """
+            Get the result of the execution
+        """
+        logger.info(__name__, f"(__get_execution_result) Getting execution result in file name: {file_name}")
         try:
             with open(file_name, "r", encoding="utf-8") as f:
                 result = f.read()
                 return result
         except Exception as e:
-            logger.error(__name__, f"Error getting execution result: {e}")
+            logger.error(__name__, f"(__get_execution_result) Error getting execution result: {e}")
             return None
 
     def __preprocess_code(self, code, path):
+        """
+            Preprocess the code to be executed
+        """
+        logger.info(__name__, f"(__preprocess_code) Preprocessing code")
         return self.__use_template(code, path)
 
     def __use_template(self, code, file_name):
+        """
+            Use the template to preprocess the code
+        """
+        logger.info(__name__, f"(__use_template) Using template")
         try:
             code_lines = code.split("\n")
             code_lines = [f"            {c}" for c in code_lines]
@@ -140,6 +164,7 @@ with open(r'{file_name}', 'w', encoding='utf-8') as file:
             code_lines = code.split("\n")
             code_lines = [c for c in code_lines if c.strip() != ""]
             code = "\n".join(code_lines)
+            logger.info(__name__, f"(__use_template) Code: {code}")
             return code
         except Exception as e:
             logger.error(__name__, f"Error using template: {e}")
