@@ -24,6 +24,7 @@ class FilteredDirectoryTree(DirectoryTree):
     
 class PathSelector(ModalScreen):
     def compose(self):
+        logger.info(__name__, "Composing PathSelector")
         yield Vertical(
             Label("Select the path to save your documentation:", classes="format_selection", shrink=True),
             FilteredDirectoryTree(HOME_PATH, id="configuration_documentation_path"),
@@ -34,6 +35,10 @@ class PathSelector(ModalScreen):
         )
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
+        """
+            Called when a button is pressed.
+        """
+        logger.info(__name__, f"(on_button_pressed) Button pressed: {event.button.id}")
         if event.button.id == "confirm_path_doc":
             path = self.query_one("#input_documentation_path", Input).value
             if path != "":
@@ -44,6 +49,10 @@ class PathSelector(ModalScreen):
             self.dismiss("")
 
     def on_directory_tree_directory_selected(self, event: DirectoryTree.DirectorySelected):
+        """
+            Called when a directory is selected.
+        """
+        logger.info(__name__, f"(on_directory_tree_directory_selected) Directory selected: {str(event.path)}")
         tree_id = event.control.id
         if tree_id == "configuration_documentation_path":
             self.query_one("#input_documentation_path", Input).value = str(event.path)
@@ -64,13 +73,19 @@ class DocGenerator(Screen):
         )
 
     def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
-        """Called when the worker state changes."""
+        """
+            Called when the worker state changes.
+        """
+        logger.info(__name__, f"(on_worker_state_changed) Worker state changed with event: {str(event)}")
         if WorkerState.SUCCESS == event.worker.state and event.worker.name == "document_files":
             self.app.pop_screen()
             self.dismiss("OK")
-        logger.info(__name__, f"{event}")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
+        """
+            Called when a button is pressed.
+        """
+        logger.info(__name__, f"(on_button_pressed) Button pressed: {event.button.id}")
         if event.button.id == "quit":
             self.app.pop_screen()
         elif event.button.id == "select_path_button":
@@ -79,8 +94,8 @@ class DocGenerator(Screen):
             docx = self.query_one("#docx_check", Checkbox).value
             md = self.query_one("#md_check", Checkbox).value
             doc_path = self.query_one("#input_doc_path", Input).value
-            logger.info(__name__, f"path: {doc_path}")
             method = self.query_one("#select_method", Select)
+            logger.info(__name__, f"(on_button_pressed) docx: {str(docx)} md: {str(md)} doc_path: {str(doc_path)} method: {str(method.value)}")
             if (docx or md) and doc_path != "" and not method.is_blank():
                 use_formatter = self.query_one("#use_formater", Checkbox).value
                 self.app.push_screen(DocLoader())
@@ -89,12 +104,17 @@ class DocGenerator(Screen):
                 self.notify(f"You must select at least one format and a method for the documentation.")
 
     def select_doc_path_callback(self, path):
+        """
+            Callback for the path selection modal.
+        """
+        logger.info(__name__, f"(select_doc_path_callback) Path selected: {str(path)}")
         if path != "":
             self.query_one("#input_doc_path", Input).value = path
             
 
 class DocLoader(Screen):
     def compose(self):
+        logger.info(__name__, "Composing DocLoader")
         yield Vertical(
             Label("Working on your documentation!", id = "doc_title"),
             LoadingIndicator(),
@@ -104,6 +124,7 @@ class DocLoader(Screen):
 class EpicGenerator(Screen):
     path = HOME_PATH
     def compose(self):
+        logger.info(__name__, "Composing EpicGenerator")
         yield Vertical(
             Label("Please choose the destination folder where you'd like to save the file.", id="file_selection"),
             FilteredDirectoryTree(HOME_PATH, id="epic_generator_dir_selector"),
@@ -114,11 +135,15 @@ class EpicGenerator(Screen):
         )
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
+        """
+            Called when a button is pressed.
+        """
+        logger.info(__name__, f"(on_button_pressed) Button pressed: {event.button.id}")
         if event.button.id == "quit":
             self.app.pop_screen()
         elif event.button.id == "generate":
             epics_text = self.query_one("#epics_text", Input).value
-            logger.info(__name__, epics_text)
+            logger.info(__name__, f"(on_button_pressed) epics_text: {str(epics_text)}")
             generate_epics(epics_text, self.path)
             self.app.pop_screen()
 
@@ -131,6 +156,7 @@ class CreateNewEpic(Screen):
     radio_set_value = ""
     csv_data = {}
     def compose(self):
+        logger.info(__name__, "Composing CreateNewEpic")
         yield Vertical(
             Input(placeholder="Name of project", id="epic_name_input"),
             Label("Type of Platform", id="platform_label"),
@@ -149,10 +175,18 @@ class CreateNewEpic(Screen):
             classes="dialog",
         )
     def on_radio_set_changed(self, event: RadioSet.Changed):
+        """
+            Called when the radio set changes.
+        """
+        logger.info(__name__, f"(on_radio_set_changed) Radio set changed to: {event.pressed.label}")  
         self.radio_set_value = event.pressed.label
-        logger.info(__name__, self.radio_set_value)
+
 
     def get_data_from_csv(self, path):
+        """
+            Get the data from the csv file
+        """
+        logger.info(__name__, f"get_data_from_csv Getting data from csv from path: {path}")
         try:
             epics = {}
             with open(path, "r") as file:
@@ -165,18 +199,25 @@ class CreateNewEpic(Screen):
                             epics[epic_name] = [row]
                         else:
                             epics[epic_name].append(row)
+            logger.info(__name__, f"(get_data_from_csv) Epics: {str(epics)}")
             return epics
         except Exception as e:
+            logger.error(__name__, f"(get_data_from_csv) Error getting data from csv: {str(e)}")
             return {}
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
+        """
+            Called when a button is pressed.
+        """
         button_pressed = event.button.id
+        logger.info(__name__, f"(on_button_pressed) Button pressed: {button_pressed}")
         if button_pressed == "create_epic_quit":
             self.app.pop_screen()
         elif button_pressed == "create_epic_generate":
             epic_name_input = self.query_one("#epic_name_input", Input).value
             plataform = str(self.radio_set_value)
             project_context_input = self.query_one("#project_context_input", TextArea).text
+            logger.info(__name__, f"(on_button_pressed) epic_name_input: {str(epic_name_input)} plataform: {str(plataform)} project_context_input: {str(project_context_input)}")
             if len(epic_name_input) > 0  and len(plataform) > 0 and len(project_context_input) > 0:
                 params = {"epic_name": epic_name_input, "plataform": plataform, "project_description": project_context_input}
                 if self.csv_data != {}:
@@ -186,6 +227,9 @@ class CreateNewEpic(Screen):
             else:
                 self.notify("Some of the values are empty", severity="error")
         elif button_pressed == "upload_excel_button":
+            """
+                TODO: Implement the upload of the excel file
+            """
             path = "Online Bookstore.csv"
             csv_data = self.get_data_from_csv(path)
             if csv_data != {}:
@@ -208,7 +252,11 @@ class ConfirmPushView(Screen):
                 yield Button("Confirm", variant="success", id="confirm")
 
     def on_button_pressed(self, event: Button.Pressed):
+        """
+            Called when a button is pressed.
+        """
         button_pressed =  event.button.id
+        logger.info(__name__, f"(on_button_pressed) Button pressed: {button_pressed}")
         if button_pressed == "cancel":
             self.app.pop_screen()
         elif button_pressed == "confirm":

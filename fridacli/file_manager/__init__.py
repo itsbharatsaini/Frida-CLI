@@ -1,6 +1,10 @@
 from collections import Counter
 from .graph import Tree
 import os
+from fridacli.logger import Logger
+
+logger = Logger()
+
 
 class FileManager:
     """
@@ -23,29 +27,44 @@ class FileManager:
             self._initialized = True
 
     def get_files(self):
+        """
+            Get the files in the project
+        """
+        logger.info(__name__, f"(get_files) Getting files: {str(list(self.__files.keys()))}")
         try:
             return list(self.__files.keys())
         except Exception as e:
-            pass
-            #logger.error(__name__, f"Error getting files: {e}")
+            logger.error(__name__, f"(get_files) Error getting files: {str(e)}")
+    
     def get_file_path(self, name):
+        """
+            Get the file path of a file in the project
+        """
+        logger.info(__name__, f"(get_file_path) Getting file path name: {name}")
         try:
             return self.__files.get(name, -1)
         except Exception as e:
-            pass
-            #logger.error(__name__, f"Error getting file path: {e}")
+            logger.error(__name__, f"(get_file_path) Error getting file path: {str(e)}")
         
     def get_file_content(self, name):
+        """
+            Get the file content of a file in the project
+        """
+        logger.info(__name__, f"(get_file_content) Getting file content name: {name}")
         try:
             path = self.__files.get(name, -1)
             with open(path, "r") as f:
                 code = f.read()
                 return code
         except Exception as e:
-            pass
-            #logger.error(__name__, f"Error getting file content: {e}")
+            logger.error(__name__, f"Error getting file content: {str(e)}")
 
     def __traverse(self, path, current_node):
+        """
+            Traverse recursively a directory to create the graphs
+        """
+
+        logger.info(__name__, f"(__traverse) Traversing path: {path} current_node: {current_node}")
         try:
             for item in os.listdir(path):
                 item_path = os.path.join(path, item)
@@ -63,8 +82,7 @@ class FileManager:
                         self.__extension_counter[extension] += 1
                         current_node.add_children(Tree(item_path))
         except Exception as e:
-            pass
-            #logger.error(__name__, f"Error traversing: {e}")
+            logger.error(__name__, f"(__traverse) Error traversing: {str(e)}")
 
     def __build_directory_tree(self, path):
         """
@@ -76,6 +94,8 @@ class FileManager:
         Returns:
         - None
         """
+
+        logger.info(__name__, f"(__build_directory_tree) Building directory tree path: {path}")
         root_node = Tree(path)
         self.__files = {}
         self.__traverse(path, root_node)
@@ -90,6 +110,7 @@ class FileManager:
                 -When a directory is empty is printed as a file and the next dir
                 have wrong identation
         """
+        logger.info(__name__, f"(load_folder) Loading folder path: {path}")
         self.__folder_status = True
         self.__folder_path = path
         # know the project type
@@ -100,21 +121,35 @@ class FileManager:
             project_type = ",".join(top_three_extensions)
             tree_str = self.__tree.print_directory()
         except Exception as e:
-            pass
-            #logger.error(__name__, f"Error loading folder: {e}")
+            logger.error(__name__, f"(load_folder) Error loading folder: {str(e)}")
         return (project_type, tree_str)
 
     def close_folder(self) -> None:
-        """"""
+        """
+            Close the current project
+        """
+        logger.info(__name__, "(close_folder) Closing folder")
         self.__folder_status = False
         self.__folder_path = None
 
     def set_dir(self, file_directory: str) -> None:
+        """
+            Set the directory of the project
+        """
+        logger.info(__name__, f"(set_dir) Setting directory: {file_directory}")
         self.__folder_path = file_directory
 
     def get_folder_status(self) -> bool:
+        """
+            Get the status of the folder
+        """
+        logger.info(__name__, f"(get_folder_status) Getting folder status: {str(self.__folder_status)}")
         return self.__folder_status
 
     def get_folder_path(self) -> str:
+        """
+            Get the path of the folder
+        """
+        logger.info(__name__, f"(get_folder_path) Getting folder path: {str(self.__folder_path)}")
         return str(self.__folder_path)
 

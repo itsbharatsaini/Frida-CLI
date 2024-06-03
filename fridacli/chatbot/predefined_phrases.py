@@ -54,6 +54,7 @@ Do it in only one block of code including the examples.
 When returning fenced code blocks in Markdown, enable syntax highlighting by specifying the programming language name in 
 the same line right after the first three backticks.
 In the first line, add a comment with a brief description (4 words) of the code.
+IMPORTANT: Not include input statements in the code insted add fixed variables with the test value.
 """
 
 def generate_prompt_with_files(message, files_required, file_manager):
@@ -62,6 +63,7 @@ def generate_prompt_with_files(message, files_required, file_manager):
     Create a list of steps and generate the necessary code, if needed, to accomplish the following instruction.
     If files are mentioned, provide the necessary code without explicitly opening the file.
     Endeavor to complete this task using only one block of code.
+    IMPORTANT: Not include input statements in the code insted add fixed variables with the test value.
     """
     lines = [message, chatbot_with_file_prompt]
 
