@@ -88,7 +88,7 @@ class CodeChangeQuestion(Static):
                     "Copy code", id="btn_copy_code", classes="btn_code_options"
                 )
                 yield Button(
-                    "Overwrite",
+                    "Apply changes",
                     id="btn_overwrite",
                     classes="btn_code_options",
                     variant="primary",

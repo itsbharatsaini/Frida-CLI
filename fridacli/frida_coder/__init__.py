@@ -33,6 +33,7 @@ class FridaCoder:
         self.code_blocks = []
         self.code_blocks = self.extract_code(response)
         return self.code_blocks
+    
     def run(self, code_block, files_required):
         """
             Run the code block

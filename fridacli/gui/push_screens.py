@@ -1,6 +1,7 @@
+from textual.events import Mount
 from textual.screen import Screen, ModalScreen
-from textual.widgets import Label, Input, Button, DirectoryTree, LoadingIndicator, Checkbox, Select, RadioSet, RadioButton, TextArea
-from textual.containers import Vertical, Horizontal
+from textual.widgets import Label, Input, Button, DirectoryTree, LoadingIndicator, Checkbox, Select, RadioSet, RadioButton, TextArea, Markdown
+from textual.containers import Vertical, Horizontal, VerticalScroll
 from fridacli.commands.recipes import generate_epics, document_files
 from textual.worker import Worker, WorkerState
 from fridacli.file_manager import FileManager
@@ -9,6 +10,7 @@ from fridacli.config import HOME_PATH, get_config_vars
 from typing import Iterable
 from pathlib import Path
 import csv
+import os
 
 logger = Logger()
 file_manager = FileManager()
@@ -261,3 +263,98 @@ class ConfirmPushView(Screen):
             self.app.pop_screen()
         elif button_pressed == "confirm":
             self.dismiss("")
+
+class DocumentResultResume(Screen):
+    def __init__(self, result) -> None:
+        self.result = result
+        self.result = [
+            {
+                "file": "filename1.py",
+                "functions": 10,
+                "total": 12,
+                "errors": [
+                ]
+            }, 
+            {
+                "file": "filename2.py",
+                "functions": 15,
+                "total": 20,
+                "errors": [
+                    {
+                        "funtion_name": "function1",
+                        "error": "error1"
+                    }, 
+                                        {
+                        "funtion_name": "function1",
+                        "error": "error1"
+                    }
+                ]
+            },
+                        {
+                "file": "filename2.py",
+                "functions": 15,
+                "total": 20,
+                "errors": [
+                    {
+                        "funtion_name": "function1",
+                        "error": "error1"
+                    }, 
+                                        {
+                        "funtion_name": "function1",
+                        "error": "error1"
+                    }
+                ]
+            },  
+        ]
+        self.md_result = ""
+        self.buildMD()
+        super().__init__()
+
+    def compose(self):
+        with Vertical(classes="dialog_results"):
+            with VerticalScroll(id="doc_result_scroll"):
+                yield Markdown(self.md_result)
+            yield Button("Save result", id="save_result_btn", variant="success", classes="dialog_btn")
+
+    def buildMD(self):
+        markdown_text = ""
+        markdown_text += "# Documentation Results\n"
+
+        for result in self.result:
+            porcentage = (result['functions'] / result['total']) * 100
+            if result['functions'] == result['total']:
+                markdown_text += f"## {result['file']} was documented at {int(porcentage)}%\n"
+                markdown_text += f"Funtions documentated {result['functions']}/{result['total']} \n"
+
+            else:
+                markdown_text += f"## {result['file']} was documented at {int(porcentage)}%\n"
+                markdown_text += f"Funtions documentated {result['functions']}/{result['total']} \n"
+            if len(result['errors']) > 0:
+                markdown_text += f"### Errors:\n"
+                for error in result['errors']:
+                    markdown_text += f"- {error['funtion_name']}: {error['error']}\n"
+        self.md_result = markdown_text
+    
+    def _on_mount(self, event: Mount) -> None:
+        self.buildMD()
+
+    def save_result_callback(self, path):
+        logger.info(__name__, f"(save_result_callback) Path selected: {str(path)}")
+        if path != "":
+            try:
+                with open(os.path.join(path, "result.md"), "w") as file:
+                    file.write(self.md_result)
+                self.app.notify(f"File saved at {path}")
+                self.app.pop_screen()
+            except Exception as e:
+                pass
+
+
+    def on_button_pressed(self, event: Button.Pressed):
+        """
+            Called when a button is pressed.
+        """
+        button_pressed =  event.button.id
+        logger.info(__name__, f"(on_button_pressed) Button pressed: {button_pressed}")
+        if button_pressed == "save_result_btn":
+            self.app.push_screen(PathSelector(), self.save_result_callback)
