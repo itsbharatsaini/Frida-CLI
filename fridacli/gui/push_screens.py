@@ -1,14 +1,13 @@
-from textual.screen import Screen, ModalScreen
 from textual.widgets import Label, Input, Button, DirectoryTree, LoadingIndicator, Checkbox, Select, RadioSet, RadioButton, TextArea
-from textual.containers import Vertical, Horizontal
 from fridacli.commands.recipes import generate_epics, document_files
+from fridacli.config import HOME_PATH, get_config_vars
+from textual.containers import Vertical, Horizontal
+from textual.screen import Screen, ModalScreen
 from textual.worker import Worker, WorkerState
 from fridacli.file_manager import FileManager
 from fridacli.logger import Logger
-from fridacli.config import HOME_PATH, get_config_vars
 from typing import Iterable
 from pathlib import Path
-import csv
 
 logger = Logger()
 file_manager = FileManager()
@@ -57,6 +56,12 @@ class PathSelector(ModalScreen):
         if tree_id == "configuration_documentation_path":
             self.query_one("#input_documentation_path", Input).value = str(event.path)
 
+    def on_directory_tree_file_selected(self, event: DirectoryTree.FileSelected):
+        tree_id = event.control.id
+        if tree_id == "configuration_documentation_path":
+            self.query_one("#input_documentation_path", Input).value = str(event.path)
+        logger.info(__name__, f"File selected: {str(event.path)}")
+
 class DocGenerator(Screen):
     def compose(self):
         yield Vertical(
@@ -98,7 +103,7 @@ class DocGenerator(Screen):
             logger.info(__name__, f"(on_button_pressed) docx: {str(docx)} md: {str(md)} doc_path: {str(doc_path)} method: {str(method.value)}")
             if (docx or md) and doc_path != "" and not method.is_blank():
                 use_formatter = self.query_one("#use_formater", Checkbox).value
-                self.app.push_screen(DocLoader())
+                self.app.push_screen(Loader("Working on your documentation!"))
                 self.run_worker(document_files({"docx": docx, "md": md}, method.value.split(" ")[0], doc_path, use_formatter), exclusive=False, thread=True)
             else:
                 self.notify(f"You must select at least one format and a method for the documentation.")
@@ -112,11 +117,15 @@ class DocGenerator(Screen):
             self.query_one("#input_doc_path", Input).value = path
             
 
-class DocLoader(Screen):
+class Loader(Screen):
+    def __init__(self, text) -> None:
+        self.text = text
+        super().__init__()
+
     def compose(self):
         logger.info(__name__, "Composing DocLoader")
         yield Vertical(
-            Label("Working on your documentation!", id = "doc_title"),
+            Label(self.text, id = "doc_title"),
             LoadingIndicator(),
             classes="loader",
         )
@@ -238,7 +247,6 @@ class CreateNewEpic(Screen):
             else:
                 self.notify("An error occurred while trying to get the data from the CSV file", severity="error")
             logger.info(__name__, "data from csv" + str(self.csv_data))
-
 
 class ConfirmPushView(Screen):
     def __init__(self, text) -> None:
