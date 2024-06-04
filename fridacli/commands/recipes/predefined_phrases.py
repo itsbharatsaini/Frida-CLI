@@ -1,6 +1,8 @@
 # TODO get the prompts from firebase
-# TODO Make a list of special documentation types for each coding language
 
+
+# The dictionary is structured as follows:
+# extension : [name, example of function documentation]
 programming_languages = {
     ".cs": [
         "C#",
@@ -54,6 +56,7 @@ programming_languages = {
 }
 
 
+# Used to generate documentation for a full code file
 def generate_full_document_prompt(code, extension):
     return f"""
     You are a professional coding and documentation assitant.
@@ -76,6 +79,8 @@ def generate_full_document_prompt(code, extension):
     
     DO NOT OMIT THE BODY OF ANY FUNCTION.
 
+    RETURN ONLY ONE CODE BLOCK.
+
     Do NOT document classes.
 
     Do NOT add 'Example usage' in the documentation of the function.
@@ -95,6 +100,7 @@ def generate_full_document_prompt(code, extension):
     """
 
 
+# Generates documentation for only one function
 def generate_document_for_funct_prompt(code, extension):
     return f"""
     You are a professional coding and documentation assistant.
@@ -120,6 +126,8 @@ def generate_document_for_funct_prompt(code, extension):
     Always follow the best documentation practices.
 
     Do NOT omit the function.
+
+    RETURN ONLY ONE CODE BLOCK.
 
     Do NOT alter the function; only add the documentation.
 
