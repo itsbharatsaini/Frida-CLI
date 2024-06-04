@@ -22,16 +22,24 @@ class FilteredDirectoryTree(DirectoryTree):
         return [path for path in paths if not path.name.startswith((".", "~"))]
     
 class PathSelector(ModalScreen):
+    def __init__(self, only_directories = True, allow_special= False) -> None:
+        self.only_directories = only_directories
+        self.allow_special = allow_special
+        super().__init__()
+
     def compose(self):
         logger.info(__name__, "Composing PathSelector")
-        yield Vertical(
-            Label("Select the path to save your documentation:", classes="format_selection", shrink=True),
-            FilteredDirectoryTree(HOME_PATH, id="configuration_documentation_path"),
-            Label("Path selected:", classes="format_selection", shrink=True),
-            Input(id="input_documentation_path", disabled=True),
-            Horizontal(Button("Quit", variant="error"), Button("Confirm Path", variant="success", id="confirm_path_doc"), id="select_path_doc_horizontal"),
-            id="path_selector_modal"
-        )
+        with Vertical(id="path_selector_modal"):
+            yield Label("Select the path to save your documentation:", classes="format_selection", shrink=True)
+            if self.allow_special:
+                yield DirectoryTree(HOME_PATH, id="configuration_documentation_path")
+            else:
+                yield FilteredDirectoryTree(HOME_PATH, id="configuration_documentation_path")
+            yield Label("Path selected:", classes="format_selection", shrink=True)
+            yield Input(id="input_documentation_path", disabled=True)
+            yield Horizontal(Button("Quit", variant="error"), Button("Confirm Path", variant="success", id="confirm_path_doc"), id="select_path_doc_horizontal")
+            
+        
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """
@@ -57,10 +65,11 @@ class PathSelector(ModalScreen):
             self.query_one("#input_documentation_path", Input).value = str(event.path)
 
     def on_directory_tree_file_selected(self, event: DirectoryTree.FileSelected):
-        tree_id = event.control.id
-        if tree_id == "configuration_documentation_path":
-            self.query_one("#input_documentation_path", Input).value = str(event.path)
-        logger.info(__name__, f"File selected: {str(event.path)}")
+        if not self.only_directories:
+            tree_id = event.control.id
+            if tree_id == "configuration_documentation_path":
+                self.query_one("#input_documentation_path", Input).value = str(event.path)
+            logger.info(__name__, f"File selected: {str(event.path)}")
 
 class DocGenerator(Screen):
     def compose(self):
