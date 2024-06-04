@@ -7,7 +7,7 @@ from textual.reactive import var
 from rich.syntax import Syntax
 from typing import Iterable
 from pathlib import Path
-from .push_screens import EpicGenerator, DocGenerator
+from .push_screens import EpicGenerator, DocGenerator, DocumentResultResume
 from fridacli.config import OS
 import subprocess
 import os
@@ -118,9 +118,9 @@ class CodeView(Static):
         button_pressed = str(event.button.id)
         logger.info(__name__, button_pressed)
         if button_pressed == "btn_recipe" :
+            self.app.push_screen(DocumentResultResume([]))
             """
             TODO: Assure that the threads are syncroniced and do not stop the GUI  thread
-            """
             if self.recipe_selected == "Generate Documentation" :
                 logger.info(__name__, "On UI calling to document files")
                 self.app.push_screen(DocGenerator(), self.doc_generator_callback)
@@ -128,6 +128,8 @@ class CodeView(Static):
             elif self.recipe_selected == "generate_epics":
                 logger.info(__name__, "epics")
                 self.app.push_screen(EpicGenerator())
+            """
+            
 
     def doc_generator_callback(self, result):
         self.query_one("#cv_tree_view", FilteredDirectoryTree).reload()

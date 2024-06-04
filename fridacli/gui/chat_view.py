@@ -108,20 +108,22 @@ class ChatView(Static):
         chat_scroll.mount(SystemFridaResponse(self.chat_response))
 
         code_blocks = self.frida_coder.prepare(self.chat_response)
-
+        logger.info(__name__, f"(build_chatbot_response) Code blocks len: {len(code_blocks)}")
+        logger.info(__name__, f"(build_chatbot_response) Code blocks info: {code_blocks}")
         if len(code_blocks) > 0:
-            for code_block in code_blocks:
-                self.run_code_confirmation_counter += 1
-                # Confirmation to run the code
-                self.query_one("#chat_scroll", VerticalScroll).mount(
-                    RunCodeConfirmation(
-                        id=f"run_code_confirmation_{self.run_code_confirmation_counter}",
-                        frida_coder=self.frida_coder,
-                        code_block=code_block,
-                        files_required=list(self.chatbot_agent.get_files_required()),
-                        files_open=self.chatbot_agent.is_files_open(),
-                    ),
-                )
+            code_block = code_blocks[0]
+            logger.info(__name__, f"(build_chatbot_response) Code block: {code_block}")
+            self.run_code_confirmation_counter += 1
+            # Confirmation to run the code
+            self.query_one("#chat_scroll", VerticalScroll).mount(
+                RunCodeConfirmation(
+                    id=f"run_code_confirmation_{self.run_code_confirmation_counter}",
+                    frida_coder=self.frida_coder,
+                    code_block=code_block,
+                    files_required=list(self.chatbot_agent.get_files_required()),
+                    files_open=self.chatbot_agent.is_files_open(),
+                ),
+            )
         self.query_one("#chat_scroll", VerticalScroll).scroll_down(animate=True)
 
     """Event handlers"""

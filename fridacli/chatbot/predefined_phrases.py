@@ -41,6 +41,7 @@ chatbot_unauthorized = f"{add_styletags_to_string('Unauthorized', style='error')
 chatbot_badrequest = f"{add_styletags_to_string('Bad Request', style='error')}: Chatbot model not found, please update model name\nExecute {add_styletags_to_string('frida config', style='code')} to update it."
 chatbot_error = f"{add_styletags_to_string('Bad Request', style='error')}: One or all of the configuration keys is invalid or missing\nExecute {add_styletags_to_string('frida config', style='code')} to update it."
 chatbot_with_file_prompt = """
+If instructions require files, those files should be included in the response.
 Very important consideration:
 When returning fenced code blocks in Markdown, enable syntax highlighting by specifying the programming language name. 
 If the code within is intended for updating files, include the file name in a comment form like #filename.
