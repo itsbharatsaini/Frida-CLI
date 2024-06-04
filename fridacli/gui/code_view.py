@@ -21,19 +21,27 @@ asp_voyager
 
 class FilteredDirectoryTree(DirectoryTree):
     def filter_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
+        """
+            Filter out paths that start with a dot or tilde.
+        """
+        logger.info(__name__, "(filter_paths) Filtering paths")
         return [path for path in paths if not path.name.startswith((".", "~"))]
     
 class CodeView(Static):
     show_tree = var(True)
     CSS_PATH = "tcss/frida_styles.tcss"
     recipe_selected = ""
+    file_button_open = ""
 
     def watch_show_tree(self, show_tree: bool) -> None:
         """Called when show_tree is modified."""
         self.set_class(show_tree, "-show-tree")
 
     def compose(self):
+        logger.info(__name__, "(compose) Composing CodeView")
         path = get_vars_as_dict()["PROJECT_PATH"]
+        logger.info(__name__, f"(compose) Project path: {path}")
+
         with Horizontal():
             with Vertical(id="code_view_left"):
                 with Horizontal(id="code_view_buttons"):
@@ -44,17 +52,17 @@ class CodeView(Static):
                 yield Static(id="cv_code", expand=False)
 
     def on_mount(self) -> None:
+        logger.info(__name__, "(on_mount) Mounting CodeView")
         self.query_one(DirectoryTree).focus()
 
     def on_directory_tree_file_selected(
         self, event: DirectoryTree.FileSelected
     ) -> None:
         """Called when the user click a file in the directory tree."""
-        event.stop()
-        code_view = self.query_one("#cv_code", Static)
 
+        logger.info(__name__, f"(on_directory_tree_file_selected) File selected: {str(event.path)}")
+        event.stop()
         try:
-            syntax = None
             extension = event.path.suffix
 
             if extension == ".docx":
@@ -63,22 +71,41 @@ class CodeView(Static):
                 else:
                     subprocess.call(('open', event.path))
             else:
-                syntax = Syntax.from_path(
-                    str(event.path),
-                    line_numbers=True,
-                    word_wrap=False,
-                    indent_guides=True,
-                    theme="github-dark",
-                    highlight_lines=[1, 2, 4, 6, 7],
-                )
+                self.update_file_code_view(event.path, False)
+        except Exception as e :
+            logger.error(__name__, f"Error opening file: {e}")
+
+    def update_file_code_view(self, path, is_chat):
+        logger.info(__name__, f"update_file_code_view")
+        code_view = self.query_one("#cv_code", Static)
+        try:
+            syntax = Syntax.from_path(
+                str(path),
+                line_numbers=True,
+                word_wrap=False,
+                indent_guides=True,
+                theme="github-dark",
+                highlight_lines=[],
+            )
         except Exception:
             code_view.update(Traceback(theme="github-dark", width=None))
             self.sub_title = "ERROR"
         else:
-            if syntax is not None:
-                code_view.update(syntax)
-                self.query_one("#cv_code_scroll").scroll_home(animate=False)
-                self.sub_title = str(event.path)
+            code_view.update(syntax)
+
+            #If wasn't called from chat, update the file button
+            if not is_chat:
+                if self.file_button_open == "":
+                    self.file_button_open = str(path)
+                    self.parent.parent.query_one("#chat_view").mount_file_button(str(path), False)
+                else:
+                    file_name = self.file_button_open.split("\\")[-1] if OS == "win" else self.file_button_open.split("/")[-1]
+                    self.parent.parent.query_one("#chat_view").delete_file_button(file_name, False)
+                    self.file_button_open = str(path)
+                    self.parent.parent.query_one("#chat_view").mount_file_button(str(path), False)
+
+            self.query_one("#cv_code_scroll").scroll_home(animate=False)
+            self.sub_title = str(path)
 
     def action_toggle_files(self) -> None:
         """Called in response to key binding."""

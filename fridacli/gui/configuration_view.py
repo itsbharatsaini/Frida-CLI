@@ -12,6 +12,7 @@ logger = Logger()
 
 class ConfigurationView(Static):
     def compose(self):
+        logger.info(__name__, "(compose) Composing ConfigurationView")
         with TabbedContent(initial="project"):
             with TabPane("Project", id="project"):
                 with Static():
@@ -59,7 +60,7 @@ class ConfigurationView(Static):
         """
         Update the inputs with the data in the configuration file
         """
-
+        logger.info(__name__, "(on_mount) Mounting ConfigurationView")
         env_vars = get_config_vars()
         input_project_path = self.query_one("#input_project_path", Input)
         input_logs_path = self.query_one("#input_logs_path", Input)
@@ -75,11 +76,21 @@ class ConfigurationView(Static):
         input_chat_model_name_v4.value = env_vars["CHAT_MODEL_NAME_V4"]
         input_python_env.value = env_vars["PYTHON_ENV_PATH"]
 
+        logger.info(__name__, f"""(on_mount) 
+            input_project_path: {input_project_path.value}
+            input_logs_path: {input_logs_path.value}
+            input_llmops_api_key: {input_llmops_api_key.value}
+            input_chat_model_name: {input_chat_model_name.value}
+            input_chat_model_name_v4: {input_chat_model_name_v4.value} 
+            input_python_env: {input_python_env.value}          
+        """)
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """
         Update the configuration file
         """
         button_pressed = str(event.button.id)
+        logger.info(__name__, f"(on_button_pressed) Button pressed: {button_pressed}")
         if button_pressed == "btn_project_confirm":
             keys = get_vars_as_dict()
             keys["PROJECT_PATH"] = self.query_one("#input_project_path", Input).value
@@ -101,13 +112,20 @@ class ConfigurationView(Static):
             value = self.query_one("#input_chat_model_name_v4", Input).value
             keys["CHAT_MODEL_NAME_V4"] = value
             write_config_to_file(keys)
+            self.notify("The configuration were saved")
+
         elif button_pressed == "btn_python_confirm":
             keys = get_vars_as_dict()
             value = self.query_one("#input_python_env", Input).value
             keys["PYTHON_ENV_PATH"] = value
             write_config_to_file(keys)
+            self.notify("The configuration were saved")
 
     def on_directory_tree_directory_selected(self, event: DirectoryTree.DirectorySelected):
+        """
+            Update the input with the selected directory
+        """
+        logger.info(__name__, f"(on_directory_tree_directory_selected) Directory selected: {str(event.path)}")
         tree_id = event.control.id
         if tree_id == "configuration_directorytree_projectpath":
             self.query_one("#input_project_path", Input).value = str(event.path)
