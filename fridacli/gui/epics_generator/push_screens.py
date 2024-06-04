@@ -142,5 +142,5 @@ class CreateNewProject(Screen):
             else:
                 self.notify("Some of the values are empty", severity="error")
         elif button_pressed == "upload_excel_button":
-            self.app.push_screen(PathSelector(), self.upload_excel_callback)
+            self.app.push_screen(PathSelector(only_directories=False, allow_special=False), self.upload_excel_callback)
             
