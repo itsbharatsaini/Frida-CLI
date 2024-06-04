@@ -299,22 +299,22 @@ def document_file(
                 new_file.extend(code[end_line:])
                 new_code = "\n".join(new_file)
 
-        if new_code is not None:
-            write_code_to_path(full_path, new_code, extension, use_formatter)
-        else:
-            logger.info(__name__, f"Could not write new code for file {file}")
+            if new_code is not None:
+                write_code_to_path(full_path, new_code, extension, use_formatter)
+            else:
+                logger.info(__name__, f"Could not write new code for file {file}")
 
-        if len(new_doc) > 1:
-            for doctype, selected in formats.items():
-                if selected:
-                    filename = (
-                        ("readme_" + file + ".md")
-                        if doctype == "md"
-                        else ("doc_" + file + ".docx")
-                    )
-                    save_documentation(os.path.join(doc_path, filename), new_doc)
-        else:
-            logger.info(__name__, f"Could not write new documentation for file {file}")
+            if len(new_doc) > 1:
+                for doctype, selected in formats.items():
+                    if selected:
+                        filename = (
+                            ("readme_" + file + ".md")
+                            if doctype == "md"
+                            else ("doc_" + file + ".docx")
+                        )
+                        save_documentation(os.path.join(doc_path, filename), new_doc)
+            else:
+                logger.info(__name__, f"Could not write new documentation for file {file}")
     except Exception as e:
         logger.info(__name__, f"Error in file: {file}: {e}")
     finally:
