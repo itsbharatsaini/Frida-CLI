@@ -1,25 +1,21 @@
-from os import error
-from textual.screen import Screen
+from textual.containers import Vertical, Horizontal, VerticalScroll
+from textual.widgets import Label, TabbedContent, TextArea
+from fridacli.gui.push_screens import ConfirmPushView
+from textual.widgets import Static, Select, Button
+from textual.worker import Worker, WorkerState
+from .push_screens import NewObjectPushScreen
+from fridacli.gui.push_screens import Loader
 from textual.widgets import Static
-from rich.text import Text
-from textual.widgets import DirectoryTree, Static, Select, Button
-from textual.containers import Vertical, Horizontal, VerticalScroll, Grid
-from textual.app import App, ComposeResult
-from textual.widgets import DataTable, Label, TabbedContent, TextArea, RadioButton
 from fridacli.logger import Logger
-from textual.binding import Binding
+from .user_story import UserStory
 from .utils import (
     get_versions_names,
-    create_empty_userstory,
     create_generated_epic,
-    create_empty_epic,
-    create_generated_user_story,
     save_project,
-    complete_epic,
-    save_csv
+    save_csv,
+    enhance_project_description,
 )
-from .push_screens import NewObjectPushScreen
-from fridacli.gui.push_screens import ConfirmPushView
+from .epic import Epic
 
 project_description = ""
 
@@ -34,217 +30,6 @@ ROWS = [
         "",
     ),
 ]
-
-
-class UserStory(Static):
-    """
-        A class representing a user story in a horizontal layout.
-        Args:
-            user_story (dict): The user story data.
-
-        Methods:
-            compose(): Composes and yields the elements of the user story in a horizontal layout.
-            get_data(): Gets the text data from the TextArea elements.
-            complete_cell(): Retrieves the value from the username_name TextArea.
-            on_button_pressed(event: Button.Pressed): Handles the event when a button is pressed.
-            on_text_area_pressed(event): Handles the event when a TextArea gains focus.
-    """
-    def __init__(self, user_story) -> None:
-        super().__init__()
-        self.user_story = user_story
-        self.selected = False
-
-    def compose(self):
-        with Horizontal(classes="user_story_horizontal"):
-            yield Vertical(
-                RadioButton("", classes="user_story_del_btn", id="user_story_del_btn"),
-                id="vertical_del_button"
-            )
-            yield TextArea(self.user_story["user_story"], classes="user_story_textarea", id="userstory_name")
-            yield TextArea(self.user_story["description"], classes="user_story_textarea", id="userstory_description")
-            yield TextArea(
-                self.user_story["acceptance_criteria"],
-                classes="user_story_textarea",
-                id="userstory_acceptance_criteria"
-            )
-            yield TextArea(self.user_story["out_of_scope"], classes="user_story_textarea", id="userstory_out_of_scope")
-
-
-    def get_data(self):
-        #return the text in the TextAreas
-        user_story = self.query_one("#userstory_name", TextArea).text
-        description = self.query_one("#userstory_description", TextArea).text
-        acceptance_criteria = self.query_one("#userstory_acceptance_criteria", TextArea).text
-        out_of_scope = self.query_one("#userstory_out_of_scope").text
-        return {
-            "user_story": user_story,
-            "description": description,
-            "acceptance_criteria": acceptance_criteria,
-            "out_of_scope": out_of_scope
-        }
-
-
-    def complete_cell(self):
-        """
-            Retrieves the value from the username_name TextArea.
-        """
-        username_name = self.query_one("#userstory_name", TextArea)
-        userstory_description = self.query_one("#userstory_description", TextArea)
-        userstory_acceptance_criteria = self.query_one(
-            "#userstory_acceptance_criteria", TextArea
-        )
-        userstory_out_of_scope = self.query_one("#userstory_out_of_scope", TextArea)
-
-        username_name.value
-
-    def change_radiobutton_to_checked(self, value):
-        self.selected = value
-        radio_buttons = self.query(RadioButton)
-        for radio_button in radio_buttons:
-            radio_button.value = value
-
-    def is_selected(self):
-        return self.selected
-
-    """
-        Event handlers
-    """
-    def on_button_pressed(self, event: Button.Pressed):
-        button_pressed = str(event.button.id)
-        if button_pressed == "vertical_del_button":
-            logger.info(__name__, "p")
-
-    def on_text_area_pressed(self, event):
-        logger.info(__name__, f"TextArea gained focus")
-
-
-    def on_radio_button_changed(self, event: RadioButton.Changed):
-        self.selected = event.radio_button.value
-
-
-
-class Epic(Static):
-    """
-        Class representing an Epic, which abstracts the Epic and contains functionality related to managing user stories within the Epic.
-
-        Attributes:
-            epic (any): The Epic object.
-        Methods:
-            init(epic: any) -> None: Initializes the Epic instance with the given epic object.
-            compose() -> Generator: Yields the UI components required to display the Epic and user stories.
-            on_mount() -> None: Mounts the UserStory components for each user story in the Epic.
-            update_user_stories(user_stories: List[any]) -> None: Updates the UserStory components based on the provided user stories.
-            get_data() -> Dict[str, any]: Returns the data of the Epic and user stories.
-            create_new_user_story(user_story: any) -> None: Creates a new UserStory component with the provided user story and mounts it.
-            create_new_user_story_callback(result: Tuple[bool, str]) -> None: Callback function for creating a new user story. Creates a new UserStory component with the generated user story based on the result.
-            on_button_pressed(event: Button.Pressed) -> None: Event handler for button presses. Handles creating a new user story, completing the Epic, and creating an empty user story.
-    """
-
-    def __init__(self, epic) -> None:
-        self.epic = epic
-        self.userstories_names = []
-        super().__init__()
-        self.shrink = True
-        self.expand = True
-        self.selected = False
-
-    def compose(self):
-        with Horizontal(classes = "epic_title_horizontal"):
-            yield RadioButton("", classes="epic_del_btn", id="epic_del_btn")
-            yield Label(Text(self.epic["epic_name"], style="font-size: 30"), classes="epic_label")
-
-        with Horizontal(classes="user_story_horizontal_title"):
-            yield TextArea("User story", classes="user_story_textarea_title_f", disabled=True)
-            yield TextArea("Description", classes="user_story_textarea_title", disabled=True)
-            yield TextArea("Acceptance Criteria", classes="user_story_textarea_title", disabled=True)
-            yield TextArea("Out of Scope", classes="user_story_textarea_title", disabled=True)
-
-        yield Vertical(classes="user_story_vertical", id="user_story_vertical")
-
-        with Horizontal(classes="user_story_horizontal_btns"):
-            yield Button("Create New User Story", id="create_new_user_story_btn")
-            yield Button("Complete Cells", variant="success", id="complete_cell_btn")
-
-    def update_user_stories(self, user_stories):
-        """
-            Updates the UserStory components based on the provided user stories.
-        """
-        user_stories_component = self.query_one("#user_story_vertical", Vertical)
-        user_stories_component.remove_children(UserStory)
-        for user_story in user_stories:
-            user_stories_component.mount(UserStory(user_story))
-
-    def get_data(self):
-        """
-            Returns the data of the Epic and user stories.
-        """
-        user_stories_component = self.query_one("#user_story_vertical", Vertical)
-        user_stories = user_stories_component.query(UserStory)
-        user_stories_list = []
-
-        for user_story in user_stories:
-            user_stories_list.append(user_story.get_data())
-
-        return {
-            "epic_name": self.epic["epic_name"],
-            "user_stories": user_stories_list
-        }
-
-    def create_new_user_story(self, user_story):
-        user_stories_component = self.query_one("#user_story_vertical", Vertical)
-        user_stories_component.mount(UserStory(user_story))
-
-    def create_new_user_story_callback(self, result):
-        is_empty, name = result
-        user_story = create_generated_user_story(self.epic, name, is_empty)
-        self.create_new_user_story(user_story)
-
-    def is_selected(self):
-        return self.selected
-
-    """ Event handlers """
-
-    def on_mount(self):
-        """
-            Mounts the UserStory components for each user story in the Epic.
-        """
-        user_stories_component = self.query_one("#user_story_vertical", Vertical)
-        for user_story in self.epic["user_stories"]:
-            user_stories_component.mount(UserStory(user_story))
-
-    def on_button_pressed(self, event: Button.Pressed):
-        """
-            Event handler for button presses. Handles creating a new user story,
-            completing the Epic, and creating an empty user story.
-            """
-        button_pressed = str(event.button.id)
-        vertical = self.query_one("#user_story_vertical", Vertical)
-        if button_pressed == "new_epic_btn":
-            # Create an empty user story
-            empty_userstory = create_empty_userstory()
-            vertical.mount(UserStory(empty_userstory))
-
-        elif button_pressed == "complete_cell_btn":
-            # Complete the empty cells
-            response = complete_epic(self.epic, project_description)
-            if response != None:
-                self.update_user_stories(response["user_stories"])
-                logger.info(__name__, str(response))
-
-        elif button_pressed == "create_new_user_story_btn":
-            # Create a new user story
-            self.app.push_screen(NewObjectPushScreen("user story"), self.create_new_user_story_callback)
-
-    def on_radio_button_changed(self, event: RadioButton.Changed):
-        """
-            Handles the event when a RadioButton is changed. Changes the state of the
-            RadioButton and updates the user stories accordingly.
-        """
-        if event.radio_button.id == "epic_del_btn":
-            self.selected = not self.selected
-            user_stories = self.query(UserStory)
-            for user_story in user_stories:
-                user_story.change_radiobutton_to_checked(self.selected)
 
 class Options(TabbedContent):
     """
@@ -261,24 +46,50 @@ class Options(TabbedContent):
     """
     BORDER_TITLE = "Data Catalog"
 
-    def __init__(self, project_drescription, epics) -> None:
+    def __init__(self, project_description, epics) -> None:
         super().__init__()
-        self.project_drescription = project_drescription
+        self.project_description = project_description
         self.epics = epics
+        self.epic_generated = {}
 
 
     def compose(self):
         yield Button("Create New Epic", id="new_epic_btn")
         yield Label("Project description")
-        yield TextArea(self.project_drescription, id="project_description_textarea")
+        yield TextArea(self.project_description, id="project_description_textarea")
+        yield Button(" :sparkles: Enhance project description", id="enhance_description_btn", variant="primary")
 
 
-    def create_new_epics_callback(self, result):
-        #Create new epic from Chat
+    async def create_new_epics_callback(self, result):
+        """
+            Callback function for creating a new epic. Creates a new Epic 
+            component with the generated epic based on the result.
+            Called by NewObjectPushScreen when generate button is pressed.
+        """
         is_empty, name = result
+        self.epic_generated = await create_generated_epic(self.epics, name, is_empty, self.project_description)
 
-        user_story = create_generated_epic(self.epics, name, is_empty)
-        self.parent.parent.parent.create_new_epic(user_story)
+    def build_new_epic_callback(self, result):
+        if self.epic_generated != {}:
+            self.parent.parent.parent.create_new_epic(self.epic_generated)
+            self.epic_generated = {}
+        else:
+            self.notify("An error occurred while creating the epic", severity="error")
+
+    def get_data(self):
+        description_text_area = self.query_one("#project_description_textarea", TextArea)
+        description = description_text_area.text
+        return description
+    
+    async def enhance_project_description_callback(self):
+        """
+            Callback function for enhancing the project description. Enhances the project description
+        """
+        description_text_area = self.query_one("#project_description_textarea", TextArea)
+        description = description_text_area.text
+        enhenced_description = await enhance_project_description(description)
+        description_text_area.text = enhenced_description
+        self.project_description = enhenced_description
 
     """ Event handlers """
 
@@ -287,13 +98,21 @@ class Options(TabbedContent):
         #Create a new Epic
         if button_pressed == "new_epic_btn":
             logger.info(__name__, "epic btn")
-            self.app.push_screen(NewObjectPushScreen("epic"), self.create_new_epics_callback)
+            self.app.push_screen(NewObjectPushScreen("epic",  self.create_new_epics_callback), self.build_new_epic_callback)
         elif button_pressed == "save_description_btn":
             description_text_area = self.query_one("#project_description_textarea", TextArea)
             description = description_text_area.text
-            #self.parent.save_project_description(description)
+        elif button_pressed == "enhance_description_btn":
+            self.app.push_screen(Loader("Enhancing project description :sparkles:..."))
+            self.run_worker(self.enhance_project_description_callback, exclusive=False, thread=True)
 
 
+    def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
+        """Called when the worker state changes."""
+        if WorkerState.SUCCESS == event.worker.state:
+            if event.worker.name == "enhance_project_description_callback":
+                self.app.pop_screen()
+                self.enhance_project_description_callback()
 
 class Project(Static):
     """
@@ -332,10 +151,11 @@ class Project(Static):
         super().__init__()
         self.path = path
         self.project = project
-        project_description = project["project_description"]
+        self.project_description = project["project_description"]
         self.version = ""
         self.idx = idx
         self.save_data_callback = save_data_callback
+
 
     def compose(self):
         with Horizontal():
@@ -369,6 +189,7 @@ class Project(Static):
         for epic in epics:
             epics_list.append(epic.get_data())
 
+        self.project["project_description"] = self.query_one(Options).get_data()
         versions = self.project["versions"]
 
         # Update the epics list
@@ -378,6 +199,7 @@ class Project(Static):
                 break
         aux_project = self.project
         aux_project["versions"] = versions
+        
         return aux_project
 
     def populate_components(self, version_name):
@@ -423,7 +245,7 @@ class Project(Static):
         """
             Creates a new epic within the project.
         """
-        self.query_one("#epics_list", VerticalScroll).mount(Epic(epic))
+        self.query_one("#epics_list", VerticalScroll).mount(Epic(epic, self.project_description))
 
     def delete_components_callback(self, params):
         epics = self.query(Epic)
