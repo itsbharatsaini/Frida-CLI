@@ -66,6 +66,7 @@ COMMENT_EXTENSION = {
     ],
     ".js": ["*", None, None, None, None],
 }
+DATA = []
 
 
 def save_documentation(path: str, lines: List[Tuple[str, str]]) -> None:
