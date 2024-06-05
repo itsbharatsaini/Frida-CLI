@@ -66,6 +66,7 @@ COMMENT_EXTENSION = {
     ],
     ".js": ["*", None, None, None, None],
 }
+DATA = []
 
 
 def save_documentation(path: str, lines: List[Tuple[str, str]]) -> None:
@@ -188,7 +189,7 @@ def get_code_block(
         if matches == []:
             logger.info(__name__, f"Did not match to extract the code block: {text}")
         else:
-            information = {"code": matches[0]}
+            information = {"code": matches[0].replace("```", "")}
 
             if extension in SUPPORTED_DOC_EXTENSION:
                 lines = extract_documentation(
@@ -276,8 +277,7 @@ def document_file(
                 response = chatbot_agent.chat(prompt, True)
 
                 while (
-                    "```" not in response
-                    or COMMENT_EXTENSION[extension][0] not in response
+                    COMMENT_EXTENSION[extension][0] not in response
                 ) and i <= MAX_RETRIES:
                     logger.info(
                         __name__, f"Retry # {i} for file {file} response: {response}"
@@ -285,7 +285,7 @@ def document_file(
                     response = chatbot_agent.chat(prompt, True)
                     i += 1
                 logger.info(__name__, f"file {file}, resp: {response}")
-                if "```" in response and COMMENT_EXTENSION[extension][0] in response:
+                if COMMENT_EXTENSION[extension][0] in response:
                     information = get_code_block(response, extension, False)
                     if information:
                         new_code = information["code"]
@@ -317,8 +317,7 @@ def document_file(
                         response = chatbot_agent.chat(prompt, True)
 
                         while (
-                            "```" not in response
-                            or COMMENT_EXTENSION[extension][0] not in response
+                            COMMENT_EXTENSION[extension][0] not in response
                         ) and i <= MAX_RETRIES:
                             logger.info(
                                 __name__,
@@ -329,10 +328,7 @@ def document_file(
                         i = 1
                         logger.info(__name__, f"Response: {response}")
 
-                        if (
-                            "```" in response
-                            and COMMENT_EXTENSION[extension][0] in response
-                        ):
+                        if COMMENT_EXTENSION[extension][0] in response:
                             information = get_code_block(
                                 response, extension, True, funct_name
                             )
