@@ -1,4 +1,4 @@
-from textual.containers import  VerticalScroll, Vertical, Horizontal
+from textual.containers import VerticalScroll, Vertical, Horizontal
 from textual.widgets import DirectoryTree, Static, Select, Button
 from fridacli.config import get_vars_as_dict
 from rich.traceback import Traceback
@@ -7,26 +7,30 @@ from textual.reactive import var
 from rich.syntax import Syntax
 from typing import Iterable
 from pathlib import Path
-from .push_screens import EpicGenerator, DocGenerator, DocumentResultResume
+from .push_screens import (
+    EpicGenerator,
+    DocGenerator,
+    DocumentResultResume,
+    MigrationDocGenerator,
+)
 from fridacli.config import OS
 import subprocess
 import os
 
 logger = Logger()
 
-LINES = """Generate Documentation
-generate_epics
-asp_voyager
-""".splitlines()
+LINES = ["Generate Documentation", "Migration"]
+
 
 class FilteredDirectoryTree(DirectoryTree):
     def filter_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
         """
-            Filter out paths that start with a dot or tilde.
+        Filter out paths that start with a dot or tilde.
         """
         logger.info(__name__, "(filter_paths) Filtering paths")
         return [path for path in paths if not path.name.startswith((".", "~"))]
-    
+
+
 class CodeView(Static):
     show_tree = var(True)
     CSS_PATH = "tcss/frida_styles.tcss"
@@ -60,7 +64,10 @@ class CodeView(Static):
     ) -> None:
         """Called when the user click a file in the directory tree."""
 
-        logger.info(__name__, f"(on_directory_tree_file_selected) File selected: {str(event.path)}")
+        logger.info(
+            __name__,
+            f"(on_directory_tree_file_selected) File selected: {str(event.path)}",
+        )
         event.stop()
         try:
             extension = event.path.suffix
@@ -69,10 +76,10 @@ class CodeView(Static):
                 if OS == "win":
                     os.startfile(event.path)
                 else:
-                    subprocess.call(('open', event.path))
+                    subprocess.call(("open", event.path))
             else:
                 self.update_file_code_view(event.path, False)
-        except Exception as e :
+        except Exception as e:
             logger.error(__name__, f"Error opening file: {e}")
 
     def update_file_code_view(self, path, is_chat):
@@ -93,16 +100,26 @@ class CodeView(Static):
         else:
             code_view.update(syntax)
 
-            #If wasn't called from chat, update the file button
+            # If wasn't called from chat, update the file button
             if not is_chat:
                 if self.file_button_open == "":
                     self.file_button_open = str(path)
-                    self.parent.parent.query_one("#chat_view").mount_file_button(str(path), False)
+                    self.parent.parent.query_one("#chat_view").mount_file_button(
+                        str(path), False
+                    )
                 else:
-                    file_name = self.file_button_open.split("\\")[-1] if OS == "win" else self.file_button_open.split("/")[-1]
-                    self.parent.parent.query_one("#chat_view").delete_file_button(file_name, False)
+                    file_name = (
+                        self.file_button_open.split("\\")[-1]
+                        if OS == "win"
+                        else self.file_button_open.split("/")[-1]
+                    )
+                    self.parent.parent.query_one("#chat_view").delete_file_button(
+                        file_name, False
+                    )
                     self.file_button_open = str(path)
-                    self.parent.parent.query_one("#chat_view").mount_file_button(str(path), False)
+                    self.parent.parent.query_one("#chat_view").mount_file_button(
+                        str(path), False
+                    )
 
             self.query_one("#cv_code_scroll").scroll_home(animate=False)
             self.sub_title = str(path)
@@ -116,19 +133,13 @@ class CodeView(Static):
 
     def on_button_pressed(self, event: Button.Pressed):
         button_pressed = str(event.button.id)
-        logger.info(__name__, button_pressed)
-        if button_pressed == "btn_recipe" :
-            """
-            TODO: Assure that the threads are syncroniced and do not stop the GUI  thread
-            """
-            if self.recipe_selected == "Generate Documentation" :
+        if button_pressed == "btn_recipe":
+            if self.recipe_selected == "Generate Documentation":
                 logger.info(__name__, "On UI calling to document files")
                 self.app.push_screen(DocGenerator(), self.doc_generator_callback)
 
-            elif self.recipe_selected == "generate_epics":
-                logger.info(__name__, "epics")
-                self.app.push_screen(EpicGenerator())
-            
+            elif self.recipe_selected == "Migration":
+                self.app.push_screen(MigrationDocGenerator())
 
     def doc_generator_callback(self, result):
         self.query_one("#cv_tree_view", FilteredDirectoryTree).reload()
