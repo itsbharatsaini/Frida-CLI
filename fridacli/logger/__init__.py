@@ -1,6 +1,8 @@
 import os
 import logging
 import datetime
+HOME_PATH = os.path.expanduser("~")
+config_file_path = f"{HOME_PATH}/.fridacli"
 
 class Logger:
     _instance = None
@@ -9,8 +11,10 @@ class Logger:
     def __new__(cls, file_location="./"):
         if cls._instance is None:
             cls._instance = super(Logger, cls).__new__(cls)
-            cls._instance.LOG_FILE_LOCATION = f"{file_location}{cls._log_file_name}"
-            cls._instance.STATS_FILE_LOCATION = f"{file_location}{cls._stat_file_name}"
+            path = os.path.join(HOME_PATH, "fridacli_logs/")
+
+            cls._instance.LOG_FILE_LOCATION = f"{path}{cls._log_file_name}"
+            cls._instance.STATS_FILE_LOCATION = f"{path}{cls._stat_file_name}"
             cls._instance.setup_logger()
         return cls._instance
 

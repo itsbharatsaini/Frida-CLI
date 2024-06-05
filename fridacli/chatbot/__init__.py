@@ -23,7 +23,14 @@ logger = Logger()
 
 
 class ChatbotAgent:
+    _instance = None
     SIMILARITY_THRESHOLD = 0.8
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(ChatbotAgent, cls).__new__(cls)
+            cls._instance.__init__()
+        return cls._instance        
 
     def __init__(self) -> None:
         env_vars = get_config_vars()
@@ -37,6 +44,13 @@ class ChatbotAgent:
             Model name: {self.__CHAT_MODEL_NAME}
             LLMOPS API key: {self.__LLMOPS_API_KEY}
         """)
+        self.__build_model()
+    
+    def update_env_vars(self):
+        env_vars = get_config_vars()
+
+        self.__LLMOPS_API_KEY = env_vars["LLMOPS_API_KEY"]
+        self.__CHAT_MODEL_NAME = env_vars["CHAT_MODEL_NAME"]
         self.__build_model()
 
     def __build_model(self):
@@ -170,6 +184,7 @@ class ChatbotAgent:
             The chatbot is incapable to response simple questions like:
             how are you, since it tries to responde with code
         """
+        self.update_env_vars()
         logger.info(__name__, f"(chat) Chat with message: {message} and special_prompt: {special_prompt}")
         response = ""
         if not special_prompt:

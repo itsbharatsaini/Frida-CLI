@@ -24,15 +24,21 @@ from .documentation import (
     extract_doc_csharp_all_func,
 )
 from .regex_configuration import CODE_FROM_ALL_EXTENSIONS
-import tree_sitter_c_sharp as tscsharp
-import tree_sitter_python as tspython
-import tree_sitter_java as tsjava
+from fridacli.config import OS
 from tree_sitter import Language, Parser
+from fridacli.logger import Logger
+import tree_sitter_c_sharp as tscsharp
+import tree_sitter_java as tsjava
+if OS == "win":
+    import tree_sitter_python as tspython
+    PY_LANGUAGE = Language(tspython.language())
+else:
+    PY_LANGUAGE = Language(tscsharp.language())
 
-# Loading grammars
 CS_LANGUAGE = Language(tscsharp.language())
-PY_LANGUAGE = Language(tspython.language())
 JAVA_LANGUAGE = Language(tsjava.language())
+
+
 
 logger = Logger()
 
