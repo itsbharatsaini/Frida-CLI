@@ -66,7 +66,6 @@ COMMENT_EXTENSION = {
     ],
     ".js": ["*", None, None, None, None],
 }
-DATA = []
 
 
 def save_documentation(path: str, lines: List[Tuple[str, str]]) -> None:
@@ -164,7 +163,7 @@ def extract_documentation(
 
 
 def get_code_block(
-    text: str, extension: str, one_function: bool, funct_name: str | None = None
+    file_name: str, text: str, extension: str, one_function: bool, funct_name: str | None = None
 ) -> Dict[str, str | List[Tuple[str, str]]]:
     """
     Extracts the code block and documentation from the response.
@@ -187,30 +186,32 @@ def get_code_block(
         matches = code_pattern.findall(text)
 
         if matches == []:
-            logger.info(__name__, f"Did not match to extract the code block: {text}")
+            logger.error(__name__, f"(get_code_block) Didn't match to extract the code block: {text}")
         else:
             information = {"code": matches[0].replace("```", "")}
+            logger.info(__name__, f"(get_code_block) code block: {matches[0].replace('```', '')}")
 
             if extension in SUPPORTED_DOC_EXTENSION:
-                lines = extract_documentation(
+                lines, errors = extract_documentation(
                     information["code"], extension, one_function, funct_name
                 )
                 # If documentation was returned
-                if lines is not None and lines != []:
+                if lines != []:
                     information["documentation"] = lines
                 else:
-                    logger.info(
+                    logger.error(
                         __name__,
-                        f"Could not generate documentation for function {funct_name}",
+                        f"(get_code_block) Couldn't generate documentation for file {file_name}",
                     )
+                return information, errors
             else:
-                logger.info(
+                logger.error(
                     __name__,
-                    f"Do not support the {extension} extension by now.",
+                    f"(get_code_block) Do not support the {extension} extension by now.",
                 )
-            return information
+                return information, [f"Couldn't extract the documentation to generate file because the {extension} extension is not supported."]
     except Exception as e:
-        logger.error(__name__, f"Function: get_code_block, Error: {e}")
+        logger.error(__name__, f"(get_code_block) {e}")
 
 
 def write_code_to_path(
@@ -286,7 +287,8 @@ def document_file(
                     i += 1
                 logger.info(__name__, f"file {file}, resp: {response}")
                 if COMMENT_EXTENSION[extension][0] in response:
-                    information = get_code_block(response, extension, False)
+                    information, errors = get_code_block(file, response, extension, False)
+                    logger.info(__name__, f"Errors for file {file}: {errors}")
                     if information:
                         new_code = information["code"]
                         if "documentation" in information.keys():
@@ -329,9 +331,10 @@ def document_file(
                         logger.info(__name__, f"Response: {response}")
 
                         if COMMENT_EXTENSION[extension][0] in response:
-                            information = get_code_block(
-                                response, extension, True, funct_name
+                            information, errors = get_code_block(
+                                file, response, extension, True, funct_name
                             )
+                            logger.info(__name__, f"Errors for func {funct_name}: {errors}")
                         if information:
                             document_code = information["code"]
                             document_code = ("\n" + document_code).splitlines()

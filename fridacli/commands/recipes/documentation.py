@@ -1,4 +1,6 @@
 import re
+from typing import Tuple, List
+from tree_sitter import Tree
 from fridacli.logger import Logger
 from .regex_configuration import (
     PARAM_CSHARP,
@@ -15,16 +17,26 @@ logger = Logger()
 # Documentacion Java
 
 
-def extract_doc_java(comments):
+def extract_doc_java(comments: str) -> Tuple[List, str | None]:
+    """
+    Extracts documentation from Java-style comments.
+
+    Args:
+        comments (str): The string containing the Java-style comments.
+
+    Returns:
+        Tuple[List, str | None]: A tuple containing the extracted documentation as a list of formatted lines and an optional error message.
+    """
     lines = []
     first_parameter = True
     first_return = True
     first_exception = True
     first_description = True
 
-    for line in comments.splitlines():
-        try:
+    try:
+        for line in comments.splitlines():
             if line.replace("*", "").strip() != "":
+                # Check if the current string refers to description, arguments, return values or exception
                 description_match = re.match(DESCRIPTION_JAVA, line)
                 param_match = re.match(PARAM_JAVA, line)
                 returns_match = re.match(RETURN_JAVA, line)
@@ -77,115 +89,214 @@ def extract_doc_java(comments):
                         lines.append(("text", f"{description_match.group(1)}"))
                         first_description = False
                     else:
+                        # If not first description line, add the line to the description tuple
                         lines[-1] = (
                             "text",
                             lines[-1][1] + "\n" + description_match.group(1),
                         )
-        except Exception as e:
-            logger.error(__name__, e)
-        
-    return lines
+    except Exception as e:
+        logger.error(__name__, f"(extract_doc_java) {e}")
+        # If somethin went wrong, an empty list and the error is returned
+        return [], e
+    else:
+        # If everything went right, the documentation and no errors are returned
+        return lines, None
 
 
-def find_all_func_java(node):
+def find_all_func_java(node: Tree):
+    """
+    Recursively finds all function and class definitions in a Java code tree.
+
+    Args:
+        node (Tree): The root node of the Java code tree.
+
+    Returns:
+        tuple: A list of dictionaries representing function definitions, each with the following keys:
+                - "name" (str): The name of the function.
+                - "definition" (str): The definition of the function.
+                - "body" (str): The body of the function.
+                - "range" (tuple[int, int]): The start and end byte range of the function.
+                - "comments" (str): The comments associated with the function definition.
+                - "comments_range" (tuple[int, int]): The start and end byte range of the comments.
+               A list of dictionaries representing class definitions, each with the following keys:
+                - "name" (str): The name of the class.
+                - "definition" (str): The definition of the class.
+    Raises:
+        Exception: If an error occurs during processing.
+    """
     definition, class_defintion, comments, name = "", "", "", ""
     functions, classes = [], []
     range = None
 
-    for n in node.children:
-        if n.type == "class_declaration":
-            for data in n.children:
-                if data.type == "class_body":
-                    classes.append({"name": class_name, "definition": class_defintion})
-                    class_defintion, class_name = "", ""
-                elif data.type == "identifier":
-                    class_defintion += data.text.decode("utf8")
-                    class_name = data.text.decode("utf8")
+    try:
+        for n in node.children:
+            # Extract information from a class
+            if n.type == "class_declaration":
+                for data in n.children:
+                    if data.type == "class_body":
+                        classes.append(
+                            {"name": class_name, "definition": class_defintion}
+                        )
+                        class_defintion, class_name = "", ""
+                    elif data.type == "identifier":
+                        class_defintion += data.text.decode("utf8")
+                        class_name = data.text.decode("utf8")
+                    else:
+                        class_defintion += data.text.decode("utf8")
+                        class_defintion += " "
+            # Extract information from a comment block
+            if n.type == "block_comment":
+                if comments == "":
+                    comments = n.text.decode("utf8")
+                    if "/**" in comments:
+                        range = (n.range.start_byte, n.range.end_byte)
+                    else:
+                        comments = ""
+            # Extract information from a method
+            if n.type == "method_declaration":
+                for data in n.children:
+                    if data.type == "block":
+                        body = data.text.decode("utf8")
+                        functions.append(
+                            {
+                                "name": name,
+                                "definition": definition,
+                                "body": body,
+                                "range": (n.range.start_byte, n.range.end_byte),
+                                "comments": comments,
+                                "comments_range": range,
+                            }
+                        )
+                        definition, comments = "", ""
+                        range = None
+                    elif data.type == "identifier":
+                        definition += data.text.decode("utf8")
+                        name = data.text.decode("utf8")
+                    else:
+                        definition += data.text.decode("utf8")
+                        definition += " "
+            # Call the function using the current node as the root
+            if n.children != []:
+                f, c = find_all_func_java(n)
+                if f != []:
+                    functions.extend(f)
+                if c != []:
+                    classes.extend(c)
+    except Exception as e:
+        # If something went wrong, only empty lists are returned
+        logger.error(__name__, f"(find_all_func_java) {e}")
+        return [], []
+    else:
+        return functions, classes
+
+
+def extract_doc_java_all_func(node: Tree):
+    """
+    Extracts documentation from all functions in a Java abstract syntax tree.
+
+    Args:
+        node (Tree): The abstract syntax tree node representing the Java code.
+
+    Returns:
+        tuple: A tuple consisting of two lists. The first list contains the extracted documentation, organized as a list of tuples.
+               The second list contains any encountered errors while extracting the documentation from the functions.
+    """
+    docs, errors = [], []
+    try:
+        functions, classes = find_all_func_java(node)
+
+        for func in functions:
+            name = func["name"]
+            comments = func["comments"]
+            if comments != "":
+                logger.info(
+                    __name__,
+                    f"(extract_doc_java_all_func) comments retrieved from the function {name}: {comments}",
+                )
+                documentation, error = extract_doc_java(
+                    comments.replace("*/", "").replace("/**", "")
+                )
+                if error is None:
+                    docs.append(("subheader", f"Function: {name}"))
+                    docs.extend(documentation)
                 else:
-                    class_defintion += data.text.decode("utf8")
-                    class_defintion += " "
-        if n.type == "block_comment":
-            if comments == "":
-                comments = n.text.decode("utf8")
-                if "/**" in comments:
-                    range = (n.range.start_byte, n.range.end_byte)
-                else:
-                    comments = ""
-        if n.type == "method_declaration":
-            for data in n.children:
-                if data.type == "block":
-                    body = data.text.decode("utf8")
-                    functions.append(
-                        {
-                            "name": name,
-                            "definition": definition,
-                            "body": body,
-                            "range": (n.range.start_byte, n.range.end_byte),
-                            "comments": comments,
-                            "comments_range": range,
-                        }
+                    # If something went wrong while extracting the documentation from the comments
+                    errors.append(
+                        {name: "Could't extract the documentation from the function."}
                     )
-                    definition, comments = "", ""
-                    range = None
-                elif data.type == "identifier":
-                    definition += data.text.decode("utf8")
-                    name = data.text.decode("utf8")
-                else:
-                    definition += data.text.decode("utf8")
-                    definition += " "
-        if n.children != []:
-            f, c = find_all_func_java(n)
-            if f != []:
-                functions.extend(f)
-            if c != []:
-                classes.extend(c)
-    return functions, classes
+            else:
+                # If comments weren't found
+                logger.error(
+                    __name__,
+                    f"(extract_doc_java_all_func) Could't extract the comments from the function.",
+                )
+                errors.append({name: "Could't extract the comments from the function."})
+    except Exception as e:
+        logger.error(__name__, f"(extract_doc_java_all_func) {e}")
+    return docs, errors
 
 
-def extract_doc_java_all_func(node):
+def extract_doc_java_one_func(node: Tree, name: str):
+    """
+    Extracts the documentation from a Java function.
+
+    Args:
+        node (Tree): The tree representing the Java function.
+        name (str): The name of the Java function.
+
+    Returns:
+        tuple: A list containing the extracted documentation as tuples.
+               A dictionary containing the error message if a problem occurred during extraction, otherwise None.
+    """
+    comments = ""
+    error = None
     docs = []
 
-    functions, classes = find_all_func_java(node)
-
-    for func in functions:
-        name = func["name"]
-        comments = func["comments"]
-        logger.info(__name__, f"func: {name}, comments: {comments}")
+    try:
+        for n in node.children:
+            if n.type == "block_comment":
+                comments = n.text.decode("utf8")
+                break
         if comments != "":
-            documentation = extract_doc_java(
+            logger.info(
+                __name__,
+                f"(extract_doc_java_one_func) comments retrieved from the function {name}: {comments}",
+            )
+            documentation, error = extract_doc_java(
                 comments.replace("*/", "").replace("/**", "")
             )
-            if documentation != []:
+            if error is None:
                 docs.append(("subheader", f"Function: {name}"))
                 docs.extend(documentation)
+            else:
+                error = {name: "Could't extract the documentation from the function."}
+        else:
+            # If comments weren't found
+            logger.error(
+                __name__,
+                f"(extract_doc_java_one_func) Could't extract the comments from the function.",
+            )
+            error = {name: "Could't extract the comments from the function."}
+    except Exception as e:
+        logger.error(__name__, f"(extract_doc_java_one_func) {e}")
 
-    return docs
-
-
-def extract_doc_java_one_func(node, name):
-    comments = ""
-    docs = []
-
-    for n in node.children:
-        if n.type == "block_comment":
-            comments = n.text.decode("utf8")
-            break
-    logger.info(__name__, f"Comments for func '{name}': {comments}")
-    if comments != "":
-        documentation = extract_doc_java(
-            comments.replace("*/", "").replace("/**", "")
-        )
-        if documentation != []:
-            docs.append(("subheader", f"Function: {name}"))
-            docs.extend(documentation)
-
-    return docs
+    return docs, error
 
 
 # Documentacion Python
 
 
-def extract_doc_python(comments):
+def extract_doc_python(comments: str) -> Tuple[List, str | None]:
+    """
+    Extracts and formats documentation from a comments string.
+
+    Args:
+        comments (str): The comments string containing the function documentation.
+
+    Returns:
+        Tuple[List, str | None]: A tuple containing the extracted documentation as a list of formatted lines and an optional error message.
+
+    """
     lines = []
     first_parameter = True
     first_return = True
@@ -195,7 +306,7 @@ def extract_doc_python(comments):
         doc = comments.replace("\n    \n", "\n\n")
         doc = doc.split("\n\n")
 
-        logger.info(__name__, f"Lines comments: {doc}")
+        logger.info(__name__, f"(extract_doc_python) Comment lines: {doc}")
 
         if doc[0].strip() != "":
             lines.extend([("bold", "Description:"), ("text", doc[0].strip())])
@@ -204,6 +315,7 @@ def extract_doc_python(comments):
             for line in doc[1:]:
                 sep = line.split("\n")
                 if "Args:" in sep[0]:
+                    # If Args: in line, save all the argument lines listed
                     for arg in sep[1:]:
                         if "None" not in arg and arg.strip() != "":
                             if first_parameter:
@@ -231,6 +343,7 @@ def extract_doc_python(comments):
                                     lines[-1][1] + "\n" + arg.rstrip(),
                                 )
                 elif "Returns:" in sep[0]:
+                    # If Returns: in line, save all the return lines listed
                     for ret in sep[1:]:
                         if "None" not in ret and ret.strip() != "":
                             if first_return:
@@ -258,6 +371,7 @@ def extract_doc_python(comments):
                                     lines[-1][1] + "\n" + ret.rstrip(),
                                 )
                 elif "Raises:" in sep[0]:
+                    # If Raises: in line, save all the exception lines listed
                     for rai in sep[1:]:
                         if "None" not in rai and rai.strip() != "":
                             if first_exception:
@@ -290,146 +404,255 @@ def extract_doc_python(comments):
                     and first_exception
                     and line.strip() != ""
                 ):
+                    # If not found a paramater, return value or exception, add the line to the description tuple
                     lines[-1] = (
                         "text",
                         lines[-1][1] + "\n" + line.strip().replace("    ", ""),
                     )
-        return lines
     except Exception as e:
-        logger.info(__name__, f"More here... {e}")
+        logger.error(__name__, f"(extract_doc_python) {e}")
+        # If somethin went wrong, an empty list and the error is returned
+        return [], e
+    else:
+        # If everything went right, the documentation and no errors are returned
+        return lines, None
 
 
-def find_all_func_python(node):
+def find_all_func_python(node: Tree):
+    """
+    Recursively finds all function and class definitions in a Python code tree.
+
+    Args:
+        node (Tree): The root node of the Python code tree.
+
+    Returns:
+        tuple: A list of dictionaries representing function definitions, each with the following keys:
+                - "name" (str): The name of the function.
+                - "definition" (str): The definition of the function.
+                - "body" (str): The body of the function.
+                - "range" (tuple[int, int]): The start and end byte range of the function.
+                - "comments" (str): The comments associated with the function definition.
+                - "comments_range" (tuple[int, int]): The start and end byte range of the comments.
+               A list of dictionaries representing class definitions, each with the following keys:
+                - "name" (str): The name of the class.
+                - "definition" (str): The definition of the class.
+    Raises:
+        Exception: If an error occurs during processing.
+    """
     definition, class_defintion = "", ""
     functions, classes = [], []
 
-    for n in node.children:
-        if n.type == "class_definition":
-            for data in n.children:
-                if data.type == "block":
-                    classes.append({"name": class_name, "definition": class_defintion})
-                    class_defintion, class_name = "", ""
-                elif data.type == "identifier":
-                    class_defintion += data.text.decode("utf8")
-                    class_name = data.text.decode("utf8")
-                else:
-                    class_defintion += data.text.decode("utf8")
-                    class_defintion += (
-                        " " if (data.type != ":" and data.type != "parameters") else ""
-                    )
-        if n.type == "function_definition":
-            for data in n.children:
-                if data.type == "block":
-                    body = data.text.decode("utf8")
-                    temp = data.children[0].text.decode("utf8")
-                    comments, range = (
-                        (
-                            temp,
-                            (
-                                data.children[0].range.start_byte,
-                                data.children[0].range.end_byte,
-                            ),
+    try:
+        for n in node.children:
+            # Extract information from a class
+            if n.type == "class_definition":
+                for data in n.children:
+                    if data.type == "block":
+                        classes.append(
+                            {"name": class_name, "definition": class_defintion}
                         )
-                        if '"""' in temp
-                        else ("", ())
-                    )
-                    functions.append(
-                        {
-                            "name": name,
-                            "definition": definition,
-                            "body": body,
-                            "range": (n.range.start_byte, n.range.end_byte),
-                            "comments": comments,
-                            "comments_range": range,
-                        }
-                    )
-                    definition = ""
-                elif data.type == "identifier":
-                    definition += data.text.decode("utf8")
-                    name = data.text.decode("utf8")
+                        class_defintion, class_name = "", ""
+                    elif data.type == "identifier":
+                        class_defintion += data.text.decode("utf8")
+                        class_name = data.text.decode("utf8")
+                    else:
+                        class_defintion += data.text.decode("utf8")
+                        class_defintion += (
+                            " "
+                            if (data.type != ":" and data.type != "parameters")
+                            else ""
+                        )
+            # Extract information from a method
+            if n.type == "function_definition":
+                for data in n.children:
+                    if data.type == "block":
+                        body = data.text.decode("utf8")
+                        temp = data.children[0].text.decode("utf8")
+                        # Extract information from a comment block
+                        comments, range = (
+                            (
+                                temp,
+                                (
+                                    data.children[0].range.start_byte,
+                                    data.children[0].range.end_byte,
+                                ),
+                            )
+                            if '"""' in temp
+                            else ("", ())
+                        )
+                        functions.append(
+                            {
+                                "name": name,
+                                "definition": definition,
+                                "body": body,
+                                "range": (n.range.start_byte, n.range.end_byte),
+                                "comments": comments,
+                                "comments_range": range,
+                            }
+                        )
+                        definition = ""
+                    elif data.type == "identifier":
+                        definition += data.text.decode("utf8")
+                        name = data.text.decode("utf8")
+                    else:
+                        definition += data.text.decode("utf8")
+                        definition += (
+                            " "
+                            if (data.type != ":" and data.type != "parameters")
+                            else ""
+                        )
+            # Call the function using the current node as the root
+            if n.children != []:
+                f, c = find_all_func_python(n)
+                if f != []:
+                    functions.extend(f)
+                if c != []:
+                    classes.extend(c)
+    except Exception as e:
+        # If something went wrong, only empty lists are returned
+        logger.error(__name__, f"(find_all_func_python) {e}")
+        return [], []
+    else:
+        return functions, classes
+
+
+def extract_doc_python_all_func(node: Tree):
+    """
+    Extracts documentation from all functions in a Python abstract syntax tree.
+
+    Args:
+        node (Tree): The abstract syntax tree node representing the Python code.
+
+    Returns:
+        tuple: A tuple consisting of two lists. The first list contains the extracted documentation, organized as a list of tuples.
+               The second list contains any encountered errors while extracting the documentation from the functions.
+    """
+    docs, errors = [], []
+
+    try:
+        functions, classes = find_all_func_python(node)
+
+        for func in functions:
+            name = func["name"]
+            comments = func["comments"]
+            if comments != "":
+                logger.info(
+                    __name__,
+                    f"(extract_doc_java_all_func) comments retrieved from the function {name}: {comments}",
+                )
+                documentation, error = extract_doc_python(comments.replace('"""', ""))
+                if error is None:
+                    docs.append(("subheader", f"Function: {name}"))
+                    docs.extend(documentation)
                 else:
-                    definition += data.text.decode("utf8")
-                    definition += (
-                        " " if (data.type != ":" and data.type != "parameters") else ""
+                    # If something went wrong while extracting the documentation from the comments
+                    errors.append(
+                        {name: "Could't extract the documentation from the function."}
                     )
-        if n.children != []:
-            f, c = find_all_func_python(n)
-            if f != []:
-                functions.extend(f)
-            if c != []:
-                classes.extend(c)
-    return functions, classes
+            else:
+                # If comments weren't found
+                logger.error(
+                    __name__,
+                    f"(extract_doc_python_all_func) Could't extract the comments from the function.",
+                )
+                errors.append({name: "Could't extract the comments from the function."})
+    except Exception as e:
+        logger.error(__name__, f"(extract_doc_python_all_func) {e}")
+    return docs, errors
 
 
-def extract_doc_python_all_func(node):
-    docs = []
+def extract_doc_python_one_func(node: Tree, name: str):
+    """
+    Extracts the documentation from a Python function.
 
-    functions, classes = find_all_func_python(node)
+    Args:
+        node (Tree): The tree representing the Python function.
+        name (str): The name of the Python function.
 
-    for func in functions:
-        name = func["name"]
-        comments = func["comments"]
-        logger.info(__name__, f"func: {name}, comments: {comments}")
-        if comments != "":
-            documentation = extract_doc_python(comments.replace('"""', ""))
-            if documentation != []:
-                docs.append(("subheader", f"Function: {name}"))
-                docs.extend(documentation)
-
-    return docs
-
-
-def extract_doc_python_one_func(node, name):
+    Returns:
+        tuple: A list containing the extracted documentation as tuples.
+               A dictionary containing the error message if a problem occurred during extraction, otherwise None.
+    """
     docs = []
     comments = ""
+    error = None
+
     try:
-        logger.info(__name__, f"func '{name}': 1")
         for n in node.children:
+            # If the comments are above the method definition
             if n.type == "expression_statement":
                 if '"""' in n.text.decode("utf8"):
                     comments = n.text.decode("utf8")
                     break
+            # If the comments are below the method definition
             if n.type == "function_definition":
                 for data in n.children[-1].children:
                     if data.type == "expression_statement":
                         comments = data.text.decode("utf8")
                         break
                 break
-        logger.info(__name__, f"Comments for func '{name}': {comments}")
         if '"""' in comments:
-            documentation = extract_doc_python(comments.replace('"""', ""))
-            if documentation != []:
+            logger.info(
+                __name__,
+                f"(extract_doc_python_one_func) comments retrieved from the function {name}: {comments}",
+            )
+            documentation, error = extract_doc_python(comments.replace('"""', ""))
+            if documentation is None:
                 docs.append(("subheader", f"Function: {name}"))
                 docs.extend(documentation)
+            else:
+                error = {name: "Could't extract the documentation from the function."}
+        else:
+            # If comments weren't found
+            logger.error(
+                __name__,
+                f"(extract_doc_python_one_func) Could't extract the comments from the function.",
+            )
+            error = {name: "Could't extract the comments from the function."}
     except Exception as e:
-        logger.info(__name__, f"Something here... {e}")
-    return docs
+        logger.error(__name__, f"(extract_doc_python_one_func) {e}")
+
+    return docs, error
 
 
 # Documentacion C#
 
 
-def extract_doc_csharp(comments):
+def extract_doc_csharp(comments: str) -> Tuple[List, str | None]:
+    """
+    Extracts documentation from C#-style comments.
+
+    Args:
+        comments (str): The string containing the C#-style comments.
+
+    Returns:
+        Tuple[List, str | None]: A tuple containing the extracted documentation as a list of formatted lines and an optional error message.
+    """
     first_parameter = True
     first_return = True
     first_exception = True
-    start = comments.find("<summary>")
-    end = comments.find("</summary>")
-    description = comments[start + 9 : end]
-    comments = comments[end + 10 + 1 :]
 
-    if description != "":
-        lines = [
-            ("bold", "Description:"),
-            ("text", description.strip()),
-        ]
-    else:
-        lines = []
+    try:
+        # Extraction of the description
+        start = comments.find("<summary>")
+        end = comments.find("</summary>")
+        description = comments[start + 9 : end]
+        comments = comments[end + 10 + 1 :]
 
-    logger.info(__name__, comments.splitlines())
+        if description != "":
+            lines = [
+                ("bold", "Description:"),
+                ("text", description.strip()),
+            ]
+        else:
+            lines = []
 
-    for comment in comments.splitlines():
-        try:
+        logger.info(
+            __name__, f"(extract_doc_csharp) Comment lines: {comments.splitlines()}"
+        )
+
+        for comment in comments.splitlines():
+            # Check if the current string refers to description, arguments, return values or exception
             param_match = re.match(
                 PARAM_CSHARP,
                 comment,
@@ -460,7 +683,6 @@ def extract_doc_csharp(comments):
                             f"{param_match.group(1)}. {param_match.group(2)}",
                         )
                     )
-
             elif returns_match:
                 if first_return:
                     lines.append(("bold", "Return:"))
@@ -485,14 +707,36 @@ def extract_doc_csharp(comments):
                             f"{exception_match.group(1)}. {exception_match.group(2)}",
                         )
                     )
+    except Exception as e:
+        logger.error(__name__, f"(extract_doc_csharp) {e}")
+        # If somethin went wrong, an empty list and the error is returned
+        return [], e
+    else:
+        # If everything went right, the documentation and no errors are returned
+        return lines, None
 
-        except Exception as e:
-            logger.error(__name__, e)
 
-    return lines
+def find_all_func_csharp(node: Tree):
+    """
+    Recursively finds all function and class definitions in a C# code tree.
 
+    Args:
+        node (Tree): The root node of the C# code tree.
 
-def find_all_func_csharp(node):
+    Returns:
+        tuple: A list of dictionaries representing function definitions, each with the following keys:
+                - "name" (str): The name of the function.
+                - "definition" (str): The definition of the function.
+                - "body" (str): The body of the function.
+                - "range" (tuple[int, int]): The start and end byte range of the function.
+                - "comments" (str): The comments associated with the function definition.
+                - "comments_range" (tuple[int, int]): The start and end byte range of the comments.
+               A list of dictionaries representing class definitions, each with the following keys:
+                - "name" (str): The name of the class.
+                - "definition" (str): The definition of the class.
+    Raises:
+        Exception: If an error occurs during processing.
+    """
     comments, definition, class_defintion = (
         "",
         "",
@@ -501,91 +745,154 @@ def find_all_func_csharp(node):
     start, end = -1, -1
     functions, classes = [], []
 
-    for n in node.children:
-        if node.type == "declaration_list":
-            if n.type == "class_declaration":
-                for data in n.children:
-                    if data.type == "identifier":
-                        class_defintion += data.text.decode("utf8") + " "
-                        class_name = data.text.decode("utf8")
-                    elif data.type != "declaration_list":
-                        class_defintion += data.text.decode("utf8") + " "
-                    else:
-                        classes.append(
-                            {"name": class_name, "definition": class_defintion}
-                        )
-                        class_name = ""
-                        class_defintion = ""
+    try:
+        for n in node.children:
+            if node.type == "declaration_list":
+                # Extract information from a class
+                if n.type == "class_declaration":
+                    for data in n.children:
+                        if data.type == "identifier":
+                            class_defintion += data.text.decode("utf8") + " "
+                            class_name = data.text.decode("utf8")
+                        elif data.type != "declaration_list":
+                            class_defintion += data.text.decode("utf8") + " "
+                        else:
+                            classes.append(
+                                {"name": class_name, "definition": class_defintion}
+                            )
+                            class_name = ""
+                            class_defintion = ""
+                # Extract information from a comment block
+                if n.type == "comment":
+                    comments += n.text.decode("utf8") + "\n"
+                    if start == -1:
+                        start = n.range.start_byte
+                    end = n.range.end_byte
+                # Extract information from a method
+                if n.type == "method_declaration" or n.type == "constructor_declaration":
+                    for data in n.children:
+                        if data.type == "block":
+                            body = data.text.decode("utf8")
+                            functions.append(
+                                {
+                                    "name": name,
+                                    "definition": definition,
+                                    "body": body,
+                                    "comments": comments,
+                                    "range": (n.range.start_byte, n.range.end_byte),
+                                    "comments_range": (start, end),
+                                }
+                            )
+                            (
+                                comments,
+                                definition,
+                                class_defintion,
+                            ) = ("", "", "")
+                            start, end = -1, -1
+                        elif data.type == "identifier":
+                            definition += data.text.decode("utf8") + " "
+                            name = data.text.decode("utf8")
+                        else:
+                            definition += data.text.decode("utf8") + " "
+            # Call the function using the current node as the root
+            if n.children != []:
+                f, c = find_all_func_csharp(n)
+                if f != []:
+                    functions.extend(f)
+                if c != []:
+                    classes.extend(c)
+    except Exception as e:
+        # If something went wrong, only empty lists are returned
+        logger.error(__name__, f"(find_all_func_java) {e}")
+        return [], []
+    else:
+        return functions, classes
+
+def extract_doc_csharp_all_func(node: str):
+    """
+    Extracts documentation from all functions in a C# abstract syntax tree.
+
+    Args:
+        node (Tree): The abstract syntax tree node representing the C# code.
+
+    Returns:
+        tuple: A tuple consisting of two lists. The first list contains the extracted documentation, organized as a list of tuples.
+               The second list contains any encountered errors while extracting the documentation from the functions.
+    """
+    docs, errors = [], []
+
+    try:
+        functions, classes = find_all_func_csharp(node)
+
+        for func in functions:
+            name = func["name"]
+            comments = func["comments"]
+            if comments != "":
+                logger.info(
+                    __name__,
+                    f"(extract_doc_csharp_all_func) comments retrieved from the function {name}: {comments}",
+                )
+                documentation, error = extract_doc_csharp(comments.replace("///", ""))
+                if error is None:
+                    docs.append(("subheader", f"Function: {name}"))
+                    docs.extend(documentation)
+                else:
+                    # If something went wrong while extracting the documentation from the comments
+                    errors.append(
+                        {name: "Could't extract the documentation from the function."}
+                    )
+            else:
+                # If comments weren't found
+                logger.error(
+                    __name__,
+                    f"(extract_doc_csharp_all_func) Could't extract the comments from the function.",
+                )
+                errors.append({name: "Could't extract the comments from the function."})
+    except Exception as e:
+        logger.error(__name__, f"(extract_doc_csharp_all_func) {e}")
+    return docs, errors
+
+
+def extract_doc_csharp_one_func(node: Tree, name: str):
+    """
+    Extracts the documentation from a C# function.
+
+    Args:
+        node (Tree): The tree representing the C# function.
+        name (str): The name of the C# function.
+
+    Returns:
+        tuple: A list containing the extracted documentation as tuples.
+               A dictionary containing the error message if a problem occurred during extraction, otherwise None.
+    """
+    comments = ""
+    docs = []
+    error = None
+
+    try:
+        for n in node.children:
             if n.type == "comment":
                 comments += n.text.decode("utf8") + "\n"
-                if start == -1:
-                    start = n.range.start_byte
-                end = n.range.end_byte
-            if n.type == "method_declaration" or n.type == "constructor_declaration":
-                for data in n.children:
-                    if data.type == "block":
-                        body = data.text.decode("utf8")
-                        functions.append(
-                            {
-                                "name": name,
-                                "definition": definition,
-                                "body": body,
-                                "comments": comments,
-                                "range": (n.range.start_byte, n.range.end_byte),
-                                "comments_range": (start, end),
-                            }
-                        )
-                        (
-                            comments,
-                            definition,
-                            class_defintion,
-                        ) = ("", "", "")
-                        start, end = -1, -1
-                    elif data.type == "identifier":
-                        definition += data.text.decode("utf8") + " "
-                        name = data.text.decode("utf8")
-                    else:
-                        definition += data.text.decode("utf8") + " "
-        if n.children != []:
-            f, c = find_all_func_csharp(n)
-            if f != []:
-                functions.extend(f)
-            if c != []:
-                classes.extend(c)
-    return functions, classes
-
-
-def extract_doc_csharp_all_func(node):
-    docs = []
-
-    functions, classes = find_all_func_csharp(node)
-
-    for func in functions:
-        name = func["name"]
-        comments = func["comments"]
-        logger.info(__name__, f"func: {name}, comments: {comments}")
         if comments != "":
-            documentation = extract_doc_csharp(comments.replace("///", ""))
-            if documentation != []:
+            logger.info(
+                __name__,
+                f"(extract_doc_csharp_one_func) comments retrieved from the function {name}: {comments}",
+            )
+            documentation, error = extract_doc_csharp(comments.replace("///", ""))
+
+            if documentation is None:
                 docs.append(("subheader", f"Function: {name}"))
                 docs.extend(documentation)
+            else:
+                error = {name: "Could't extract the documentation from the function."}
+        else:
+            # If comments weren't found
+            logger.error(
+                __name__,
+                f"(extract_doc_csharp_one_func) Could't extract the comments from the function.",
+            )
+            error = {name: "Could't extract the comments from the function."}
+    except Exception as e:
+        logger.error(__name__, f"(extract_doc_csharp_one_func) {e}")
 
-    return docs
-
-
-def extract_doc_csharp_one_func(node, name):
-    comments = ""
-    lines = []
-
-    for n in node.children:
-        if n.type == "comment":
-            comments += n.text.decode("utf8") + "\n"
-    logger.info(__name__, comments)
-    if comments != "":
-        documentation = extract_doc_csharp(comments.replace("///", ""))
-
-        if documentation != []:
-            lines.append(("subheader", f"Function: {name}"))
-            lines.extend(documentation)
-
-    return lines
+    return docs, error
