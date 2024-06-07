@@ -202,39 +202,39 @@ def extract_doc_java_all_func(node: Tree):
                The second list contains any encountered errors while extracting the documentation from the functions.
     """
     docs, errors = [], []
-    
+
     functions, classes = find_all_func_java(node)
-    
+    total = len(functions)
+    documented = 0
+
     for func in functions:
-        try:
-            name = func["name"]
-            comments = func["comments"]
-            if comments != "":
-                logger.info(
-                    __name__,
-                    f"(extract_doc_java_all_func) comments retrieved from the function {name}: {comments}",
-                )
-                documentation, error = extract_doc_java(
-                    comments.replace("*/", "").replace("/**", "")
-                )
-                if error is None:
-                    docs.append(("subheader", f"Function: {name}"))
-                    docs.extend(documentation)
-                else:
-                    # If something went wrong while extracting the documentation from the comments
-                    errors.append(
-                        {name: "Could't extract the documentation from the function."}
-                    )
+        name = func["name"]
+        comments = func["comments"]
+        if comments != "":
+            logger.info(
+                __name__,
+                f"(extract_doc_java_all_func) comments retrieved from the function {name}: {comments}",
+            )
+            documentation, error = extract_doc_java(
+                comments.replace("*/", "").replace("/**", "")
+            )
+            if error is None:
+                docs.append(("subheader", f"Function: {name}"))
+                docs.extend(documentation)
+                documented += 1
             else:
-                # If comments weren't found
-                logger.error(
-                    __name__,
-                    f"(extract_doc_java_all_func) Could't extract the comments from the function {name}.",
+                # If something went wrong while extracting the documentation from the comments
+                errors.append(
+                    {name: "Could't extract the documentation from the function."}
                 )
-                errors.append({name: "Could't extract the comments from the function."})
-        except Exception as e:
-            logger.error(__name__, f"(extract_doc_java_all_func) {e}")
-    return docs, errors
+        else:
+            # If comments weren't found
+            logger.error(
+                __name__,
+                f"(extract_doc_java_all_func) Could't extract the comments from the function {name}.",
+            )
+            errors.append({name: "Could't extract the comments from the function."})
+    return docs, errors, (total, documented)
 
 
 def extract_doc_java_one_func(node: Tree, name: str):
@@ -530,36 +530,35 @@ def extract_doc_python_all_func(node: Tree):
     """
     docs, errors = [], []
 
-    try:
-        functions, classes = find_all_func_python(node)
+    functions, classes = find_all_func_python(node)
+    total = len(functions)
+    documented = 0
 
-        for func in functions:
-            name = func["name"]
-            comments = func["comments"]
-            if comments != "":
-                logger.info(
-                    __name__,
-                    f"(extract_doc_java_all_func) comments retrieved from the function {name}: {comments}",
-                )
-                documentation, error = extract_doc_python(comments.replace('"""', ""))
-                if error is None:
-                    docs.append(("subheader", f"Function: {name}"))
-                    docs.extend(documentation)
-                else:
-                    # If something went wrong while extracting the documentation from the comments
-                    errors.append(
-                        {name: "Could't extract the documentation from the function."}
-                    )
+    for func in functions:
+        name = func["name"]
+        comments = func["comments"]
+        if comments != "":
+            logger.info(
+                __name__,
+                f"(extract_doc_java_all_func) comments retrieved from the function {name}: {comments}",
+            )
+            documentation, error = extract_doc_python(comments.replace('"""', ""))
+            if error is None:
+                docs.append(("subheader", f"Function: {name}"))
+                docs.extend(documentation)
             else:
-                # If comments weren't found
-                logger.error(
-                    __name__,
-                    f"(extract_doc_python_all_func) Could't extract the comments from the function {name}.",
+                # If something went wrong while extracting the documentation from the comments
+                errors.append(
+                    {name: "Could't extract the documentation from the function."}
                 )
-                errors.append({name: "Could't extract the comments from the function."})
-    except Exception as e:
-        logger.error(__name__, f"(extract_doc_python_all_func) {e}")
-    return docs, errors
+        else:
+            # If comments weren't found
+            logger.error(
+                __name__,
+                f"(extract_doc_python_all_func) Could't extract the comments from the function {name}.",
+            )
+            errors.append({name: "Could't extract the comments from the function."})
+    return docs, errors, (total, documented)
 
 
 def extract_doc_python_one_func(node: Tree, name: str):
@@ -598,7 +597,7 @@ def extract_doc_python_one_func(node: Tree, name: str):
                 f"(extract_doc_python_one_func) comments retrieved from the function {name}: {comments}",
             )
             documentation, error = extract_doc_python(comments.replace('"""', ""))
-            if documentation is None:
+            if error is None:
                 docs.append(("subheader", f"Function: {name}"))
                 docs.extend(documentation)
             else:
@@ -826,36 +825,35 @@ def extract_doc_csharp_all_func(node: str):
     """
     docs, errors = [], []
 
-    try:
-        functions, classes = find_all_func_csharp(node)
+    functions, classes = find_all_func_csharp(node)
+    total = len(functions)
+    documented = 0
 
-        for func in functions:
-            name = func["name"]
-            comments = func["comments"]
-            if comments != "":
-                logger.info(
-                    __name__,
-                    f"(extract_doc_csharp_all_func) comments retrieved from the function {name}: {comments}",
-                )
-                documentation, error = extract_doc_csharp(comments.replace("///", ""))
-                if error is None:
-                    docs.append(("subheader", f"Function: {name}"))
-                    docs.extend(documentation)
-                else:
-                    # If something went wrong while extracting the documentation from the comments
-                    errors.append(
-                        {name: "Could't extract the documentation from the function."}
-                    )
+    for func in functions:
+        name = func["name"]
+        comments = func["comments"]
+        if comments != "":
+            logger.info(
+                __name__,
+                f"(extract_doc_csharp_all_func) comments retrieved from the function {name}: {comments}",
+            )
+            documentation, error = extract_doc_csharp(comments.replace("///", ""))
+            if error is None:
+                docs.append(("subheader", f"Function: {name}"))
+                docs.extend(documentation)
             else:
-                # If comments weren't found
-                logger.error(
-                    __name__,
-                    f"(extract_doc_csharp_all_func) Could't extract the comments from the function {name}.",
+                # If something went wrong while extracting the documentation from the comments
+                errors.append(
+                    {name: "Could't extract the documentation from the function."}
                 )
-                errors.append({name: "Could't extract the comments from the function."})
-    except Exception as e:
-        logger.error(__name__, f"(extract_doc_csharp_all_func) {e}")
-    return docs, errors
+        else:
+            # If comments weren't found
+            logger.error(
+                __name__,
+                f"(extract_doc_csharp_all_func) Could't extract the comments from the function {name}.",
+            )
+            errors.append({name: "Could't extract the comments from the function."})
+    return docs, errors, (total, documented)
 
 
 def extract_doc_csharp_one_func(node: Tree, name: str):
@@ -885,7 +883,7 @@ def extract_doc_csharp_one_func(node: Tree, name: str):
             )
             documentation, error = extract_doc_csharp(comments.replace("///", ""))
 
-            if documentation is None:
+            if error is None:
                 docs.append(("subheader", f"Function: {name}"))
                 docs.extend(documentation)
             else:

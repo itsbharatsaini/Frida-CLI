@@ -66,6 +66,7 @@ COMMENT_EXTENSION = {
     ],
     ".js": ["*", None, None, None, None],
 }
+RESUMES = []
 
 
 def save_documentation(path: str, lines: List[Tuple[str, str]]) -> None:
@@ -186,6 +187,7 @@ def get_code_block(
     Returns:
         Dict[str, str | List[Tuple[str, str]]]: A dictionary containing the extracted code and documentation, if applicable.
         List[Dict[str, str]] | str | None: Error(s) that might have happened.
+        Tuple[int, int] | None: Number of functions in total and the number of functions documented, if applicable.
 
     Raises:
         Exception: If there is an error while executing the function.
@@ -200,10 +202,16 @@ def get_code_block(
                 __name__,
                 f"(get_code_block) Didn't match to extract the code block: {text}",
             )
-            return None, (
-                [{funct_name: "Couldn't generate the documentation for the function."}]
-                if one_function
-                else "Couldn't generate the documentation for the file."
+            return (
+                None,
+                (
+                    {
+                        funct_name: "Couldn't generate the documentation for the function."
+                    }
+                    if one_function
+                    else "Couldn't generate the documentation for the file."
+                ),
+                None,
             )
         else:
             information = {"code": matches[0].replace("```", "")}
@@ -213,35 +221,44 @@ def get_code_block(
             )
 
             if extension in SUPPORTED_DOC_EXTENSION:
-                lines, errors = extract_documentation(
-                    information["code"], extension, one_function, funct_name
-                )
+                if one_function:
+                    lines, errors = extract_documentation(
+                        information["code"], extension, one_function, funct_name
+                    )
+                    count = None
+                else:
+                    lines, errors, count = extract_documentation(
+                        information["code"], extension, one_function, funct_name
+                    )
+
                 # If documentation was returned
                 if lines != []:
                     information["documentation"] = lines
                 else:
                     logger.error(
                         __name__,
-                        f"(get_code_block) Couldn't generate documentation for file {file_name}",
+                        (
+                            f"(get_code_block) Couldn't generate documentation for function {funct_name}"
+                            if one_function
+                            else f"(get_code_block) Couldn't generate documentation for file {file_name}"
+                        ),
                     )
-                return information, errors
+                return information, errors, count
             else:
                 logger.error(
                     __name__,
                     f"(get_code_block) Do not support the {extension} extension by now.",
                 )
                 return information, (
-                    [
-                        {
-                            funct_name: f"Couldn't extract the documentation to generate file because the {extension} extension is not supported."
-                        }
-                    ]
+                    {
+                        funct_name: f"Couldn't extract the documentation to generate file because the {extension} extension is not supported."
+                    }
                     if one_function
                     else f"Couldn't extract the documentation to generate file because the {extension} extension is not supported."
                 )
     except Exception as e:
         logger.error(__name__, f"(get_code_block) {e}")
-        return None, e
+        return None, e, None
 
 
 def write_code_to_path(
@@ -283,6 +300,7 @@ def document_file(
     frida_coder: FridaCoder,
 ) -> None:
     thread_semaphore.acquire()
+
     try:
         _, extension = os.path.splitext(file)
         if frida_coder.is_programming_language_extension(extension):
@@ -296,6 +314,11 @@ def document_file(
             new_file = []
             new_doc = [("title", f"Documentation of the file '{file}'")]
             new_code = None
+
+            global_error = None
+            total = 0
+            documented = 0
+            all_errors = []
 
             i = 1
 
@@ -321,19 +344,41 @@ def document_file(
                         __name__,
                         f"(document_file) Final response for the file {file}: {response}",
                     )
-                    information, errors = get_code_block(
+                    information, errors, count = get_code_block(
                         file, response, extension, False
                     )
-                    logger.info(__name__, f"Errors for file {file}: {errors}")
                     if information is not None:
                         new_code = information["code"]
+                        all_errors = errors
                         if "documentation" in information.keys():
                             new_doc.extend(information["documentation"])
+                        if count is None:
+                            functions, classes = COMMENT_EXTENSION[extension][1](
+                                tree.root_node
+                            )
+                            total = len(functions)
+                        else:
+                            total, documented = count
+                    else:
+                        global_error = errors
                 else:
                     logger.info(
                         __name__,
                         f"(document_file) Couldn't get the expected response for the file {file}: {response}",
                     )
+                    global_error = "Couldn't generate the documentation for the file."
+                    functions, classes = COMMENT_EXTENSION[extension][1](tree.root_node)
+                    total = len(functions)
+
+                RESUMES.append(
+                    {
+                        "file": file,
+                        "global_error": global_error,
+                        "total_functions": total,
+                        "documented_functions": documented,
+                        "function_errors": all_errors,
+                    }
+                )
 
             else:
                 tree = COMMENT_EXTENSION[extension][2].parse(
@@ -341,6 +386,10 @@ def document_file(
                 )
 
                 functions, classes = COMMENT_EXTENSION[extension][1](tree.root_node)
+                total = len(functions)
+                documented = 0
+                all_errors = []
+
                 start_line = functions[0]["range"][0]
                 end_line = functions[-1]["range"][-1]
 
@@ -373,24 +422,41 @@ def document_file(
                             __name__,
                             f"(document_file) Final response for the function {funct_name}: {response}",
                         )
-                        information, errors = get_code_block(
+                        information, errors, _ = get_code_block(
                             file, response, extension, True, funct_name
                         )
-                        logger.info(__name__, f"Errors for func {funct_name}: {errors}")
-                        if information:
+                        if information is not None:
                             document_code = information["code"]
                             document_code = ("\n" + document_code).splitlines()
                             new_file.extend(document_code)
                             if "documentation" in information.keys():
                                 new_doc.extend(information["documentation"])
+                                documented += 1
+                        if errors is not None:
+                            all_errors.extend(errors)
                     else:
                         new_lines = (
                             "\n" + func["definition"] + func["body"]
                         ).splitlines()
                         new_file.extend(new_lines)
+                        all_errors.append(
+                            {
+                                funct_name: "Couldn't generate the documentation for the function."
+                            }
+                        )
 
                 new_file.extend(code[end_line:])
                 new_code = "\n".join(new_file)
+
+                RESUMES.append(
+                    {
+                        "file": file,
+                        "global_error": None,
+                        "total_functions": total,
+                        "documented_functions": documented,
+                        "function_errors": all_errors,
+                    }
+                )
 
             # If there is new code to write
             if new_code is not None:
@@ -488,3 +554,5 @@ async def exec_document(
     # If the method is slow, the chat is changed back ChatGPT-3.x
     if method == "Slow":
         chatbot_agent.change_version(3)
+
+    logger.info(__name__, f"Resumes: {RESUMES}")
