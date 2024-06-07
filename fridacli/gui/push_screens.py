@@ -99,7 +99,7 @@ class DocGenerator(Screen):
         logger.info(__name__, f"(on_worker_state_changed) Worker state changed with event: {str(event)}")
         if WorkerState.SUCCESS == event.worker.state and event.worker.name == "document_files":
             self.app.pop_screen()
-            self.dismiss("OK")
+            self.dismiss(event.worker.result)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """
@@ -288,45 +288,6 @@ class ConfirmPushView(Screen):
 class DocumentResultResume(Screen):
     def __init__(self, result) -> None:
         self.result = result
-        self.result = [
-            {
-                "file": "filename1.py",
-                "functions": 10,
-                "total": 12,
-                "errors": [
-                ]
-            }, 
-            {
-                "file": "filename2.py",
-                "functions": 15,
-                "total": 20,
-                "errors": [
-                    {
-                        "funtion_name": "function1",
-                        "error": "error1"
-                    }, 
-                                        {
-                        "funtion_name": "function1",
-                        "error": "error1"
-                    }
-                ]
-            },
-                        {
-                "file": "filename2.py",
-                "functions": 15,
-                "total": 20,
-                "errors": [
-                    {
-                        "funtion_name": "function1",
-                        "error": "error1"
-                    }, 
-                                        {
-                        "funtion_name": "function1",
-                        "error": "error1"
-                    }
-                ]
-            },  
-        ]
         self.md_result = ""
         self.buildMD()
         super().__init__()
@@ -338,22 +299,19 @@ class DocumentResultResume(Screen):
             yield Button("Save result", id="save_result_btn", variant="success", classes="dialog_btn")
 
     def buildMD(self):
-        markdown_text = ""
-        markdown_text += "# Documentation Results\n"
+        markdown_text = "# Documentation Results\n"
 
         for result in self.result:
-            porcentage = (result['functions'] / result['total']) * 100
-            if result['functions'] == result['total']:
-                markdown_text += f"## {result['file']} was documented at {int(porcentage)}%\n"
-                markdown_text += f"Funtions documentated {result['functions']}/{result['total']} \n"
-
-            else:
-                markdown_text += f"## {result['file']} was documented at {int(porcentage)}%\n"
-                markdown_text += f"Funtions documentated {result['functions']}/{result['total']} \n"
-            if len(result['errors']) > 0:
-                markdown_text += f"### Errors:\n"
-                for error in result['errors']:
-                    markdown_text += f"- {error['funtion_name']}: {error['error']}\n"
+            porcentage = (result['documented_functions'] / result['total_functions']) * 100
+            markdown_text += f"## {result['file']} was documented at {int(porcentage)}%\n"
+            markdown_text += f"Functions documentated {result['documented_functions']}/{result['total_functions']} \n"
+            if result["global_error"] is not None:
+                markdown_text += f"### File error:\j*{result['global_error']}*"
+            elif len(result['function_errors']) > 0:
+                markdown_text += f"### Function errors:\n"
+                for information in result['function_errors']:
+                    for function, error in information.items():
+                        markdown_text += f"- *{function}*: {error}\n"
         self.md_result = markdown_text
     
     def _on_mount(self, event: Mount) -> None:
@@ -365,7 +323,7 @@ class DocumentResultResume(Screen):
             try:
                 with open(os.path.join(path, "result.md"), "w") as file:
                     file.write(self.md_result)
-                self.app.notify(f"File saved at {path}")
+                self.app.notify(f"File saved at {path}.")
                 self.app.pop_screen()
             except Exception as e:
                 pass

@@ -353,6 +353,9 @@ def document_file(
                         if "documentation" in information.keys():
                             new_doc.extend(information["documentation"])
                         if count is None:
+                            tree = COMMENT_EXTENSION[extension][2].parse(
+                                bytes(code, encoding="utf8")
+                            )
                             functions, classes = COMMENT_EXTENSION[extension][1](
                                 tree.root_node
                             )
@@ -555,4 +558,4 @@ async def exec_document(
     if method == "Slow":
         chatbot_agent.change_version(3)
 
-    logger.info(__name__, f"Resumes: {RESUMES}")
+    return RESUMES

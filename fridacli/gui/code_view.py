@@ -131,4 +131,5 @@ class CodeView(Static):
             
 
     def doc_generator_callback(self, result):
+        self.app.push_screen(DocumentResultResume(result))
         self.query_one("#cv_tree_view", FilteredDirectoryTree).reload()

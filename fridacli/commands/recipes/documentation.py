@@ -546,6 +546,7 @@ def extract_doc_python_all_func(node: Tree):
             if error is None:
                 docs.append(("subheader", f"Function: {name}"))
                 docs.extend(documentation)
+                documented += 1
             else:
                 # If something went wrong while extracting the documentation from the comments
                 errors.append(
@@ -841,6 +842,7 @@ def extract_doc_csharp_all_func(node: str):
             if error is None:
                 docs.append(("subheader", f"Function: {name}"))
                 docs.extend(documentation)
+                documented += 1
             else:
                 # If something went wrong while extracting the documentation from the comments
                 errors.append(
