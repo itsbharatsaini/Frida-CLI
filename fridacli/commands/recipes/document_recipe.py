@@ -127,12 +127,12 @@ def save_documentation(path: str, lines: List[Tuple[str, str]]) -> None:
             mdFile.create_md_file()
         logger.info(__name__, f"Documentation saved succesfully.")
     except Exception as e:
-        logger.info(__name__, f"Function: save_documentation, Error: {e}")
+        logger.error(__name__, f"(save_documentation) {e}")
 
 
 def extract_documentation(
     code: str, extension: str, one_function: bool, funct_name: str | None
-) -> List[Tuple[str, str]] | None:
+):
     """
     Extracts documentation from a provided code snippet (whole code or one function) based on the given file extension.
 
@@ -144,6 +144,7 @@ def extract_documentation(
 
     Returns:
         List[Tuple[str, str]] | None: The extracted documentation for the specified function or for the whole code snippet, if generated.
+        List[Dict[str, str]] | str | None: Error(s) that might have happened.
 
     Raises:
         Exception: If there is an error during the extraction process.
@@ -157,14 +158,22 @@ def extract_documentation(
                 else COMMENT_EXTENSION[extension][4](tree.root_node)
             )
         else:
-            logger.info(__name__, f"Do not support the {extension} extension by now.")
+            logger.error(
+                __name__,
+                f"(extract_documentation) Do not support the {extension} extension by now.",
+            )
     except Exception as e:
-        logger.info(__name__, f"Function: extract_documentation, Error: {e}")
+        logger.error(__name__, f"(extract_documentation) {e}")
+        return [], e
 
 
 def get_code_block(
-    file_name: str, text: str, extension: str, one_function: bool, funct_name: str | None = None
-) -> Dict[str, str | List[Tuple[str, str]]]:
+    file_name: str,
+    text: str,
+    extension: str,
+    one_function: bool,
+    funct_name: str | None = None,
+):
     """
     Extracts the code block and documentation from the response.
 
@@ -176,6 +185,7 @@ def get_code_block(
 
     Returns:
         Dict[str, str | List[Tuple[str, str]]]: A dictionary containing the extracted code and documentation, if applicable.
+        List[Dict[str, str]] | str | None: Error(s) that might have happened.
 
     Raises:
         Exception: If there is an error while executing the function.
@@ -186,10 +196,21 @@ def get_code_block(
         matches = code_pattern.findall(text)
 
         if matches == []:
-            logger.error(__name__, f"(get_code_block) Didn't match to extract the code block: {text}")
+            logger.error(
+                __name__,
+                f"(get_code_block) Didn't match to extract the code block: {text}",
+            )
+            return None, (
+                [{funct_name: "Couldn't generate the documentation for the function."}]
+                if one_function
+                else "Couldn't generate the documentation for the file."
+            )
         else:
             information = {"code": matches[0].replace("```", "")}
-            logger.info(__name__, f"(get_code_block) code block: {matches[0].replace('```', '')}")
+            logger.info(
+                __name__,
+                f"(get_code_block) code block: {matches[0].replace('```', '')}",
+            )
 
             if extension in SUPPORTED_DOC_EXTENSION:
                 lines, errors = extract_documentation(
@@ -209,9 +230,18 @@ def get_code_block(
                     __name__,
                     f"(get_code_block) Do not support the {extension} extension by now.",
                 )
-                return information, [f"Couldn't extract the documentation to generate file because the {extension} extension is not supported."]
+                return information, (
+                    [
+                        {
+                            funct_name: f"Couldn't extract the documentation to generate file because the {extension} extension is not supported."
+                        }
+                    ]
+                    if one_function
+                    else f"Couldn't extract the documentation to generate file because the {extension} extension is not supported."
+                )
     except Exception as e:
         logger.error(__name__, f"(get_code_block) {e}")
+        return None, e
 
 
 def write_code_to_path(
@@ -238,7 +268,7 @@ def write_code_to_path(
                 os.system(f"python -m black {path} -q")
 
     except Exception as e:
-        logger.error(__name__, f"Function: write_code_to_path, Error: {e}")
+        logger.error(__name__, f"(write_code_to_path) {e}")
 
 
 def document_file(
@@ -251,12 +281,12 @@ def document_file(
     chatbot_agent: ChatbotAgent,
     file_manager: FileManager,
     frida_coder: FridaCoder,
-):
+) -> None:
     thread_semaphore.acquire()
     try:
         _, extension = os.path.splitext(file)
         if frida_coder.is_programming_language_extension(extension):
-            logger.info(__name__, f"Working on {file}")
+            logger.info(__name__, f"(document_file) Working on {file}")
 
             full_path = file_manager.get_file_path(file)
 
@@ -281,22 +311,29 @@ def document_file(
                     COMMENT_EXTENSION[extension][0] not in response
                 ) and i <= MAX_RETRIES:
                     logger.info(
-                        __name__, f"Retry # {i} for file {file} response: {response}"
+                        __name__,
+                        f"(document_file) Retry # {i} for file {file}: {response}",
                     )
                     response = chatbot_agent.chat(prompt, True)
                     i += 1
-                logger.info(__name__, f"file {file}, resp: {response}")
                 if COMMENT_EXTENSION[extension][0] in response:
-                    information, errors = get_code_block(file, response, extension, False)
+                    logger.info(
+                        __name__,
+                        f"(document_file) Final response for the file {file}: {response}",
+                    )
+                    information, errors = get_code_block(
+                        file, response, extension, False
+                    )
                     logger.info(__name__, f"Errors for file {file}: {errors}")
-                    if information:
+                    if information is not None:
                         new_code = information["code"]
                         if "documentation" in information.keys():
                             new_doc.extend(information["documentation"])
-                    else:
-                        logger.info(__name__, f"Check response: {response}")
                 else:
-                    logger.info(__name__, f"Check response: {response}")
+                    logger.info(
+                        __name__,
+                        f"(document_file) Couldn't get the expected response for the file {file}: {response}",
+                    )
 
             else:
                 tree = COMMENT_EXTENSION[extension][2].parse(
@@ -311,52 +348,44 @@ def document_file(
                 for func in functions:
                     funct_name = func["name"]
                     func_body = func["definition"] + "\n" + func["body"]
-                    logger.info(__name__, f"name: {funct_name}, code: {func_body}")
-                    if func["comments"] == "":
-                        prompt = generate_document_for_funct_prompt(
-                            func["definition"] + func["body"], extension
+                    logger.info(
+                        __name__,
+                        f"(document_file) Code for the function {funct_name}: {func_body}",
+                    )
+                    prompt = generate_document_for_funct_prompt(
+                        func["definition"] + func["body"], extension
+                    )
+                    response = chatbot_agent.chat(prompt, True)
+
+                    while (
+                        COMMENT_EXTENSION[extension][0] not in response
+                    ) and i <= MAX_RETRIES:
+                        logger.info(
+                            __name__,
+                            f"(document_file) Retry # {i} for file {file} function {funct_name} response: {response}",
                         )
                         response = chatbot_agent.chat(prompt, True)
+                        i += 1
+                    i = 1
 
-                        while (
-                            COMMENT_EXTENSION[extension][0] not in response
-                        ) and i <= MAX_RETRIES:
-                            logger.info(
-                                __name__,
-                                f"Retry # {i} for file {file} function {funct_name} response: {response}",
-                            )
-                            response = chatbot_agent.chat(prompt, True)
-                            i += 1
-                        i = 1
-                        logger.info(__name__, f"Response: {response}")
-
-                        if COMMENT_EXTENSION[extension][0] in response:
-                            information, errors = get_code_block(
-                                file, response, extension, True, funct_name
-                            )
-                            logger.info(__name__, f"Errors for func {funct_name}: {errors}")
+                    if COMMENT_EXTENSION[extension][0] in response:
+                        logger.info(
+                            __name__,
+                            f"(document_file) Final response for the function {funct_name}: {response}",
+                        )
+                        information, errors = get_code_block(
+                            file, response, extension, True, funct_name
+                        )
+                        logger.info(__name__, f"Errors for func {funct_name}: {errors}")
                         if information:
                             document_code = information["code"]
                             document_code = ("\n" + document_code).splitlines()
                             new_file.extend(document_code)
                             if "documentation" in information.keys():
                                 new_doc.extend(information["documentation"])
-                        else:
-                            logger.info(__name__, f"Check response: {response}")
-                            new_lines = (
-                                "\n" + func["definition"] + func["body"]
-                            ).splitlines()
-                            new_file.extend(new_lines)
                     else:
-                        logger.info(
-                            __name__, f"function already commented: {funct_name}"
-                        )
                         new_lines = (
-                            "\n"
-                            + func["comments"]
-                            + "\n"
-                            + func["definition"]
-                            + func["body"]
+                            "\n" + func["definition"] + func["body"]
                         ).splitlines()
                         new_file.extend(new_lines)
 
@@ -365,9 +394,16 @@ def document_file(
 
             # If there is new code to write
             if new_code is not None:
+                logger.info(
+                    __name__,
+                    f"(document_file) Writing the documented code for the file {file}",
+                )
                 write_code_to_path(full_path, new_code, extension, use_formatter)
             else:
-                logger.info(__name__, f"Could not write new code for file {file}")
+                logger.error(
+                    __name__,
+                    f"(document_file) Could not write new code for file {file}",
+                )
 
             # If there is at least one new line of documentation
             if len(new_doc) > 1:
@@ -380,11 +416,12 @@ def document_file(
                         )
                         save_documentation(os.path.join(doc_path, filename), new_doc)
             else:
-                logger.info(
-                    __name__, f"Could not write new documentation for file {file}"
+                logger.error(
+                    __name__,
+                    f"(document_file) Could not write new documentation for file {file}",
                 )
     except Exception as e:
-        logger.info(__name__, f"Function: document_file, Error: {e}")
+        logger.error(__name__, f"(document_file) {e}")
     finally:
         thread_semaphore.release()
 
@@ -421,7 +458,10 @@ async def exec_document(
     files = file_manager.get_files()
     threads = []
     thread_semaphore = threading.Semaphore(5)
-    logger.info(__name__, f"Documenting {len(files)} files using the method {method}")
+    logger.info(
+        __name__,
+        f"(exec_document) Documenting {len(files)} files using the method {method}",
+    )
 
     for file in files:
         thread = threading.Thread(

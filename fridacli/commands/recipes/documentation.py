@@ -202,10 +202,11 @@ def extract_doc_java_all_func(node: Tree):
                The second list contains any encountered errors while extracting the documentation from the functions.
     """
     docs, errors = [], []
-    try:
-        functions, classes = find_all_func_java(node)
-
-        for func in functions:
+    
+    functions, classes = find_all_func_java(node)
+    
+    for func in functions:
+        try:
             name = func["name"]
             comments = func["comments"]
             if comments != "":
@@ -228,11 +229,11 @@ def extract_doc_java_all_func(node: Tree):
                 # If comments weren't found
                 logger.error(
                     __name__,
-                    f"(extract_doc_java_all_func) Could't extract the comments from the function.",
+                    f"(extract_doc_java_all_func) Could't extract the comments from the function {name}.",
                 )
                 errors.append({name: "Could't extract the comments from the function."})
-    except Exception as e:
-        logger.error(__name__, f"(extract_doc_java_all_func) {e}")
+        except Exception as e:
+            logger.error(__name__, f"(extract_doc_java_all_func) {e}")
     return docs, errors
 
 
@@ -553,7 +554,7 @@ def extract_doc_python_all_func(node: Tree):
                 # If comments weren't found
                 logger.error(
                     __name__,
-                    f"(extract_doc_python_all_func) Could't extract the comments from the function.",
+                    f"(extract_doc_python_all_func) Could't extract the comments from the function {name}.",
                 )
                 errors.append({name: "Could't extract the comments from the function."})
     except Exception as e:
@@ -769,7 +770,10 @@ def find_all_func_csharp(node: Tree):
                         start = n.range.start_byte
                     end = n.range.end_byte
                 # Extract information from a method
-                if n.type == "method_declaration" or n.type == "constructor_declaration":
+                if (
+                    n.type == "method_declaration"
+                    or n.type == "constructor_declaration"
+                ):
                     for data in n.children:
                         if data.type == "block":
                             body = data.text.decode("utf8")
@@ -808,6 +812,7 @@ def find_all_func_csharp(node: Tree):
     else:
         return functions, classes
 
+
 def extract_doc_csharp_all_func(node: str):
     """
     Extracts documentation from all functions in a C# abstract syntax tree.
@@ -845,7 +850,7 @@ def extract_doc_csharp_all_func(node: str):
                 # If comments weren't found
                 logger.error(
                     __name__,
-                    f"(extract_doc_csharp_all_func) Could't extract the comments from the function.",
+                    f"(extract_doc_csharp_all_func) Could't extract the comments from the function {name}.",
                 )
                 errors.append({name: "Could't extract the comments from the function."})
     except Exception as e:
