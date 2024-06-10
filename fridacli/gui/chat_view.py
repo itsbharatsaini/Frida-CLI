@@ -27,7 +27,7 @@ class ChatView(Static):
     chat_response = ""
     run_code_confirmation_counter = 0
 
-    CSS_PATH = "tcss/frida_styles.tcss"
+    CSS_PATH = "fridacli/gui/tcss/frida_styles.tcss"
 
     def compose(self) -> ComposeResult:
         logger.info(__name__, "Composing ChatView")
