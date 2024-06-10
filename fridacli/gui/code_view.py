@@ -29,7 +29,7 @@ class FilteredDirectoryTree(DirectoryTree):
     
 class CodeView(Static):
     show_tree = var(True)
-    CSS_PATH = "tcss/frida_styles.tcss"
+    CSS_PATH = "fridacli/gui/tcss/frida_styles.tcss"
     recipe_selected = ""
     file_button_open = ""
 
