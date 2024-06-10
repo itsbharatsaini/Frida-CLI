@@ -296,7 +296,7 @@ class DocumentResultResume(Screen):
         with Vertical(classes="dialog_results"):
             with VerticalScroll(id="doc_result_scroll"):
                 yield Markdown(self.md_result)
-            yield Button("Save result", id="save_result_btn", variant="success", classes="dialog_btn")
+            yield Horizontal(Button("Quit", variant="error", id="quit_results", classes="half_button"), Button("Save result", id="save_result_btn", variant="success", classes="half_button"), classes="doc_generator_horizontal")
 
     def buildMD(self):
         markdown_text = "# Documentation Results\n"
@@ -337,3 +337,5 @@ class DocumentResultResume(Screen):
         logger.info(__name__, f"(on_button_pressed) Button pressed: {button_pressed}")
         if button_pressed == "save_result_btn":
             self.app.push_screen(PathSelector(), self.save_result_callback)
+        else:
+            self.app.pop_screen()
