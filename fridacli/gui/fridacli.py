@@ -19,9 +19,10 @@ class FridaCLI(App):
         logger.info(__name__, "Composing FridaCLI")
         yield Header()
         with TabbedContent(initial="frida_chat"):
-            with TabPane("Configurations", id="configurations"):  # First tab
+            with TabPane("Configurations", id="configurations"):  
                 yield ConfigurationView()
-            with TabPane("Frida Chat", id="frida_chat"):  # First tab
+            with TabPane("Frida Chat", id="frida_chat"):  
                 yield Horizontal(CodeView(id="code_view_pather"), ChatView(id="chat_view"))
             with TabPane("Epics Generation", id="epics_generation"):
                 yield EpicsGeneration()
+        

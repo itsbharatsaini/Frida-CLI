@@ -110,7 +110,6 @@ python-dateutil==2.8.2
 python-docx==1.1.0
 python-dotenv==1.0.0
 pytz==2023.3.post1
-pywin32==306
 PyYAML==6.0.1
 pyzmq==25.1.1
 realtime==1.0.0
@@ -133,9 +132,9 @@ tornado==6.3.3
 tqdm==4.66.1
 traitlets==5.10.0
 tree-sitter==0.22.3
-tree-sitter-c-sharp==0.21.2
-tree-sitter-java==0.21.0
-tree-sitter-python==0.21.0
+tree-sitter-c-sharp
+tree-sitter-java
+tree-sitter-python
 types-pytz==2023.3.0.1
 typing-inspect==0.9.0
 typing_extensions==4.8.0
