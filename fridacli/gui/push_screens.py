@@ -299,19 +299,23 @@ class DocumentResultResume(Screen):
             yield Horizontal(Button("Quit", variant="error", id="quit_results", classes="half_button"), Button("Save result", id="save_result_btn", variant="success", classes="half_button"), classes="doc_generator_horizontal")
 
     def buildMD(self):
+        logger.info(__name__, "(buildMD) Loading the Markdown documentation resume")
         markdown_text = "# Documentation Results\n"
 
         for result in self.result:
-            porcentage = (result['documented_functions'] / result['total_functions']) * 100
-            markdown_text += f"## {result['file']} was documented at {int(porcentage)}%\n"
-            markdown_text += f"Functions documentated {result['documented_functions']}/{result['total_functions']} \n"
+            if result['total_functions'] == 0:
+                markdown_text += f"## {result['file']} was documented at 0%\n"
+                markdown_text += f"Couldn't count the number of functions\n"
+            else:
+                percentage = (result['documented_functions'] / result['total_functions']) * 100
+                markdown_text += f"## {result['file']} was documented at {int(percentage)}%\n"
+                markdown_text += f"Functions documented: {result['documented_functions']}/{result['total_functions']} \n"
             if result["global_error"] is not None:
-                markdown_text += f"### File error:\j*{result['global_error']}*"
+                markdown_text += f"### File error:\n{result['global_error']}"
             elif len(result['function_errors']) > 0:
                 markdown_text += f"### Function errors:\n"
-                for information in result['function_errors']:
-                    for function, error in information.items():
-                        markdown_text += f"- *{function}*: {error}\n"
+                for function, error in result['function_errors'].items():
+                    markdown_text += f"- {function}: {error}\n"
         self.md_result = markdown_text
     
     def _on_mount(self, event: Mount) -> None:

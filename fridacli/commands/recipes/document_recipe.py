@@ -132,7 +132,7 @@ def save_documentation(path: str, lines: List[Tuple[str, str]]) -> None:
 
 
 def extract_documentation(
-    code: str, extension: str, one_function: bool, funct_name: str | None
+    code: str, extension: str, one_function: bool, file_name: str, funct_definition: str | None
 ):
     """
     Extracts documentation from a provided code snippet (whole code or one function) based on the given file extension.
@@ -141,7 +141,7 @@ def extract_documentation(
         code (str): The actual code as a string.
         extension (str): The file extension of the code snippet.
         one_function (bool): Flag indicating whether to extract documentation for a single function or for the whole code snippet.
-        funct_name (str, optional): The name of the function to extract documentation for if one_function is True.
+        funct_definition (str, optional): The definition (name, args, return values) of the function to extract documentation for if one_function is True.
 
     Returns:
         List[Tuple[str, str]] | None: The extracted documentation for the specified function or for the whole code snippet, if generated.
@@ -154,9 +154,9 @@ def extract_documentation(
         if extension in SUPPORTED_DOC_EXTENSION:
             tree = COMMENT_EXTENSION[extension][2].parse(bytes(code, encoding="utf8"))
             return (
-                COMMENT_EXTENSION[extension][3](tree.root_node, funct_name)
+                COMMENT_EXTENSION[extension][3](tree.root_node, funct_definition)
                 if one_function
-                else COMMENT_EXTENSION[extension][4](tree.root_node)
+                else COMMENT_EXTENSION[extension][4](tree.root_node, file_name)
             )
         else:
             logger.error(
@@ -173,7 +173,7 @@ def get_code_block(
     text: str,
     extension: str,
     one_function: bool,
-    funct_name: str | None = None,
+    funct_definition: str | None = None,
 ):
     """
     Extracts the code block and documentation from the response.
@@ -182,7 +182,7 @@ def get_code_block(
         text (str): The text containing code and maybe documentation.
         extension (str): The file extension of the code being extracted.
         one_function (bool): Whether to extract the documentation for one function or the whole code.
-        funct_name (str, optional): The name of the specific function to extract code for. Defaults to None.
+        funct_definition (str, optional): The definition (name, params, return values) of the specific function to extract code for. Defaults to None.
 
     Returns:
         Dict[str, str | List[Tuple[str, str]]]: A dictionary containing the extracted code and documentation, if applicable.
@@ -206,7 +206,7 @@ def get_code_block(
                 None,
                 (
                     {
-                        funct_name: "Couldn't generate the documentation for the function."
+                        funct_definition: "Couldn't generate the documentation for the function."
                     }
                     if one_function
                     else "Couldn't generate the documentation for the file."
@@ -223,12 +223,12 @@ def get_code_block(
             if extension in SUPPORTED_DOC_EXTENSION:
                 if one_function:
                     lines, errors = extract_documentation(
-                        information["code"], extension, one_function, funct_name
+                        information["code"], extension, one_function, file_name, funct_definition
                     )
                     count = None
                 else:
                     lines, errors, count = extract_documentation(
-                        information["code"], extension, one_function, funct_name
+                        information["code"], extension, one_function, file_name, funct_definition
                     )
 
                 # If documentation was returned
@@ -238,7 +238,7 @@ def get_code_block(
                     logger.error(
                         __name__,
                         (
-                            f"(get_code_block) Couldn't generate documentation for function {funct_name}"
+                            f"(get_code_block) Couldn't generate documentation for function {funct_definition}"
                             if one_function
                             else f"(get_code_block) Couldn't generate documentation for file {file_name}"
                         ),
@@ -251,7 +251,7 @@ def get_code_block(
                 )
                 return information, (
                     {
-                        funct_name: f"Couldn't extract the documentation to generate file because the {extension} extension is not supported."
+                        funct_definition: f"Couldn't extract the documentation to generate file because the {extension} extension is not supported."
                     }
                     if one_function
                     else f"Couldn't extract the documentation to generate file because the {extension} extension is not supported."
@@ -318,7 +318,7 @@ def document_file(
             global_error = None
             total = 0
             documented = 0
-            all_errors = []
+            all_errors = {}
 
             i = 1
 
@@ -352,26 +352,39 @@ def document_file(
                         all_errors = errors
                         if "documentation" in information.keys():
                             new_doc.extend(information["documentation"])
-                        if count is None:
+                        if count is None and extension in SUPPORTED_DOC_EXTENSION:
                             tree = COMMENT_EXTENSION[extension][2].parse(
                                 bytes(code, encoding="utf8")
                             )
                             functions, classes = COMMENT_EXTENSION[extension][1](
-                                tree.root_node
+                                tree.root_node, file
                             )
                             total = len(functions)
-                        else:
+                        elif extension in SUPPORTED_DOC_EXTENSION:
                             total, documented = count
-                    else:
+                    elif extension in SUPPORTED_DOC_EXTENSION:
                         global_error = errors
+                        tree = COMMENT_EXTENSION[extension][2].parse(
+                            bytes(code, encoding="utf8")
+                        )
+                        functions, classes = COMMENT_EXTENSION[extension][1](
+                            tree.root_node, file
+                        )
+                        total = len(functions)
                 else:
                     logger.info(
                         __name__,
                         f"(document_file) Couldn't get the expected response for the file {file}: {response}",
                     )
                     global_error = "Couldn't generate the documentation for the file."
-                    functions, classes = COMMENT_EXTENSION[extension][1](tree.root_node)
-                    total = len(functions)
+                    if extension in SUPPORTED_DOC_EXTENSION:
+                        tree = COMMENT_EXTENSION[extension][2].parse(
+                            bytes(code, encoding="utf8")
+                        )
+                        functions, classes = COMMENT_EXTENSION[extension][1](
+                            tree.root_node, file
+                        )
+                        total = len(functions)
 
                 RESUMES.append(
                     {
@@ -388,21 +401,21 @@ def document_file(
                     bytes(code, encoding="utf8")
                 )
 
-                functions, classes = COMMENT_EXTENSION[extension][1](tree.root_node)
+                functions, classes = COMMENT_EXTENSION[extension][1](tree.root_node, file)
                 total = len(functions)
                 documented = 0
-                all_errors = []
+                all_errors = {}
 
                 start_line = functions[0]["range"][0]
                 end_line = functions[-1]["range"][-1]
 
                 new_file.append(code[: start_line - 1])
                 for func in functions:
-                    funct_name = func["name"]
+                    funct_definition = func["definition"]
                     func_body = func["definition"] + "\n" + func["body"]
                     logger.info(
                         __name__,
-                        f"(document_file) Code for the function {funct_name}: {func_body}",
+                        f"(document_file) Code for the function {funct_definition}: {func_body}",
                     )
                     prompt = generate_document_for_funct_prompt(
                         func["definition"] + func["body"], extension
@@ -414,7 +427,7 @@ def document_file(
                     ) and i <= MAX_RETRIES:
                         logger.info(
                             __name__,
-                            f"(document_file) Retry # {i} for file {file} function {funct_name} response: {response}",
+                            f"(document_file) Retry # {i} for file {file} function {funct_definition} response: {response}",
                         )
                         response = chatbot_agent.chat(prompt, True)
                         i += 1
@@ -423,10 +436,10 @@ def document_file(
                     if COMMENT_EXTENSION[extension][0] in response:
                         logger.info(
                             __name__,
-                            f"(document_file) Final response for the function {funct_name}: {response}",
+                            f"(document_file) Final response for the function {funct_definition}: {response}",
                         )
                         information, errors, _ = get_code_block(
-                            file, response, extension, True, funct_name
+                            file, response, extension, True, funct_definition
                         )
                         if information is not None:
                             document_code = information["code"]
@@ -436,15 +449,15 @@ def document_file(
                                 new_doc.extend(information["documentation"])
                                 documented += 1
                         if errors is not None:
-                            all_errors.extend(errors)
+                            all_errors.update(errors)
                     else:
                         new_lines = (
                             "\n" + func["definition"] + func["body"]
                         ).splitlines()
                         new_file.extend(new_lines)
-                        all_errors.append(
+                        all_errors.update(
                             {
-                                funct_name: "Couldn't generate the documentation for the function."
+                                funct_definition: "Couldn't generate the documentation for the function."
                             }
                         )
 
@@ -558,4 +571,5 @@ async def exec_document(
     if method == "Slow":
         chatbot_agent.change_version(3)
 
+    logger.info(__name__, f"(exec_document) The final resumes: {RESUMES}")
     return RESUMES

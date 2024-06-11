@@ -103,12 +103,13 @@ def extract_doc_java(comments: str) -> Tuple[List, str | None]:
         return lines, None
 
 
-def find_all_func_java(node: Tree):
+def find_all_func_java(node: Tree, file_name: str):
     """
     Recursively finds all function and class definitions in a Java code tree.
 
     Args:
         node (Tree): The root node of the Java code tree.
+        file_name (str): The name of the file that contains the functions.
 
     Returns:
         tuple: A list of dictionaries representing function definitions, each with the following keys:
@@ -177,7 +178,7 @@ def find_all_func_java(node: Tree):
                         definition += " "
             # Call the function using the current node as the root
             if n.children != []:
-                f, c = find_all_func_java(n)
+                f, c = find_all_func_java(n, file_name)
                 if f != []:
                     functions.extend(f)
                 if c != []:
@@ -187,63 +188,80 @@ def find_all_func_java(node: Tree):
         logger.error(__name__, f"(find_all_func_java) {e}")
         return [], []
     else:
+        # logger.info(
+        #     __name__,
+        #     f"(find_all_func_java) Successfully extracted all the function from the file {file_name}",
+        # )
         return functions, classes
 
 
-def extract_doc_java_all_func(node: Tree):
+def extract_doc_java_all_func(node: Tree, file_name: str):
     """
     Extracts documentation from all functions in a Java abstract syntax tree.
 
     Args:
         node (Tree): The abstract syntax tree node representing the Java code.
+        file_name (str): The name of the file that contains the functions.
 
     Returns:
         tuple: A tuple consisting of two lists. The first list contains the extracted documentation, organized as a list of tuples.
                The second list contains any encountered errors while extracting the documentation from the functions.
     """
-    docs, errors = [], []
+    docs, errors = [], {}
 
-    functions, classes = find_all_func_java(node)
+    functions, classes = find_all_func_java(node, file_name)
     total = len(functions)
     documented = 0
 
     for func in functions:
-        name = func["name"]
+        funct_definition = func["definition"]
         comments = func["comments"]
         if comments != "":
             logger.info(
                 __name__,
-                f"(extract_doc_java_all_func) comments retrieved from the function {name}: {comments}",
+                f"(extract_doc_java_all_func) Comments retrieved from the function {funct_definition}: {comments}",
             )
             documentation, error = extract_doc_java(
                 comments.replace("*/", "").replace("/**", "")
             )
             if error is None:
-                docs.append(("subheader", f"Function: {name}"))
+                logger.info(
+                    __name__,
+                    f"(extract_doc_java_all_func) Successfully extracted the documentation for the function {funct_definition}",
+                )
+                docs.append(("subheader", f"Function: {funct_definition}"))
                 docs.extend(documentation)
                 documented += 1
             else:
                 # If something went wrong while extracting the documentation from the comments
-                errors.append(
-                    {name: "Could't extract the documentation from the function."}
+                logger.error(
+                    __name__,
+                    f"(extract_doc_java_all_func) Could't extract the documentation from the function {funct_definition}",
+                )
+                errors.update(
+                    {
+                        funct_definition: "Could't extract the documentation from the function."
+                    }
                 )
         else:
             # If comments weren't found
             logger.error(
                 __name__,
-                f"(extract_doc_java_all_func) Could't extract the comments from the function {name}.",
+                f"(extract_doc_java_all_func) Could't extract the comments from the function {funct_definition}.",
             )
-            errors.append({name: "Could't extract the comments from the function."})
+            errors.update(
+                {funct_definition: "Could't extract the comments from the function."}
+            )
     return docs, errors, (total, documented)
 
 
-def extract_doc_java_one_func(node: Tree, name: str):
+def extract_doc_java_one_func(node: Tree, funct_definition: str):
     """
     Extracts the documentation from a Java function.
 
     Args:
         node (Tree): The tree representing the Java function.
-        name (str): The name of the Java function.
+        funct_definition (str): The definition (name, args, return value) of the Java function.
 
     Returns:
         tuple: A list containing the extracted documentation as tuples.
@@ -261,23 +279,35 @@ def extract_doc_java_one_func(node: Tree, name: str):
         if comments != "":
             logger.info(
                 __name__,
-                f"(extract_doc_java_one_func) comments retrieved from the function {name}: {comments}",
+                f"(extract_doc_java_one_func) Comments retrieved from the function {funct_definition}: {comments}",
             )
             documentation, error = extract_doc_java(
                 comments.replace("*/", "").replace("/**", "")
             )
             if error is None:
-                docs.append(("subheader", f"Function: {name}"))
+                logger.info(
+                    __name__,
+                    f"(extract_doc_java_one_func) Successfully extracted the documentation for the function {funct_definition}",
+                )
+                docs.append(("subheader", f"Function: {funct_definition}"))
                 docs.extend(documentation)
             else:
-                error = {name: "Could't extract the documentation from the function."}
+                logger.error(
+                    __name__,
+                    f"(extract_doc_java_one_func) Could't extract the documentation from the function {funct_definition}",
+                )
+                error = {
+                    funct_definition: "Could't extract the documentation from the function."
+                }
         else:
             # If comments weren't found
             logger.error(
                 __name__,
-                f"(extract_doc_java_one_func) Could't extract the comments from the function.",
+                f"(extract_doc_java_one_func) Could't extract the comments from the function {funct_definition}",
             )
-            error = {name: "Could't extract the comments from the function."}
+            error = {
+                funct_definition: "Could't extract the comments from the function."
+            }
     except Exception as e:
         logger.error(__name__, f"(extract_doc_java_one_func) {e}")
 
@@ -419,12 +449,13 @@ def extract_doc_python(comments: str) -> Tuple[List, str | None]:
         return lines, None
 
 
-def find_all_func_python(node: Tree):
+def find_all_func_python(node: Tree, file_name: str):
     """
     Recursively finds all function and class definitions in a Python code tree.
 
     Args:
         node (Tree): The root node of the Python code tree.
+        file_name (str): The name of the file that contains the functions.
 
     Returns:
         tuple: A list of dictionaries representing function definitions, each with the following keys:
@@ -495,7 +526,7 @@ def find_all_func_python(node: Tree):
                     elif data.type == "identifier":
                         definition += data.text.decode("utf8")
                         name = data.text.decode("utf8")
-                    else:
+                    elif data.type != "comment":
                         definition += data.text.decode("utf8")
                         definition += (
                             " "
@@ -504,7 +535,7 @@ def find_all_func_python(node: Tree):
                         )
             # Call the function using the current node as the root
             if n.children != []:
-                f, c = find_all_func_python(n)
+                f, c = find_all_func_python(n, file_name)
                 if f != []:
                     functions.extend(f)
                 if c != []:
@@ -514,61 +545,78 @@ def find_all_func_python(node: Tree):
         logger.error(__name__, f"(find_all_func_python) {e}")
         return [], []
     else:
+        # logger.error(
+        #     __name__,
+        #     f"(find_all_func_python) Successfully extracted all the function from the file {file_name}",
+        # )
         return functions, classes
 
 
-def extract_doc_python_all_func(node: Tree):
+def extract_doc_python_all_func(node: Tree, file_name: str):
     """
     Extracts documentation from all functions in a Python abstract syntax tree.
 
     Args:
         node (Tree): The abstract syntax tree node representing the Python code.
+        file_name (str): The name of the file that contains the functions.
 
     Returns:
         tuple: A tuple consisting of two lists. The first list contains the extracted documentation, organized as a list of tuples.
                The second list contains any encountered errors while extracting the documentation from the functions.
     """
-    docs, errors = [], []
+    docs, errors = [], {}
 
-    functions, classes = find_all_func_python(node)
+    functions, classes = find_all_func_python(node, file_name)
     total = len(functions)
     documented = 0
 
     for func in functions:
-        name = func["name"]
+        funct_definition = func["definition"]
         comments = func["comments"]
         if comments != "":
             logger.info(
                 __name__,
-                f"(extract_doc_java_all_func) comments retrieved from the function {name}: {comments}",
+                f"(extract_doc_python_all_func) comments retrieved from the function {funct_definition}: {comments}",
             )
             documentation, error = extract_doc_python(comments.replace('"""', ""))
             if error is None:
-                docs.append(("subheader", f"Function: {name}"))
+                logger.info(
+                    __name__,
+                    f"(extract_doc_python_all_func) Successfully extracted the documentation for the function {funct_definition}",
+                )
+                docs.append(("subheader", f"Function: {funct_definition}"))
                 docs.extend(documentation)
                 documented += 1
             else:
                 # If something went wrong while extracting the documentation from the comments
-                errors.append(
-                    {name: "Could't extract the documentation from the function."}
+                logger.error(
+                    __name__,
+                    f"(extract_doc_python_all_func) Could't extract the documentation from the function {funct_definition}",
+                )
+                errors.update(
+                    {
+                        funct_definition: "Could't extract the documentation from the function."
+                    }
                 )
         else:
             # If comments weren't found
             logger.error(
                 __name__,
-                f"(extract_doc_python_all_func) Could't extract the comments from the function {name}.",
+                f"(extract_doc_python_all_func) Could't extract the comments from the function {funct_definition}.",
             )
-            errors.append({name: "Could't extract the comments from the function."})
+            errors.update(
+                {funct_definition: "Could't extract the comments from the function."}
+            )
     return docs, errors, (total, documented)
 
 
-def extract_doc_python_one_func(node: Tree, name: str):
+def extract_doc_python_one_func(node: Tree, funct_definition: str):
     """
     Extracts the documentation from a Python function.
 
     Args:
         node (Tree): The tree representing the Python function.
-        name (str): The name of the Python function.
+        funct_definition (str): The definition (name, args, return values) of the Python function.
 
     Returns:
         tuple: A list containing the extracted documentation as tuples.
@@ -595,21 +643,33 @@ def extract_doc_python_one_func(node: Tree, name: str):
         if '"""' in comments:
             logger.info(
                 __name__,
-                f"(extract_doc_python_one_func) comments retrieved from the function {name}: {comments}",
+                f"(extract_doc_python_one_func) comments retrieved from the function {funct_definition}: {comments}",
             )
             documentation, error = extract_doc_python(comments.replace('"""', ""))
             if error is None:
-                docs.append(("subheader", f"Function: {name}"))
+                logger.info(
+                    __name__,
+                    f"(extract_doc_python_one_func) Successfully extracted the documentation for the function {funct_definition}",
+                )
+                docs.append(("subheader", f"Function: {funct_definition}"))
                 docs.extend(documentation)
             else:
-                error = {name: "Could't extract the documentation from the function."}
+                logger.error(
+                    __name__,
+                    f"(extract_doc_python_one_func) Could't extract the documentation from the function {funct_definition}",
+                )
+                error = {
+                    funct_definition: "Could't extract the documentation from the function."
+                }
         else:
             # If comments weren't found
             logger.error(
                 __name__,
                 f"(extract_doc_python_one_func) Could't extract the comments from the function.",
             )
-            error = {name: "Could't extract the comments from the function."}
+            error = {
+                funct_definition: "Could't extract the comments from the function."
+            }
     except Exception as e:
         logger.error(__name__, f"(extract_doc_python_one_func) {e}")
 
@@ -717,12 +777,13 @@ def extract_doc_csharp(comments: str) -> Tuple[List, str | None]:
         return lines, None
 
 
-def find_all_func_csharp(node: Tree):
+def find_all_func_csharp(node: Tree, file_name: str):
     """
     Recursively finds all function and class definitions in a C# code tree.
 
     Args:
         node (Tree): The root node of the C# code tree.
+        file_name (str): The name of the file that contains the functions.
 
     Returns:
         tuple: A list of dictionaries representing function definitions, each with the following keys:
@@ -748,6 +809,38 @@ def find_all_func_csharp(node: Tree):
 
     try:
         for n in node.children:
+            if node.type == "compilation_unit":
+                # Extract information from a comment block
+                if n.type == "comment":
+                    comments += n.text.decode("utf8") + "\n"
+                    if start == -1:
+                        start = n.range.start_byte
+                    end = n.range.end_byte
+                elif n.type == "global_statement":
+                    for data in n.children[0].children:
+                        if data.type == "block":
+                            body = data.text.decode("utf8")
+                            functions.append(
+                                {
+                                    "name": name,
+                                    "definition": definition,
+                                    "body": body,
+                                    "comments": comments,
+                                    "range": (n.range.start_byte, n.range.end_byte),
+                                    "comments_range": (start, end),
+                                }
+                            )
+                            (
+                                comments,
+                                definition,
+                                class_defintion,
+                            ) = ("", "", "")
+                            start, end = -1, -1
+                        elif data.type == "identifier":
+                            definition += data.text.decode("utf8") + " "
+                            name = data.text.decode("utf8")
+                        else:
+                            definition += data.text.decode("utf8") + " "
             if node.type == "declaration_list":
                 # Extract information from a class
                 if n.type == "class_declaration":
@@ -800,71 +893,88 @@ def find_all_func_csharp(node: Tree):
                             definition += data.text.decode("utf8") + " "
             # Call the function using the current node as the root
             if n.children != []:
-                f, c = find_all_func_csharp(n)
+                f, c = find_all_func_csharp(n, file_name)
                 if f != []:
                     functions.extend(f)
                 if c != []:
                     classes.extend(c)
     except Exception as e:
         # If something went wrong, only empty lists are returned
-        logger.error(__name__, f"(find_all_func_java) {e}")
+        logger.error(__name__, f"(find_all_func_csharp) {e}")
         return [], []
     else:
+        # logger.info(
+        #     __name__,
+        #     f"(find_all_func_csharp) Successfully extracted all the function from the file {file_name}",
+        # )
         return functions, classes
 
 
-def extract_doc_csharp_all_func(node: str):
+def extract_doc_csharp_all_func(node: str, file_name: str):
     """
     Extracts documentation from all functions in a C# abstract syntax tree.
 
     Args:
         node (Tree): The abstract syntax tree node representing the C# code.
+        file_name (str): The name of the file that contains the functions.
 
     Returns:
         tuple: A tuple consisting of two lists. The first list contains the extracted documentation, organized as a list of tuples.
                The second list contains any encountered errors while extracting the documentation from the functions.
     """
-    docs, errors = [], []
+    docs, errors = [], {}
 
-    functions, classes = find_all_func_csharp(node)
+    functions, classes = find_all_func_csharp(node, file_name)
     total = len(functions)
     documented = 0
 
     for func in functions:
-        name = func["name"]
+        funct_definition = func["definition"]
         comments = func["comments"]
         if comments != "":
             logger.info(
                 __name__,
-                f"(extract_doc_csharp_all_func) comments retrieved from the function {name}: {comments}",
+                f"(extract_doc_csharp_all_func) comments retrieved from the function {funct_definition}: {comments}",
             )
             documentation, error = extract_doc_csharp(comments.replace("///", ""))
             if error is None:
-                docs.append(("subheader", f"Function: {name}"))
+                logger.info(
+                    __name__,
+                    f"(extract_doc_csharp_all_func) Successfully extracted the documentation for the function {funct_definition}",
+                )
+                docs.append(("subheader", f"Function: {funct_definition}"))
                 docs.extend(documentation)
                 documented += 1
             else:
                 # If something went wrong while extracting the documentation from the comments
-                errors.append(
-                    {name: "Could't extract the documentation from the function."}
+                logger.error(
+                    __name__,
+                    f"(extract_doc_csharp_all_func) Could't extract the documentation from the function {funct_definition}",
+                )
+                errors.update(
+                    {
+                        funct_definition: "Could't extract the documentation from the function."
+                    }
                 )
         else:
             # If comments weren't found
             logger.error(
                 __name__,
-                f"(extract_doc_csharp_all_func) Could't extract the comments from the function {name}.",
+                f"(extract_doc_csharp_all_func) Could't extract the comments from the function {funct_definition}.",
             )
-            errors.append({name: "Could't extract the comments from the function."})
+            errors.update(
+                {funct_definition: "Could't extract the comments from the function."}
+            )
     return docs, errors, (total, documented)
 
 
-def extract_doc_csharp_one_func(node: Tree, name: str):
+def extract_doc_csharp_one_func(node: Tree, funct_definition: str):
     """
     Extracts the documentation from a C# function.
 
     Args:
         node (Tree): The tree representing the C# function.
-        name (str): The name of the C# function.
+        funct_definition (str): The definition (name, args, return values) of the C# function.
 
     Returns:
         tuple: A list containing the extracted documentation as tuples.
@@ -881,22 +991,34 @@ def extract_doc_csharp_one_func(node: Tree, name: str):
         if comments != "":
             logger.info(
                 __name__,
-                f"(extract_doc_csharp_one_func) comments retrieved from the function {name}: {comments}",
+                f"(extract_doc_csharp_one_func) comments retrieved from the function {funct_definition}: {comments}",
             )
             documentation, error = extract_doc_csharp(comments.replace("///", ""))
 
             if error is None:
-                docs.append(("subheader", f"Function: {name}"))
+                logger.info(
+                    __name__,
+                    f"(extract_doc_csharp_one_func) Successfully extracted the documentation for the function {funct_definition}",
+                )
+                docs.append(("subheader", f"Function: {funct_definition}"))
                 docs.extend(documentation)
             else:
-                error = {name: "Could't extract the documentation from the function."}
+                logger.error(
+                    __name__,
+                    f"(extract_doc_csharp_one_func) Could't extract the documentation from the function {funct_definition}",
+                )
+                error = {
+                    funct_definition: "Could't extract the documentation from the function."
+                }
         else:
             # If comments weren't found
             logger.error(
                 __name__,
                 f"(extract_doc_csharp_one_func) Could't extract the comments from the function.",
             )
-            error = {name: "Could't extract the comments from the function."}
+            error = {
+                funct_definition: "Could't extract the comments from the function."
+            }
     except Exception as e:
         logger.error(__name__, f"(extract_doc_csharp_one_func) {e}")
 
