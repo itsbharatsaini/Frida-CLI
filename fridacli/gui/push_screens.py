@@ -99,7 +99,7 @@ class DocGenerator(Screen):
         logger.info(__name__, f"(on_worker_state_changed) Worker state changed with event: {str(event)}")
         if WorkerState.SUCCESS == event.worker.state and event.worker.name == "document_files":
             self.app.pop_screen()
-            self.dismiss("OK")
+            self.dismiss(event.worker.result)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """
@@ -288,45 +288,6 @@ class ConfirmPushView(Screen):
 class DocumentResultResume(Screen):
     def __init__(self, result) -> None:
         self.result = result
-        self.result = [
-            {
-                "file": "filename1.py",
-                "functions": 10,
-                "total": 12,
-                "errors": [
-                ]
-            }, 
-            {
-                "file": "filename2.py",
-                "functions": 15,
-                "total": 20,
-                "errors": [
-                    {
-                        "funtion_name": "function1",
-                        "error": "error1"
-                    }, 
-                                        {
-                        "funtion_name": "function1",
-                        "error": "error1"
-                    }
-                ]
-            },
-                        {
-                "file": "filename2.py",
-                "functions": 15,
-                "total": 20,
-                "errors": [
-                    {
-                        "funtion_name": "function1",
-                        "error": "error1"
-                    }, 
-                                        {
-                        "funtion_name": "function1",
-                        "error": "error1"
-                    }
-                ]
-            },  
-        ]
         self.md_result = ""
         self.buildMD()
         super().__init__()
@@ -335,25 +296,26 @@ class DocumentResultResume(Screen):
         with Vertical(classes="dialog_results"):
             with VerticalScroll(id="doc_result_scroll"):
                 yield Markdown(self.md_result)
-            yield Button("Save result", id="save_result_btn", variant="success", classes="dialog_btn")
+            yield Horizontal(Button("Quit", variant="error", id="quit_results", classes="half_button"), Button("Save result", id="save_result_btn", variant="success", classes="half_button"), classes="doc_generator_horizontal")
 
     def buildMD(self):
-        markdown_text = ""
-        markdown_text += "# Documentation Results\n"
+        logger.info(__name__, "(buildMD) Loading the Markdown documentation resume")
+        markdown_text = "# Documentation Results\n"
 
         for result in self.result:
-            porcentage = (result['functions'] / result['total']) * 100
-            if result['functions'] == result['total']:
-                markdown_text += f"## {result['file']} was documented at {int(porcentage)}%\n"
-                markdown_text += f"Funtions documentated {result['functions']}/{result['total']} \n"
-
+            if result['total_functions'] == 0:
+                markdown_text += f"## {result['file']} was documented at 0%\n"
+                markdown_text += f"Couldn't count the number of functions\n"
             else:
-                markdown_text += f"## {result['file']} was documented at {int(porcentage)}%\n"
-                markdown_text += f"Funtions documentated {result['functions']}/{result['total']} \n"
-            if len(result['errors']) > 0:
-                markdown_text += f"### Errors:\n"
-                for error in result['errors']:
-                    markdown_text += f"- {error['funtion_name']}: {error['error']}\n"
+                percentage = (result['documented_functions'] / result['total_functions']) * 100
+                markdown_text += f"## {result['file']} was documented at {int(percentage)}%\n"
+                markdown_text += f"Functions documented: {result['documented_functions']}/{result['total_functions']} \n"
+            if result["global_error"] is not None:
+                markdown_text += f"### File error:\n{result['global_error']}"
+            elif len(result['function_errors']) > 0:
+                markdown_text += f"### Function errors:\n"
+                for function, error in result['function_errors'].items():
+                    markdown_text += f"- {function}: {error}\n"
         self.md_result = markdown_text
     
     def _on_mount(self, event: Mount) -> None:
@@ -365,7 +327,7 @@ class DocumentResultResume(Screen):
             try:
                 with open(os.path.join(path, "result.md"), "w") as file:
                     file.write(self.md_result)
-                self.app.notify(f"File saved at {path}")
+                self.app.notify(f"File saved at {path}.")
                 self.app.pop_screen()
             except Exception as e:
                 pass
@@ -379,3 +341,5 @@ class DocumentResultResume(Screen):
         logger.info(__name__, f"(on_button_pressed) Button pressed: {button_pressed}")
         if button_pressed == "save_result_btn":
             self.app.push_screen(PathSelector(), self.save_result_callback)
+        else:
+            self.app.pop_screen()

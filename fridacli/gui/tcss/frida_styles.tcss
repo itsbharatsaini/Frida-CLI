@@ -579,9 +579,14 @@ DocumentResultResume {
 }
 
 .dialog_results{
-     grid-size: 1;
+    grid-size: 1;
     width: 100;
     height: 50;
     border: thick $background 50%;
     background: $surface;
+}
+
+.half_button {
+    width: 50%;
+    margin: 0 1 0 0;
 }
