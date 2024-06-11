@@ -6,6 +6,9 @@ from textual.containers import Horizontal, Vertical
 from fridacli.logger import Logger
 from textual.events import Mount
 from fridacli.chatbot import ChatbotAgent
+from fridacli.config import OS
+from fridacli.config import HOME_PATH
+import subprocess
 import os
 
 chatbot = ChatbotAgent()
@@ -26,7 +29,9 @@ class ConfigurationView(Static):
                         Input(id="input_project_path"),
                         classes="configuration_vertical",
                     )
-                    yield Button("Save configuration", id="btn_project_confirm")
+                    with Horizontal():
+                        yield Button("Save configuration", id="btn_project_confirm")
+                        yield Button("Open logs", id="btn_project_open_logs", variant="primary")
             with TabPane("Softtek", id="softtek"):
                 with Static():
                     yield Horizontal(
@@ -104,6 +109,11 @@ class ConfigurationView(Static):
             )
             #code_view.refresh(repaint=True)
             self.notify("The configuration were saved")
+        if button_pressed == "btn_project_open_logs":
+            if OS == "win":
+                os.startfile(os.path.join(HOME_PATH, "fridacli_logs/"))
+            else:
+                subprocess.call(('open', os.path.join(HOME_PATH, "fridacli_logs/")))
 
         elif button_pressed == "btn_softtek_confirm":
             keys = get_vars_as_dict()
