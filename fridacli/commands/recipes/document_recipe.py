@@ -29,16 +29,11 @@ from tree_sitter import Language, Parser
 from fridacli.logger import Logger
 import tree_sitter_c_sharp as tscsharp
 import tree_sitter_java as tsjava
-if OS == "win":
-    import tree_sitter_python as tspython
-    PY_LANGUAGE = Language(tspython.language())
-else:
-    PY_LANGUAGE = Language(tscsharp.language())
+import tree_sitter_python as tspython
 
+PY_LANGUAGE = Language(tspython.language())
 CS_LANGUAGE = Language(tscsharp.language())
 JAVA_LANGUAGE = Language(tsjava.language())
-
-
 
 logger = Logger()
 
@@ -337,7 +332,7 @@ def document_file(
                 response = chatbot_agent.chat(prompt, True)
 
                 while (
-                    COMMENT_EXTENSION[extension][0] not in response
+                    COMMENT_EXTENSION[extension][0] not in response and "```" not in response
                 ) and i <= MAX_RETRIES:
                     logger.info(
                         __name__,
@@ -345,7 +340,8 @@ def document_file(
                     )
                     response = chatbot_agent.chat(prompt, True)
                     i += 1
-                if COMMENT_EXTENSION[extension][0] in response:
+                
+                if (COMMENT_EXTENSION[extension][0] in response and "```" in response):
                     logger.info(
                         __name__,
                         f"(document_file) Final response for the file {file}: {response}",
@@ -429,7 +425,7 @@ def document_file(
                     response = chatbot_agent.chat(prompt, True)
 
                     while (
-                        COMMENT_EXTENSION[extension][0] not in response
+                        COMMENT_EXTENSION[extension][0] not in response and "```" not in response
                     ) and i <= MAX_RETRIES:
                         logger.info(
                             __name__,
@@ -438,8 +434,8 @@ def document_file(
                         response = chatbot_agent.chat(prompt, True)
                         i += 1
                     i = 1
-
-                    if COMMENT_EXTENSION[extension][0] in response:
+                    
+                    if (COMMENT_EXTENSION[extension][0] in response and "```" in response):
                         logger.info(
                             __name__,
                             f"(document_file) Final response for the function {funct_definition}: {response}",
