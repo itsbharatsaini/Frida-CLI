@@ -7,7 +7,9 @@ logger = Logger()
 
 HOME_PATH = os.path.expanduser("~")
 OS = "win" if sys.platform.startswith('win') else "linux"
-config_file_path = f"{HOME_PATH}/.fridacli"
+frida_dir = "fridacli"
+FRIDA_DIR_PATH = f"{HOME_PATH}/{frida_dir}"
+config_file_path = f"{HOME_PATH}/{frida_dir}/.fridacli"
 BOT_NAME = "Frida"
 SUPPORTED_PROGRAMMING_LANGUAGES = [
     ".py",
