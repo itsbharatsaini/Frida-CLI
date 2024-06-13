@@ -73,15 +73,11 @@ def generate_full_document_prompt(code, extension):
 
     ALWAYS use this documentation style for the functions: {programming_languages[extension][1]}
 
-    DO NOT OMIT ANYTHING.
-
-    DO NOT OMIT ANY FUNCTION.
-    
-    DO NOT OMIT THE BODY OF ANY FUNCTION.
-
     RETURN ONLY ONE CODE BLOCK.
 
     Do NOT document classes.
+
+    Do NOT forget to document the Main function.
 
     Do NOT add 'Example usage' in the documentation of the function.
 
@@ -90,10 +86,6 @@ def generate_full_document_prompt(code, extension):
     Do NOT alter the code or omit them; only add the documentation.
 
     Do NOT add anything to the code block besides the documentation and the code.
-
-    Do NOT write observations.
-
-    ONLY respond with a code block, omit anything else.
 
     This is the code to document:
     {code}

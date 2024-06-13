@@ -29,16 +29,11 @@ from tree_sitter import Language, Parser
 from fridacli.logger import Logger
 import tree_sitter_c_sharp as tscsharp
 import tree_sitter_java as tsjava
-if OS == "win":
-    import tree_sitter_python as tspython
-    PY_LANGUAGE = Language(tspython.language())
-else:
-    PY_LANGUAGE = Language(tscsharp.language())
+import tree_sitter_python as tspython
 
+PY_LANGUAGE = Language(tspython.language())
 CS_LANGUAGE = Language(tscsharp.language())
 JAVA_LANGUAGE = Language(tsjava.language())
-
-
 
 logger = Logger()
 
@@ -138,7 +133,11 @@ def save_documentation(path: str, lines: List[Tuple[str, str]]) -> None:
 
 
 def extract_documentation(
-    code: str, extension: str, one_function: bool, file_name: str, funct_definition: str | None
+    code: str,
+    extension: str,
+    one_function: bool,
+    file_name: str,
+    funct_definition: str | None,
 ):
     """
     Extracts documentation from a provided code snippet (whole code or one function) based on the given file extension.
@@ -229,12 +228,20 @@ def get_code_block(
             if extension in SUPPORTED_DOC_EXTENSION:
                 if one_function:
                     lines, errors = extract_documentation(
-                        information["code"], extension, one_function, file_name, funct_definition
+                        information["code"],
+                        extension,
+                        one_function,
+                        file_name,
+                        funct_definition,
                     )
                     count = None
                 else:
                     lines, errors, count = extract_documentation(
-                        information["code"], extension, one_function, file_name, funct_definition
+                        information["code"],
+                        extension,
+                        one_function,
+                        file_name,
+                        funct_definition,
                     )
 
                 # If documentation was returned
@@ -255,12 +262,16 @@ def get_code_block(
                     __name__,
                     f"(get_code_block) Do not support the {extension} extension by now.",
                 )
-                return information, (
-                    {
-                        funct_definition: f"Couldn't extract the documentation to generate file because the {extension} extension is not supported."
-                    }
-                    if one_function
-                    else f"Couldn't extract the documentation to generate file because the {extension} extension is not supported."
+                return (
+                    information,
+                    (
+                        {
+                            funct_definition: f"Couldn't extract the documentation to generate file because the {extension} extension is not supported."
+                        }
+                        if one_function
+                        else f"Couldn't extract the documentation to generate file because the {extension} extension is not supported."
+                    ),
+                    None,
                 )
     except Exception as e:
         logger.error(__name__, f"(get_code_block) {e}")
@@ -338,6 +349,7 @@ def document_file(
 
                 while (
                     COMMENT_EXTENSION[extension][0] not in response
+                    and "```" not in response
                 ) and i <= MAX_RETRIES:
                     logger.info(
                         __name__,
@@ -345,7 +357,8 @@ def document_file(
                     )
                     response = chatbot_agent.chat(prompt, True)
                     i += 1
-                if COMMENT_EXTENSION[extension][0] in response:
+
+                if COMMENT_EXTENSION[extension][0] in response and "```" in response:
                     logger.info(
                         __name__,
                         f"(document_file) Final response for the file {file}: {response}",
@@ -355,7 +368,8 @@ def document_file(
                     )
                     if information is not None:
                         new_code = information["code"]
-                        all_errors = errors
+                        if extension in SUPPORTED_DOC_EXTENSION:
+                            all_errors = errors
                         if "documentation" in information.keys():
                             new_doc.extend(information["documentation"])
                         if count is None and extension in SUPPORTED_DOC_EXTENSION:
@@ -368,15 +382,18 @@ def document_file(
                             total = len(functions)
                         elif extension in SUPPORTED_DOC_EXTENSION:
                             total, documented = count
-                    elif extension in SUPPORTED_DOC_EXTENSION:
+                        else:
+                            total = -1
+                    else:
                         global_error = errors
-                        tree = COMMENT_EXTENSION[extension][2].parse(
-                            bytes(code, encoding="utf8")
-                        )
-                        functions, classes = COMMENT_EXTENSION[extension][1](
-                            tree.root_node, file
-                        )
-                        total = len(functions)
+                        if extension in SUPPORTED_DOC_EXTENSION:
+                            tree = COMMENT_EXTENSION[extension][2].parse(
+                                bytes(code, encoding="utf8")
+                            )
+                            functions, classes = COMMENT_EXTENSION[extension][1](
+                                tree.root_node, file
+                            )
+                            total = len(functions)
                 else:
                     logger.info(
                         __name__,
@@ -407,7 +424,9 @@ def document_file(
                     bytes(code, encoding="utf8")
                 )
 
-                functions, classes = COMMENT_EXTENSION[extension][1](tree.root_node, file)
+                functions, classes = COMMENT_EXTENSION[extension][1](
+                    tree.root_node, file
+                )
                 total = len(functions)
                 documented = 0
                 all_errors = {}
@@ -430,6 +449,7 @@ def document_file(
 
                     while (
                         COMMENT_EXTENSION[extension][0] not in response
+                        and "```" not in response
                     ) and i <= MAX_RETRIES:
                         logger.info(
                             __name__,
@@ -439,7 +459,10 @@ def document_file(
                         i += 1
                     i = 1
 
-                    if COMMENT_EXTENSION[extension][0] in response:
+                    if (
+                        COMMENT_EXTENSION[extension][0] in response
+                        and "```" in response
+                    ):
                         logger.info(
                             __name__,
                             f"(document_file) Final response for the function {funct_definition}: {response}",
