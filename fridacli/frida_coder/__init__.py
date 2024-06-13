@@ -2,18 +2,17 @@ import os
 import re
 import datetime
 from fridacli.frida_coder.languague.python import Python
-from fridacli.config import HOME_PATH, SUPPORTED_PROGRAMMING_LANGUAGES
+from fridacli.config import HOME_PATH, SUPPORTED_PROGRAMMING_LANGUAGES, FRIDA_DIR_PATH
 from .exception_message import ExceptionMessage
 from fridacli.file_manager import FileManager
 from fridacli.logger import Logger
-
 logger = Logger()
 
 
 class FridaCoder:
     def __init__(self) -> None:
-        self.code_files_dir = f"{HOME_PATH}/fridatmp/code"
-        self.result_files_dir = f"{HOME_PATH}/fridatmp/results"
+        self.code_files_dir = f"{FRIDA_DIR_PATH}/fridatmp/code"
+        self.result_files_dir = f"{FRIDA_DIR_PATH}/fridatmp/results"
         self.code_blocks = []
         self.__file_manager = FileManager()
         self.languages = {"python": {"extension": "py", "worker": Python()}}
