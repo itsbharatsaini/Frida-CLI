@@ -294,17 +294,21 @@ class DocumentResultResume(Screen):
 
     def compose(self):
         with Vertical(classes="dialog_results"):
+            yield Markdown("# Documentation Results\n")
             with VerticalScroll(id="doc_result_scroll"):
                 yield Markdown(self.md_result)
             yield Horizontal(Button("Quit", variant="error", id="quit_results", classes="half_button"), Button("Save result", id="save_result_btn", variant="success", classes="half_button"), classes="doc_generator_horizontal")
 
     def buildMD(self):
         logger.info(__name__, "(buildMD) Loading the Markdown documentation resume")
-        markdown_text = "# Documentation Results\n"
+        markdown_text = ""
 
         for result in self.result:
             if result['total_functions'] == 0:
                 markdown_text += f"## {result['file']} was documented at 0%\n"
+                markdown_text += f"Couldn't count the number of functions\n"
+            elif result['total_functions'] == -1:
+                markdown_text += f"## {result['file']} was documented at 100%\n"
                 markdown_text += f"Couldn't count the number of functions\n"
             else:
                 percentage = (result['documented_functions'] / result['total_functions']) * 100
@@ -315,7 +319,7 @@ class DocumentResultResume(Screen):
             elif len(result['function_errors']) > 0:
                 markdown_text += f"### Function errors:\n"
                 for function, error in result['function_errors'].items():
-                    markdown_text += f"- {function}: {error}\n"
+                    markdown_text += f"- {function} {error}\n"
         self.md_result = markdown_text
     
     def _on_mount(self, event: Mount) -> None:
@@ -326,7 +330,7 @@ class DocumentResultResume(Screen):
         if path != "":
             try:
                 with open(os.path.join(path, "result.md"), "w") as file:
-                    file.write(self.md_result)
+                    file.write("# Documentation Results\n" + self.md_result)
                 self.app.notify(f"File saved at {path}.")
                 self.app.pop_screen()
             except Exception as e:
