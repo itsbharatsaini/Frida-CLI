@@ -7,7 +7,7 @@ from fridacli.logger import Logger
 from textual.events import Mount
 from fridacli.chatbot import ChatbotAgent
 from fridacli.config import OS
-from fridacli.config import HOME_PATH
+from fridacli.config import HOME_PATH, FRIDA_DIR_PATH
 import subprocess
 import os
 
@@ -111,9 +111,9 @@ class ConfigurationView(Static):
             self.notify("The configuration were saved")
         if button_pressed == "btn_project_open_logs":
             if OS == "win":
-                os.startfile(os.path.join(HOME_PATH, "fridacli_logs/"))
+                os.startfile(os.path.join(FRIDA_DIR_PATH, "fridacli_logs/"))
             else:
-                subprocess.call(('open', os.path.join(HOME_PATH, "fridacli_logs/")))
+                subprocess.call(('open', os.path.join(FRIDA_DIR_PATH, "fridacli_logs/")))
 
         elif button_pressed == "btn_softtek_confirm":
             keys = get_vars_as_dict()

@@ -3,7 +3,7 @@ from textual.screen import Screen, ModalScreen
 from textual.widgets import Label, Input, Button, DirectoryTree, LoadingIndicator, Checkbox, Select, RadioSet, RadioButton, TextArea, Markdown
 from textual.containers import Vertical, Horizontal, VerticalScroll
 from fridacli.commands.recipes import generate_epics, document_files
-from fridacli.config import HOME_PATH, get_config_vars
+from fridacli.config import HOME_PATH,FRIDA_DIR_PATH, get_config_vars
 from textual.containers import Vertical, Horizontal
 from textual.screen import Screen, ModalScreen
 from textual.worker import Worker, WorkerState
@@ -146,7 +146,7 @@ class Loader(Screen):
         )
 
 class EpicGenerator(Screen):
-    path = HOME_PATH
+    path = FRIDA_DIR_PATH
     def compose(self):
         logger.info(__name__, "Composing EpicGenerator")
         yield Vertical(
@@ -176,7 +176,7 @@ class EpicGenerator(Screen):
         logger.info(__name__, self.path)
 
 class CreateNewEpic(Screen):
-    path = HOME_PATH
+    path = FRIDA_DIR_PATH
     radio_set_value = ""
     csv_data = {}
     def compose(self):
