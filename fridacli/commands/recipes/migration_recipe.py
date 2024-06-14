@@ -33,7 +33,7 @@ def doc_migration_file(
         thread_semaphore.release()
 
 
-def exec_migration_file(
+async def exec_migration_file(
     language,
     current_version,
     target_version,

@@ -236,13 +236,23 @@ class MigrationDocGenerator(Screen):
                 select_target.set_options([(item, item) for item in LANGUAGE_VERSIONS[self.current_language] if item != str(event.value)])
                 select_target.disabled = False
     
+    def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
+        """
+            Called when the worker state changes.
+        """
+        logger.info(__name__, f"(on_worker_state_changed) Worker state changed with event: {str(event)}")
+        if WorkerState.SUCCESS == event.worker.state and event.worker.name == "migrate_files":
+            self.app.pop_screen()
+            self.app.pop_screen()
+            #self.dismiss("OK")
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "generate_migration_doc":
             select_current = self.query_one("#select_current_lang", Select).value
             select_target = self.query_one("#select_target_lang", Select).value
             doc_path = self.query_one("#input_doc_path", Input).value
             if select_current != Select.BLANK and select_target != Select.BLANK and self.current_language is not None:
-                self.app.push_screen(Loader())
+                self.app.push_screen(Loader("Working on the migration..."))
                 self.run_worker(migrate_files(self.current_language, select_current, select_target, doc_path), exclusive=False, thread=True)
             elif self.current_language is None:
                 self.notify("You must select a language.")
