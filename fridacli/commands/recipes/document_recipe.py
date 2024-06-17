@@ -27,9 +27,9 @@ SUPPORTED_DOC_EXTENSION = [".py", ".cs", ".java"]
 # extension: [documentation symbols, function to extract all functions, language parser,
 #             function to extract documentation from one function, function to extract documentation from all functions]
 LANGUAGES = {
-    ".py": Python,
-    ".cs": CSharp,
-    ".java": Java,
+    ".py": Python(),
+    ".cs": CSharp(),
+    ".java": Java(),
     ".js": "*",
 }
 RESUMES = []
@@ -101,7 +101,6 @@ def extract_documentation(
     code: str,
     extension: str,
     one_function: bool,
-    file_name: str,
     funct_definition: str | None,
 ):
     """
@@ -126,7 +125,7 @@ def extract_documentation(
             return (
                 LANGUAGES[extension].extract_doc_single_function(tree.root_node, funct_definition)
                 if one_function
-                else LANGUAGES[extension].extract_doc_all_functions(tree.root_node, file_name)
+                else LANGUAGES[extension].extract_doc_all_functions(tree.root_node)
             )
         else:
             logger.error(
@@ -196,7 +195,6 @@ def get_code_block(
                         information["code"],
                         extension,
                         one_function,
-                        file_name,
                         funct_definition,
                     )
                     count = None
@@ -205,7 +203,6 @@ def get_code_block(
                         information["code"],
                         extension,
                         one_function,
-                        file_name,
                         funct_definition,
                     )
 
@@ -341,9 +338,7 @@ def document_file(
                             tree = LANGUAGES[extension].parser.parse(
                                 bytes(code, encoding="utf8")
                             )
-                            functions, classes = LANGUAGES[extension].find_all_functions(
-                                tree.root_node, file
-                            )
+                            functions, classes = LANGUAGES[extension].find_all_functions(tree.root_node)
                             total = len(functions)
                         elif extension in SUPPORTED_DOC_EXTENSION:
                             total, documented = count
@@ -355,9 +350,7 @@ def document_file(
                             tree = LANGUAGES[extension].parser.parse(
                                 bytes(code, encoding="utf8")
                             )
-                            functions, classes = LANGUAGES[extension].find_all_functions(
-                                tree.root_node, file
-                            )
+                            functions, classes = LANGUAGES[extension].find_all_functions(tree.root_node)
                             total = len(functions)
                 else:
                     logger.info(
@@ -369,9 +362,7 @@ def document_file(
                         tree = LANGUAGES[extension][2].parse(
                             bytes(code, encoding="utf8")
                         )
-                        functions, classes = LANGUAGES[extension].find_all_functions(
-                            tree.root_node, file
-                        )
+                        functions, classes = LANGUAGES[extension].find_all_functions(tree.root_node)
                         total = len(functions)
 
                 RESUMES.append(
@@ -389,9 +380,7 @@ def document_file(
                     bytes(code, encoding="utf8")
                 )
 
-                functions, classes = LANGUAGES[extension].find_all_functions(
-                    tree.root_node, file
-                )
+                functions, classes = LANGUAGES[extension].find_all_functions(tree.root_node)
                 total = len(functions)
                 documented = 0
                 all_errors = {}
