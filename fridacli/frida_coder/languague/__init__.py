@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from fridacli.config import HOME_PATH, FRIDA_DIR_PATH
+from fridacli.config import FRIDA_DIR_PATH
 from fridacli.logger import Logger
 
 logger = Logger()
@@ -17,3 +17,19 @@ class Language(ABC):
     @abstractmethod
     def run(self, code):
         raise NotImplementedError("run method must be overridden")
+    
+    @abstractmethod
+    def find_all_functions(self, node):
+        raise NotImplementedError("find_all_functions method must be overriden")
+    
+    @abstractmethod
+    def extract_documentation(self, comments):
+        raise NotImplementedError("extract_documentation method must be overriden")
+    
+    @abstractmethod
+    def extract_doc_all_functions(self, node):
+        raise NotImplementedError("extract_doc_all_functions method must be overriden")
+    
+    @abstractmethod
+    def extract_doc_single_function(self, node, funct_definition):
+        raise NotImplementedError("extract_doc_one_function")
