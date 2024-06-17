@@ -135,6 +135,22 @@ def generate_document_for_funct_prompt(code, extension):
     """
 
 
+# Generates migration tips for a single function
+def generate_recommendation_for_migration(
+    language, current_version, target_version, code
+):
+    return f"""
+    You are professional coding assistant for the language {language}.
+    You will be given a function written in the {current_version} version, and your job is to give a set of recommendations about how to migrate the code from {current_version} to {target_version}.
+    
+    You have to return both:
+    - The function migrated to the target version: {target_version}
+    - A list of recomendations
+
+    This is the function to be migrated:
+    {code}"""
+
+
 generate_epic = (
     lambda epic_name: f"""Generate at least 5 user stories for the Epic {epic_name} in the project Innovasports Mobile, which is a mobile application designed for selling shoes.
 Each user story should consist of a title, a detailed description, and acceptance criteria to ensure clarity and understanding.
