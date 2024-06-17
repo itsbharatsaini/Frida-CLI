@@ -1,14 +1,14 @@
 import re
 from tree_sitter import Tree, Language, Parser
 import tree_sitter_c_sharp as tscsharp
-from fridacli.frida_coder.languague import Language
+from fridacli.frida_coder.languague import BaseLanguage
 from typing_extensions import override
 from fridacli.logger import Logger
 
 logger = Logger()
 
 
-class CSharp(Language):
+class CSharp(BaseLanguage):
     __PARAM = (
         r"^\s*<\s*param\s*name\s*=\s*\"([\w\s]*)\">([\w\.\-\s<>=\"/{}]*)</param>\s*$"
     )

@@ -2,7 +2,7 @@ import os
 import subprocess
 from tree_sitter import Tree, Language, Parser
 import tree_sitter_python as tspython
-from fridacli.frida_coder.languague import Language
+from fridacli.frida_coder.languague import BaseLanguage
 from typing_extensions import override
 from ..exception_message import ExceptionMessage
 from fridacli.config import get_config_vars
@@ -11,7 +11,7 @@ from fridacli.logger import Logger
 logger = Logger()
 
 
-class Python(Language):
+class Python(BaseLanguage):
     __PARSER = Parser(Language(tspython.language()))
     __COMMENT = '"""'
 

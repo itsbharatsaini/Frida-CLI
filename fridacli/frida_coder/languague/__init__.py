@@ -4,7 +4,7 @@ from fridacli.logger import Logger
 
 logger = Logger()
 
-class Language(ABC):
+class BaseLanguage(ABC):
     def __init__(self) -> None:
         super().__init__()
         self.result_files_dir = f"{FRIDA_DIR_PATH}/tmp/results"

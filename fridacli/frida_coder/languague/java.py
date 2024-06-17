@@ -1,14 +1,14 @@
 import re
 from tree_sitter import Tree, Language, Parser
 import tree_sitter_java as tsjava
-from fridacli.frida_coder.languague import Language
+from fridacli.frida_coder.languague import BaseLanguage
 from typing_extensions import override
 from fridacli.logger import Logger
 
 logger = Logger()
 
 
-class Java(Language):
+class Java(BaseLanguage):
     __PARAM = r"\s*\*\s*@param\s*([\w_\d]*)\s*(.*)\s*"
     __RETURN = r"\s*\*\s*@return\s*(.*)\s*"
     __EXCEPTION = r"\s*\*\s*@throws\s*([\w_\d]*)\s*(.*)\s*"
