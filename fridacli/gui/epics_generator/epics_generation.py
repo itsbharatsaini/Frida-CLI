@@ -7,9 +7,9 @@ from fridacli.logger import Logger
 from .utils import get_data_from_file, get_project_versions, generate_empty_project, save_project, generate_project_with_csv
 from datetime import datetime
 from .project import Project
-
 from fridacli.gui.push_screens import ConfirmPushView
-
+from fridacli.config import FRIDA_DIR_PATH
+import os
 
 logger = Logger()
 
@@ -27,8 +27,7 @@ class ListProjectItem(Static):
             yield Label("Plataform: " + self.project["plataform"])
 
 class EpicsGeneration(Static):
-    PATH = "data.json"
-    AUX_PATH = "data2.json"
+    PATH = os.path.join(FRIDA_DIR_PATH, "data.json")
     #Contains all of the version
     versions = {}
     validation = False
@@ -37,6 +36,7 @@ class EpicsGeneration(Static):
     projects = {}
 
     def __init__(self) -> None:
+        self.check_project_path()
         super().__init__()
 
     def compose(self):
@@ -59,9 +59,15 @@ class EpicsGeneration(Static):
     def on_mount(self):
         self.load_projects()
 
+    def check_project_path(self):
+        file_path = os.path.join(FRIDA_DIR_PATH, "data.json")
+        if not os.path.exists(file_path):
+            with open(self.PATH, "w") as f:
+                f.write('{"projects": []}')
+
     def load_projects(self):
         #Get the raw data from file
-        data = get_data_from_file(self.AUX_PATH)
+        data = get_data_from_file(self.PATH)
         self.projects = data
         logger.info(__name__, str(data))
 
@@ -95,7 +101,7 @@ class EpicsGeneration(Static):
             if project["project_name"] == self.selected_project:
                 project = project_new_data
 
-        status = save_project(self.AUX_PATH, self.projects)
+        status = save_project(self.PATH, self.projects)
 
         # Notify the user
         if status:
@@ -130,7 +136,7 @@ class EpicsGeneration(Static):
         self.projects["projects"].append(project)
 
 
-        status = save_project(self.AUX_PATH, self.projects)
+        status = save_project(self.PATH, self.projects)
 
         if status:
             self.notify("The project was saved successfully")

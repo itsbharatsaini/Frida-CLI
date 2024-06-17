@@ -33,7 +33,7 @@ class FilteredDirectoryTree(DirectoryTree):
 
 class CodeView(Static):
     show_tree = var(True)
-    CSS_PATH = "tcss/frida_styles.tcss"
+    CSS_PATH = "fridacli/gui/tcss/frida_styles.tcss"
     recipe_selected = ""
     file_button_open = ""
 
@@ -142,4 +142,5 @@ class CodeView(Static):
                 self.app.push_screen(MigrationDocGenerator())
 
     def doc_generator_callback(self, result):
+        self.app.push_screen(DocumentResultResume(result))
         self.query_one("#cv_tree_view", FilteredDirectoryTree).reload()
