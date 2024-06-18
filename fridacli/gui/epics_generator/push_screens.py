@@ -4,7 +4,7 @@ from textual.widgets import Label, Input, Button, DirectoryTree, LoadingIndicato
 from textual.containers import Vertical, Horizontal
 from fridacli.logger import Logger
 from fridacli.gui.push_screens import PathSelector, Loader
-from fridacli.config import HOME_PATH
+from fridacli.config import HOME_PATH, FRIDA_DIR_PATH
 from textual.worker import Worker, WorkerState
 import csv 
 
@@ -72,7 +72,7 @@ class NewObjectPushScreen(Screen):
         logger.info(__name__, f"{event}")
 
 class CreateNewProject(Screen):
-    path = HOME_PATH
+    path = FRIDA_DIR_PATH
     radio_set_value = ""
     csv_data = {}
     def compose(self):

@@ -55,6 +55,7 @@ programming_languages = {
     ],
 }
 
+special_consideration = '\n\nALWAYS write the documentation block after the function definition.\n\nDO NOT forget to document the constructors.'
 
 # Used to generate documentation for a full code file
 def generate_full_document_prompt(code, extension):
@@ -71,17 +72,13 @@ def generate_full_document_prompt(code, extension):
     - Return values if any.
     - Exceptions handled in the function if any.
 
-    ALWAYS use this documentation style for the functions: {programming_languages[extension][1]}
-
-    DO NOT OMIT ANYTHING.
-
-    DO NOT OMIT ANY FUNCTION.
-    
-    DO NOT OMIT THE BODY OF ANY FUNCTION.
+    ALWAYS use this documentation style for the functions: {programming_languages[extension][1]}{special_consideration if extension == '.py' else ''}
 
     RETURN ONLY ONE CODE BLOCK.
 
     Do NOT document classes.
+
+    Do NOT forget to document the Main function.
 
     Do NOT add 'Example usage' in the documentation of the function.
 
@@ -90,10 +87,6 @@ def generate_full_document_prompt(code, extension):
     Do NOT alter the code or omit them; only add the documentation.
 
     Do NOT add anything to the code block besides the documentation and the code.
-
-    Do NOT write observations.
-
-    ONLY respond with a code block, omit anything else.
 
     This is the code to document:
     {code}
