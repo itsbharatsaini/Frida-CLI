@@ -66,6 +66,13 @@ Input {
     height: 5;
 }
 
+.configuration_add_model {
+    width: 60%;
+    margin: 0 0 0 3;
+    padding: 0 0 0 0;
+    height: 5;
+}
+
 .configuration_vertical {
     width: 60%;
     margin: 0 0 0 0;

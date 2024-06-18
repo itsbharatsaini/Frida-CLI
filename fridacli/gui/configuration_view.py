@@ -15,9 +15,9 @@ chatbot = ChatbotAgent()
 
 logger = Logger()
 
-
-
 class ConfigurationView(Static):
+    model_counter = 0  # Counter for model inputs
+
     def compose(self):
         logger.info(__name__, "(compose) Composing ConfigurationView")
         with TabbedContent(initial="project"):
@@ -40,15 +40,11 @@ class ConfigurationView(Static):
                         classes="configuration_line",
                     )
                     yield Horizontal(
-                        Label("CHAT MODEL NAME V3", classes="configuration_label"),
-                        Input(id="input_chat_model_name"),
-                        classes="configuration_line",
+                        Button("ADD MODEL", id="btn_add_model"),
+                        classes="configuration_add_model",
+                        id="add_model"
                     )
-                    yield Horizontal(
-                        Label("CHAT MODEL NAME V4", classes="configuration_label"),
-                        Input(id="input_chat_model_name_v4"),
-                        classes="configuration_line",
-                    )
+                    yield Vertical(id="models_container")  # Container to hold model inputs
                     yield Button("Save configuration", id="btn_softtek_confirm")
             with TabPane("Python", id="python"):
                 with Static():
@@ -68,21 +64,23 @@ class ConfigurationView(Static):
         env_vars = get_config_vars()
         input_project_path = self.query_one("#input_project_path", Input)
         input_llmops_api_key = self.query_one("#input_llmops_api_key", Input)
-        input_chat_model_name = self.query_one("#input_chat_model_name", Input)
-        input_chat_model_name_v4 = self.query_one("#input_chat_model_name_v4", Input)
         input_python_env = self.query_one("#input_python_env", Input)
 
         input_project_path.value = env_vars["PROJECT_PATH"]
         input_llmops_api_key.value = env_vars["LLMOPS_API_KEY"]
-        input_chat_model_name.value = env_vars["CHAT_MODEL_NAME"]
-        input_chat_model_name_v4.value = env_vars["CHAT_MODEL_NAME_V4"]
         input_python_env.value = env_vars["PYTHON_ENV_PATH"]
+
+        # Get model count
+        self.model_counter = int(env_vars.get("MODEL_COUNT", 0))
+
+        # Load models
+        models_container = self.query_one("#models_container", Vertical)
+        for i in range(self.model_counter):
+            self.add_model_input(models_container, i + 1, env_vars.get(f"MODEL_{i+1}", ""))
 
         logger.info(__name__, f"""(on_mount) 
             input_project_path: {input_project_path.value}
             input_llmops_api_key: {input_llmops_api_key.value}
-            input_chat_model_name: {input_chat_model_name.value}
-            input_chat_model_name_v4: {input_chat_model_name_v4.value} 
             input_python_env: {input_python_env.value}          
         """)
 
@@ -96,7 +94,7 @@ class ConfigurationView(Static):
             project_path = self.query_one("#input_project_path", Input).value
 
             if not project_path:
-                self.notify("Please fill proje")
+                self.notify("Please fill project path")
                 return
 
             keys = get_vars_as_dict()
@@ -109,11 +107,22 @@ class ConfigurationView(Static):
             )
             #code_view.refresh(repaint=True)
             self.notify("The configuration were saved")
-        if button_pressed == "btn_project_open_logs":
+
+        elif button_pressed == "btn_project_open_logs":
             if OS == "win":
                 os.startfile(os.path.join(FRIDA_DIR_PATH, "fridacli_logs/"))
             else:
                 subprocess.call(('open', os.path.join(FRIDA_DIR_PATH, "fridacli_logs/")))
+
+        elif button_pressed == "btn_add_model":
+            models_container = self.query_one("#models_container", Vertical)
+            self.model_counter += 1
+            self.add_model_input(models_container, self.model_counter)
+            self.notify("Model added")
+
+        elif button_pressed.startswith("btn_remove_model_"):
+            model_number = int(button_pressed.split("_")[-1])
+            self.remove_model_input(model_number)
 
         elif button_pressed == "btn_softtek_confirm":
             keys = get_vars_as_dict()
@@ -123,17 +132,13 @@ class ConfigurationView(Static):
                 return
             keys["LLMOPS_API_KEY"] = value
 
-            value = self.query_one("#input_chat_model_name", Input).value
-            if not value:
-                self.notify("Please fill CHAT MODEL NAME V3", severity="error")
-                return
-            keys["CHAT_MODEL_NAME"] = value
+            # Save model inputs
+            models_container = self.query_one("#models_container", Vertical)
+            model_inputs = models_container.query(Input)
+            keys["MODEL_COUNT"] = str(len(model_inputs))
+            for i, input_field in enumerate(model_inputs):
+                keys[f"MODEL_{i+1}"] = input_field.value
 
-            value = self.query_one("#input_chat_model_name_v4", Input).value
-            if not value:
-                self.notify("Please fill CHAT MODEL NAME V4", severity="error")
-                return
-            keys["CHAT_MODEL_NAME_V4"] = value
             write_config_to_file(keys)
             chatbot.update_env_vars()
             self.notify("The configuration were saved")
@@ -155,3 +160,31 @@ class ConfigurationView(Static):
             self.query_one("#input_project_path", Input).value = str(event.path)
         else: 
             self.query_one("#input_python_env", Input).value = str(event.path)
+
+    def add_model_input(self, container, model_number, model_value=""):
+        container.mount(
+            Horizontal(
+                Label(f"Model {model_number}", classes="configuration_label"),
+                Input(value=model_value, id=f"input_model_{model_number}"),
+                Button("Remove", id=f"btn_remove_model_{model_number}"),
+                classes="configuration_line",
+            ),
+            before = self.parent.parent.query_one("#softtek", TabPane).query_one("#add_model", Horizontal)
+        )
+
+    def remove_model_input(self, model_number):
+        models_container = self.query_one("#models_container", Vertical)
+        model_to_remove = self.query_one(f"#input_model_{model_number}", Input).parent
+        models_container.remove(model_to_remove)
+        self.update_model_numbers()
+
+    def update_model_numbers(self):
+        models_container = self.query_one("#models_container", Vertical)
+        model_inputs = models_container.query(Input)
+        self.model_counter = len(model_inputs)
+        for i, input_field in enumerate(model_inputs):
+            label = input_field.parent.query_one(Label)
+            label.update(f"Model {i + 1}")
+            input_field.id = f"input_model_{i + 1}"
+            remove_button = input_field.parent.query_one(Button)
+            remove_button.id = f"btn_remove_model_{i + 1}"
