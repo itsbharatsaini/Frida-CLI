@@ -145,8 +145,18 @@ def generate_recommendation_for_migration(
     
     You have to return both:
     - The function migrated to the target version: {target_version}
-    - A list of recomendations
+    - List of enumerated of recommendations to do the migration
 
+    Each recommendations MUST follow this syntax: '1. **Name**: description.'
+
+    The new function must be within a code block.
+
+    Do not include the current version of the code, only the updated function.
+
+    The recommendations must be given within the tags: <recommendations></recommendations>.
+
+    The recommendations must be a detailed explanation.
+    
     This is the function to be migrated:
     {code}"""
 
