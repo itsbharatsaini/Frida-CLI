@@ -16,6 +16,7 @@ class CSharp(BaseLanguage):
     __EXCEPTION = r"^\s*<\s*exception\s*cref\s*=\s*\"([\w\s.]*)\">([\w\.\-\s<>=\"/{}]*)</exception>\s*$"
     __PARSER = Parser(Language(tscsharp.language()))
     __COMMENT = "///"
+    __NAME = "C#"
 
     def __init__(self) -> None:
         super().__init__()
@@ -27,6 +28,10 @@ class CSharp(BaseLanguage):
     @property
     def comment(self):
         return self.__COMMENT
+    
+    @property
+    def name(self):
+        return self.__NAME
 
     # Methods for code execution
     @override

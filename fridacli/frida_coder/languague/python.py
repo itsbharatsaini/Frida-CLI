@@ -14,6 +14,7 @@ logger = Logger()
 class Python(BaseLanguage):
     __PARSER = Parser(Language(tspython.language()))
     __COMMENT = '"""'
+    __NAME = "Python"
 
     def __init__(self) -> None:
         super().__init__()
@@ -26,6 +27,10 @@ class Python(BaseLanguage):
     @property
     def comment(self):
         return self.__COMMENT
+
+    @property
+    def name(self):
+        return self.__NAME
 
     # Methods for code execution
     @override

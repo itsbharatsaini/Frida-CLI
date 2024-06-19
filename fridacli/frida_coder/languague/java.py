@@ -15,6 +15,7 @@ class Java(BaseLanguage):
     __DESCRIPTION = r"\s*\*\s*(.*)\s*"
     __PARSER = Parser(Language(tsjava.language()))
     __COMMENT = "/**"
+    __NAME = "Java"
 
     def __init__(self) -> None:
         super().__init__()
@@ -26,6 +27,10 @@ class Java(BaseLanguage):
     @property
     def comment(self):
         return self.__COMMENT
+
+    @property
+    def name(self):
+        return self.__NAME
 
     # Methods for code execution
     @override
