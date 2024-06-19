@@ -86,7 +86,7 @@ class DocGenerator(Screen):
             Vertical(Checkbox("Word Document", id = "docx_check"), Checkbox("Markdown Readme", id = "md_check"), classes="vertical_documentation"),
             Label("Select the path to save your documentation (the current directory is taken by default):", classes="format_selection"),
             Horizontal(Button("Select path", id="select_path_button"), Input(id="input_doc_path",  disabled=True, value=file_manager.get_folder_path()), classes="doc_generator_horizontal"),
-            Label("Select if you want your code formatted after the documentation (only for C# and Python code):", classes="format_selection", shrink=True),
+            Label("Select if you want your code formatted after the documentation (only for Python code):", classes="format_selection", shrink=True),
             Checkbox("Yes, use the formatter", id="use_formater"),
             Label("Select a method to generate the documentation:", classes="format_selection", shrink=True),
             Select(((line, line) for line in METHOD_LINES), id="select_method", value="Quick (ChatGPT-3.5)"),
