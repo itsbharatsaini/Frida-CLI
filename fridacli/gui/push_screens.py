@@ -258,8 +258,18 @@ class MigrationDocGenerator(Screen):
                 self.notify("You must select a language.")
             else:
                 self.notify("You must select a current language version and a target language version.")
+        elif event.button.id == "select_path_button":
+            self.app.push_screen(PathSelector(), self.select_doc_path_callback)
         else:
             self.app.pop_screen()
+    
+    def select_doc_path_callback(self, path):
+        """
+            Callback for the path selection modal.
+        """
+        logger.info(__name__, f"(select_doc_path_callback) Path selected: {str(path)}")
+        if path != "":
+            self.query_one("#input_doc_path", Input).value = path
 
 class Loader(Screen):
     def __init__(self, text) -> None:
