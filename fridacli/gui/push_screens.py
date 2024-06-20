@@ -2,8 +2,8 @@ from textual.events import Mount
 from textual.screen import Screen, ModalScreen
 from textual.widgets import Label, Input, Button, DirectoryTree, LoadingIndicator, Checkbox, Select, RadioSet, RadioButton, TextArea, Markdown
 from textual.containers import Vertical, Horizontal, VerticalScroll
-from fridacli.commands.recipes import generate_epics, document_files
-from fridacli.config import HOME_PATH,FRIDA_DIR_PATH, get_config_vars
+from fridacli.commands.recipes import generate_epics, document_files, migrate_files
+from fridacli.config import HOME_PATH, FRIDA_DIR_PATH, get_config_vars
 from textual.containers import Vertical, Horizontal
 from textual.screen import Screen, ModalScreen
 from textual.worker import Worker, WorkerState
@@ -19,9 +19,11 @@ logger = Logger()
 file_manager = FileManager()
 env_vars = get_config_vars()
 
-LINES = """Quick (ChatGPT-3.5)
-Slow (ChatGPT-4)
-""".splitlines()
+METHOD_LINES = ["Quick (ChatGPT-3.5)", "Slow (ChatGPT-4)"]
+PROGRAMMING_LANGUAGE = ["Java"]
+LANGUAGE_VERSIONS = {
+    "Java": ["Java SE 8", "Java SE 9", "Java SE 10", "Java SE 11", "Java SE 12"]
+}
 
 class FilteredDirectoryTree(DirectoryTree):
     def filter_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
@@ -84,10 +86,10 @@ class DocGenerator(Screen):
             Vertical(Checkbox("Word Document", id = "docx_check"), Checkbox("Markdown Readme", id = "md_check"), classes="vertical_documentation"),
             Label("Select the path to save your documentation (the current directory is taken by default):", classes="format_selection"),
             Horizontal(Button("Select path", id="select_path_button"), Input(id="input_doc_path",  disabled=True, value=file_manager.get_folder_path()), classes="doc_generator_horizontal"),
-            Label("Select if you want your code formatted after the documentation (only for C# and Python code):", classes="format_selection", shrink=True),
+            Label("Select if you want your code formatted after the documentation (only for Python code):", classes="format_selection", shrink=True),
             Checkbox("Yes, use the formatter", id="use_formater"),
             Label("Select a method to generate the documentation:", classes="format_selection", shrink=True),
-            Select(((line, line) for line in LINES), id="select_method", value="Quick (ChatGPT-3.5)"),
+            Select(((line, line) for line in METHOD_LINES), id="select_method", value="Quick (ChatGPT-3.5)"),
             Horizontal(Button("Quit", variant="error", id="quit"), Button("Create Documentation", variant="success", id="generate_documentation"), classes="doc_generator_horizontal"),
             classes="dialog_doc",
         )
@@ -130,7 +132,144 @@ class DocGenerator(Screen):
         logger.info(__name__, f"(select_doc_path_callback) Path selected: {str(path)}")
         if path != "":
             self.query_one("#input_doc_path", Input).value = path
+
+class MigrationDocGenerator(Screen):
+    current_language = None
+
+    def compose(self):
+        yield Vertical(
+            Label(
+                "Select the programming language of your project:",
+                classes="format_selection",
+                shrink=True,
+            ),
+            Select(
+                ((line, line) for line in PROGRAMMING_LANGUAGE),
+                id="select_language",
+            ),
+            Label(
+                "Select the current language version and the language version that you want to migrate to:",
+                classes="format_selection",
+                shrink=True,
+            ),
+            Horizontal(
+                Vertical(
+                    Label(
+                        "Current version",
+                        classes="format_selection",
+                        shrink=True,
+                    ),
+                    Select(
+                        [],
+                        id="select_current_lang",
+                        disabled=True,
+                    ),
+                    classes="doc_generator_vertical",
+                ),
+                Vertical(
+                    Label(
+                        "Targer version",
+                        classes="format_selection",
+                        shrink=True,
+                    ),
+                    Select(
+                        [],
+                        id="select_target_lang",
+                        disabled=True,
+                    ),
+                    classes="doc_generator_vertical",
+                ),
+                classes="doc_generator_horizontal",
+            ),
+            Label(
+                "Select the path to save the document with the analysis (the current directory is taken by default):",
+                classes="format_selection",
+            ),
+            Horizontal(
+                Button("Select path", id="select_path_button"),
+                Input(
+                    id="input_doc_path",
+                    disabled=True,
+                    value=file_manager.get_folder_path(),
+                ),
+                classes="doc_generator_horizontal",
+            ),
+            Horizontal(
+                Button("Quit", variant="error", id="quit_screen", classes="half_button"),
+                Button(
+                    "Create Migration Documentation",
+                    variant="success",
+                    id="generate_migration_doc",
+                    classes="half_button",
+                ),
+                classes="doc_generator_horizontal",
+            ),
+            classes="dialog_doc",
+        )
+    
+    def on_select_changed(self, event: Select.Changed) -> None:
+        id = event.select.id
+        select_current = self.query_one("#select_current_lang", Select)
+        select_target = self.query_one("#select_target_lang", Select)
+        if id == "select_language":
+            if event.value == Select.BLANK:
+                select_current.set_options([])
+                select_current.disabled = True
+                select_target.set_options([])
+                select_target.disabled = True
+                self.current_language = None
+            elif self.current_language is None:
+                select_current.set_options([(item, item) for item in LANGUAGE_VERSIONS[str(event.value)]])
+                select_current.disabled = False
+                self.current_language = event.value
+            elif self.current_language != event.value:
+                select_current.set_options([(item, item) for item in LANGUAGE_VERSIONS[str(event.value)]])
+                select_target.set_options([])
+                select_target.disabled = True
+                self.current_language = event.value
             
+        elif id == "select_current_lang":
+            if event.value == Select.BLANK:
+                select_target.set_options([])
+                select_target.disabled = True
+            else:
+                select_target.set_options([(item, item) for item in LANGUAGE_VERSIONS[self.current_language] if item != str(event.value)])
+                select_target.disabled = False
+    
+    def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
+        """
+            Called when the worker state changes.
+        """
+        logger.info(__name__, f"(on_worker_state_changed) Worker state changed with event: {str(event)}")
+        if WorkerState.SUCCESS == event.worker.state and event.worker.name == "migrate_files":
+            self.app.pop_screen()
+            self.app.pop_screen()
+            #self.dismiss("OK")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "generate_migration_doc":
+            select_current = self.query_one("#select_current_lang", Select).value
+            select_target = self.query_one("#select_target_lang", Select).value
+            doc_path = self.query_one("#input_doc_path", Input).value
+            if select_current != Select.BLANK and select_target != Select.BLANK and self.current_language is not None:
+                self.app.push_screen(Loader("Working on the migration..."))
+                self.run_worker(migrate_files(self.current_language, select_current, select_target, doc_path), exclusive=False, thread=True)
+            elif self.current_language is None:
+                self.notify("You must select a language.")
+            else:
+                self.notify("You must select a current language version and a target language version.")
+        elif event.button.id == "select_path_button":
+            self.app.push_screen(PathSelector(), self.select_doc_path_callback)
+        else:
+            self.app.pop_screen()
+    
+    def select_doc_path_callback(self, path):
+        """
+            Callback for the path selection modal.
+        """
+        logger.info(__name__, f"(select_doc_path_callback) Path selected: {str(path)}")
+        if path != "":
+            self.query_one("#input_doc_path", Input).value = path
 
 class Loader(Screen):
     def __init__(self, text) -> None:

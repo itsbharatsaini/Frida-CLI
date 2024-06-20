@@ -55,6 +55,7 @@ programming_languages = {
     ],
 }
 
+special_consideration = '\n\nALWAYS write the documentation block after the function definition.\n\nDO NOT forget to document the constructors.'
 
 # Used to generate documentation for a full code file
 def generate_full_document_prompt(code, extension):
@@ -71,7 +72,7 @@ def generate_full_document_prompt(code, extension):
     - Return values if any.
     - Exceptions handled in the function if any.
 
-    ALWAYS use this documentation style for the functions: {programming_languages[extension][1]}
+    ALWAYS use this documentation style for the functions: {programming_languages[extension][1]}{special_consideration if extension == '.py' else ''}
 
     RETURN ONLY ONE CODE BLOCK.
 
@@ -132,6 +133,32 @@ def generate_document_for_funct_prompt(code, extension):
     This is the function to document:
     {code}
     """
+
+
+# Generates migration tips for a single function
+def generate_recommendation_for_migration(
+    language, current_version, target_version, code
+):
+    return f"""
+    You are professional coding assistant for the language {language}.
+    You will be given a function written in the {current_version} version, and your job is to give a set of recommendations about how to migrate the code from {current_version} to {target_version}.
+    
+    You have to return both:
+    - The function migrated to the target version: {target_version}
+    - List of enumerated of recommendations to do the migration
+
+    Each recommendations MUST follow this syntax: '1. **Name**: description.'
+
+    The new function must be within a code block.
+
+    Do not include the current version of the code, only the updated function.
+
+    The recommendations must be given within the tags: <recommendations></recommendations>.
+
+    The recommendations must be a detailed explanation.
+    
+    This is the function to be migrated:
+    {code}"""
 
 
 generate_epic = (

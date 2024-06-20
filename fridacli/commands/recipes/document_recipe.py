@@ -12,131 +12,33 @@ from .predefined_phrases import (
     generate_document_for_funct_prompt,
     generate_full_document_prompt,
 )
-from .documentation import (
-    find_all_func_java,
-    extract_doc_java_one_func,
-    extract_doc_java_all_func,
-    find_all_func_python,
-    extract_doc_python_one_func,
-    extract_doc_python_all_func,
-    find_all_func_csharp,
-    extract_doc_csharp_one_func,
-    extract_doc_csharp_all_func,
-)
-from .regex_configuration import CODE_FROM_ALL_EXTENSIONS
-from fridacli.config import OS
-from tree_sitter import Language, Parser
+from .utils import create_file
+from fridacli.frida_coder.languague.python import Python
+from fridacli.frida_coder.languague.csharp import CSharp
+from fridacli.frida_coder.languague.java import Java
 from fridacli.logger import Logger
-import tree_sitter_c_sharp as tscsharp
-import tree_sitter_java as tsjava
-import tree_sitter_python as tspython
-
-PY_LANGUAGE = Language(tspython.language())
-CS_LANGUAGE = Language(tscsharp.language())
-JAVA_LANGUAGE = Language(tsjava.language())
 
 logger = Logger()
 
+CODE_FROM_ALL_EXTENSIONS = r"```(?:javascript|java|csharp|c#|C#|python)*(.*)```"
 MAX_RETRIES = 2
 # Programming languages that can be fully documented without major issues
 SUPPORTED_DOC_EXTENSION = [".py", ".cs", ".java"]
 # The dictionary is structured as follows:
 # extension: [documentation symbols, function to extract all functions, language parser,
 #             function to extract documentation from one function, function to extract documentation from all functions]
-COMMENT_EXTENSION = {
-    ".py": [
-        '"""',
-        find_all_func_python,
-        Parser(PY_LANGUAGE),
-        extract_doc_python_one_func,
-        extract_doc_python_all_func,
-    ],
-    ".cs": [
-        "///",
-        find_all_func_csharp,
-        Parser(CS_LANGUAGE),
-        extract_doc_csharp_one_func,
-        extract_doc_csharp_all_func,
-    ],
-    ".java": [
-        "/**",
-        find_all_func_java,
-        Parser(JAVA_LANGUAGE),
-        extract_doc_java_one_func,
-        extract_doc_java_all_func,
-    ],
-    ".js": ["*", None, None, None, None],
+LANGUAGES = {
+    ".py": Python(),
+    ".cs": CSharp(),
+    ".java": Java(),
+    ".js": "*",
 }
 RESUMES = []
-
-
-def save_documentation(path: str, lines: List[Tuple[str, str]]) -> None:
-    """
-    Save the documentation in either .docx or .md format.
-
-    Args:
-        path (str): The path to save the document.
-        lines (List[Tuple[str, str]]): A list of tuples containing the format and text of each line.
-
-    Raises:
-        Exception: If any error occurs during the saving process.
-    """
-    try:
-        if "docx" in path:
-            logger.info(__name__, f"Saving documentation (docx) in: {path}")
-            doc = Document()
-
-            for format, text in lines:
-                if format == "title":
-                    doc.add_heading(text)
-                elif format == "subheader":
-                    doc.add_heading(text, level=2)
-                elif format == "bold":
-                    p = doc.add_paragraph("")
-                    p.add_run(text).bold = True
-                elif format == "text":
-                    doc.add_paragraph(text)
-                elif format == "bullet":
-                    doc.add_paragraph(text, style="List Bullet")
-
-            doc.save(path)
-        else:
-            logger.info(__name__, f"Saving documentation (md): {path}")
-            mdFile = None
-            bullets = []
-            for format, text in lines:
-                if format == "title":
-                    mdFile = MdUtils(file_name=path)
-                    mdFile.new_header(level=1, title=text, add_table_of_contents="n")
-                elif format == "subheader":
-                    if bullets:
-                        mdFile.new_list(bullets)
-                        bullets = []
-                    mdFile.new_header(level=2, title=text, add_table_of_contents="n")
-                elif format == "bold":
-                    if bullets:
-                        mdFile.new_list(bullets)
-                        bullets = []
-                    mdFile.new_line(text, bold_italics_code="b")
-                elif format == "text":
-                    mdFile.new_line(text)
-                elif format == "bullet":
-                    bullets.append(text)
-            if bullets:
-                mdFile.new_list(bullets)
-                bullets = []
-
-            mdFile.create_md_file()
-        logger.info(__name__, f"Documentation saved succesfully.")
-    except Exception as e:
-        logger.error(__name__, f"(save_documentation) {e}")
-
 
 def extract_documentation(
     code: str,
     extension: str,
     one_function: bool,
-    file_name: str,
     funct_definition: str | None,
 ):
     """
@@ -157,11 +59,11 @@ def extract_documentation(
     """
     try:
         if extension in SUPPORTED_DOC_EXTENSION:
-            tree = COMMENT_EXTENSION[extension][2].parse(bytes(code, encoding="utf8"))
+            tree = LANGUAGES[extension].parser.parse(bytes(code, encoding="utf8"))
             return (
-                COMMENT_EXTENSION[extension][3](tree.root_node, funct_definition)
+                LANGUAGES[extension].extract_doc_single_function(tree.root_node, funct_definition)
                 if one_function
-                else COMMENT_EXTENSION[extension][4](tree.root_node, file_name)
+                else LANGUAGES[extension].extract_doc_all_functions(tree.root_node)
             )
         else:
             logger.error(
@@ -231,7 +133,6 @@ def get_code_block(
                         information["code"],
                         extension,
                         one_function,
-                        file_name,
                         funct_definition,
                     )
                     count = None
@@ -240,7 +141,6 @@ def get_code_block(
                         information["code"],
                         extension,
                         one_function,
-                        file_name,
                         funct_definition,
                     )
 
@@ -346,10 +246,10 @@ def document_file(
             ):
                 prompt = generate_full_document_prompt(code, extension)
                 response = chatbot_agent.chat(prompt, True)
+                comment = LANGUAGES[extension] if extension not in SUPPORTED_DOC_EXTENSION else LANGUAGES[extension].comment
 
                 while (
-                    COMMENT_EXTENSION[extension][0] not in response
-                    and "```" not in response
+                    comment not in response and "```" not in response
                 ) and i <= MAX_RETRIES:
                     logger.info(
                         __name__,
@@ -358,7 +258,7 @@ def document_file(
                     response = chatbot_agent.chat(prompt, True)
                     i += 1
 
-                if COMMENT_EXTENSION[extension][0] in response and "```" in response:
+                if comment in response and "```" in response:
                     logger.info(
                         __name__,
                         f"(document_file) Final response for the file {file}: {response}",
@@ -373,12 +273,10 @@ def document_file(
                         if "documentation" in information.keys():
                             new_doc.extend(information["documentation"])
                         if count is None and extension in SUPPORTED_DOC_EXTENSION:
-                            tree = COMMENT_EXTENSION[extension][2].parse(
+                            tree = LANGUAGES[extension].parser.parse(
                                 bytes(code, encoding="utf8")
                             )
-                            functions, classes = COMMENT_EXTENSION[extension][1](
-                                tree.root_node, file
-                            )
+                            functions, classes = LANGUAGES[extension].find_all_functions(tree.root_node)
                             total = len(functions)
                         elif extension in SUPPORTED_DOC_EXTENSION:
                             total, documented = count
@@ -387,12 +285,10 @@ def document_file(
                     else:
                         global_error = errors
                         if extension in SUPPORTED_DOC_EXTENSION:
-                            tree = COMMENT_EXTENSION[extension][2].parse(
+                            tree = LANGUAGES[extension].parser.parse(
                                 bytes(code, encoding="utf8")
                             )
-                            functions, classes = COMMENT_EXTENSION[extension][1](
-                                tree.root_node, file
-                            )
+                            functions, classes = LANGUAGES[extension].find_all_functions(tree.root_node)
                             total = len(functions)
                 else:
                     logger.info(
@@ -401,12 +297,10 @@ def document_file(
                     )
                     global_error = "Couldn't generate the documentation for the file."
                     if extension in SUPPORTED_DOC_EXTENSION:
-                        tree = COMMENT_EXTENSION[extension][2].parse(
+                        tree = LANGUAGES[extension][2].parse(
                             bytes(code, encoding="utf8")
                         )
-                        functions, classes = COMMENT_EXTENSION[extension][1](
-                            tree.root_node, file
-                        )
+                        functions, classes = LANGUAGES[extension].find_all_functions(tree.root_node)
                         total = len(functions)
 
                 RESUMES.append(
@@ -420,13 +314,11 @@ def document_file(
                 )
 
             else:
-                tree = COMMENT_EXTENSION[extension][2].parse(
+                tree = LANGUAGES[extension].parser.parse(
                     bytes(code, encoding="utf8")
                 )
 
-                functions, classes = COMMENT_EXTENSION[extension][1](
-                    tree.root_node, file
-                )
+                functions, classes = LANGUAGES[extension].find_all_functions(tree.root_node)
                 total = len(functions)
                 documented = 0
                 all_errors = {}
@@ -437,18 +329,18 @@ def document_file(
                 new_file.append(code[: start_line - 1])
                 for func in functions:
                     funct_definition = func["definition"]
-                    func_body = func["definition"] + "\n" + func["body"]
+                    funct_body = func["definition"] + "\n" + func["body"]
                     logger.info(
                         __name__,
-                        f"(document_file) Code for the function {funct_definition}: {func_body}",
+                        f"(document_file) Code for the function {funct_definition}: {funct_body}",
                     )
                     prompt = generate_document_for_funct_prompt(
-                        func["definition"] + func["body"], extension
+                        funct_body, extension
                     )
                     response = chatbot_agent.chat(prompt, True)
 
                     while (
-                        COMMENT_EXTENSION[extension][0] not in response
+                        LANGUAGES[extension].comment not in response
                         and "```" not in response
                     ) and i <= MAX_RETRIES:
                         logger.info(
@@ -460,7 +352,7 @@ def document_file(
                     i = 1
 
                     if (
-                        COMMENT_EXTENSION[extension][0] in response
+                        LANGUAGES[extension].comment in response
                         and "```" in response
                     ):
                         logger.info(
@@ -525,7 +417,7 @@ def document_file(
                             if doctype == "md"
                             else ("doc_" + file + ".docx")
                         )
-                        save_documentation(os.path.join(doc_path, filename), new_doc)
+                        create_file(os.path.join(doc_path, filename), new_doc)
             else:
                 logger.error(
                     __name__,

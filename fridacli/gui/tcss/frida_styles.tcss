@@ -586,6 +586,17 @@ DocumentResultResume {
     background: $surface;
 }
 
+/* Migration Doc Generator */
+
+MigrationDocGenerator {
+    width: 50;
+    align: center middle;
+}
+
+.doc_generator_vertical {
+    height: auto;
+}
+
 .half_button {
     width: 50%;
     margin: 0 1 0 0;
