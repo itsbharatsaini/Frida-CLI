@@ -12,6 +12,7 @@ from .predefined_phrases import (
     generate_document_for_funct_prompt,
     generate_full_document_prompt,
 )
+from .utils import create_file
 from fridacli.frida_coder.languague.python import Python
 from fridacli.frida_coder.languague.csharp import CSharp
 from fridacli.frida_coder.languague.java import Java
@@ -33,69 +34,6 @@ LANGUAGES = {
     ".js": "*",
 }
 RESUMES = []
-
-
-def save_documentation(path: str, lines: List[Tuple[str, str]]) -> None:
-    """
-    Save the documentation in either .docx or .md format.
-
-    Args:
-        path (str): The path to save the document.
-        lines (List[Tuple[str, str]]): A list of tuples containing the format and text of each line.
-
-    Raises:
-        Exception: If any error occurs during the saving process.
-    """
-    try:
-        if "docx" in path:
-            logger.info(__name__, f"Saving documentation (docx) in: {path}")
-            doc = Document()
-
-            for format, text in lines:
-                if format == "title":
-                    doc.add_heading(text)
-                elif format == "subheader":
-                    doc.add_heading(text, level=2)
-                elif format == "bold":
-                    p = doc.add_paragraph("")
-                    p.add_run(text).bold = True
-                elif format == "text":
-                    doc.add_paragraph(text)
-                elif format == "bullet":
-                    doc.add_paragraph(text, style="List Bullet")
-
-            doc.save(path)
-        else:
-            logger.info(__name__, f"Saving documentation (md): {path}")
-            mdFile = None
-            bullets = []
-            for format, text in lines:
-                if format == "title":
-                    mdFile = MdUtils(file_name=path)
-                    mdFile.new_header(level=1, title=text, add_table_of_contents="n")
-                elif format == "subheader":
-                    if bullets:
-                        mdFile.new_list(bullets)
-                        bullets = []
-                    mdFile.new_header(level=2, title=text, add_table_of_contents="n")
-                elif format == "bold":
-                    if bullets:
-                        mdFile.new_list(bullets)
-                        bullets = []
-                    mdFile.new_line(text, bold_italics_code="b")
-                elif format == "text":
-                    mdFile.new_line(text)
-                elif format == "bullet":
-                    bullets.append(text)
-            if bullets:
-                mdFile.new_list(bullets)
-                bullets = []
-
-            mdFile.create_md_file()
-        logger.info(__name__, f"Documentation saved succesfully.")
-    except Exception as e:
-        logger.error(__name__, f"(save_documentation) {e}")
-
 
 def extract_documentation(
     code: str,
@@ -391,13 +329,13 @@ def document_file(
                 new_file.append(code[: start_line - 1])
                 for func in functions:
                     funct_definition = func["definition"]
-                    func_body = func["definition"] + "\n" + func["body"]
+                    funct_body = func["definition"] + "\n" + func["body"]
                     logger.info(
                         __name__,
-                        f"(document_file) Code for the function {funct_definition}: {func_body}",
+                        f"(document_file) Code for the function {funct_definition}: {funct_body}",
                     )
                     prompt = generate_document_for_funct_prompt(
-                        func["definition"] + func["body"], extension
+                        funct_body, extension
                     )
                     response = chatbot_agent.chat(prompt, True)
 
@@ -479,7 +417,7 @@ def document_file(
                             if doctype == "md"
                             else ("doc_" + file + ".docx")
                         )
-                        save_documentation(os.path.join(doc_path, filename), new_doc)
+                        create_file(os.path.join(doc_path, filename), new_doc)
             else:
                 logger.error(
                     __name__,
