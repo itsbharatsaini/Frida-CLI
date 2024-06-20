@@ -336,6 +336,7 @@ with open(r'{file_name}', 'w', encoding='utf-8') as file:
                     sep = line.split("\n")
                     if "Args:" in sep[0]:
                         # If Args: in line, save all the argument lines listed
+                        args = []
                         for arg in sep[1:]:
                             if "None" not in arg and arg.strip() != "":
                                 if first_parameter:
@@ -344,26 +345,17 @@ with open(r'{file_name}', 'w', encoding='utf-8') as file:
                                 if ":" in arg:
                                     sep_arg = arg.strip().split(":", 1)
                                     if sep_arg[1] != "" and "-" not in sep_arg[0]:
-                                        lines.append(
-                                            (
-                                                "bullet",
-                                                f"{sep_arg[0]}. {sep_arg[1]}",
-                                            )
-                                        )
+                                        args.append(f"{sep_arg[0]}. {sep_arg[1]}")
                                     else:
                                         sep_arg = arg.strip()
-                                        lines[-1] = (
-                                            lines[-1][0],
-                                            lines[-1][1] + "\n" + arg.strip(),
-                                        )
+                                        args[-1] = args[-1] + "\n" + arg.strip()
                                 else:
                                     sep_arg = arg.strip()
-                                    lines[-1] = (
-                                        lines[-1][0],
-                                        lines[-1][1] + "\n" + arg.rstrip(),
-                                    )
+                                    args[-1] = args[-1] + "\n" + arg.strip()
+                        lines.append(("bullet_list", args))
                     elif "Returns:" in sep[0]:
                         # If Returns: in line, save all the return lines listed
+                        rets = []
                         for ret in sep[1:]:
                             if "None" not in ret and ret.strip() != "":
                                 if first_return:
@@ -372,26 +364,17 @@ with open(r'{file_name}', 'w', encoding='utf-8') as file:
                                 if ":" in ret:
                                     sep_ret = ret.strip().split(":", 1)
                                     if sep_ret[1] != "" and "-" not in sep_ret[0]:
-                                        lines.append(
-                                            (
-                                                "bullet",
-                                                f"{sep_ret[0]}. {sep_ret[1]}",
-                                            )
-                                        )
+                                        rets.append(f"{sep_ret[0]}. {sep_ret[1]}")
                                     else:
                                         sep_ret = ret.strip()
-                                        lines[-1] = (
-                                            lines[-1][0],
-                                            lines[-1][1] + "\n" + ret.rstrip(),
-                                        )
+                                        rets[-1] = rets[-1] + "\n" + ret.rstrip()
                                 else:
                                     sep_ret = ret.strip()
-                                    lines[-1] = (
-                                        lines[-1][0],
-                                        lines[-1][1] + "\n" + ret.rstrip(),
-                                    )
+                                    rets[-1] = rets[-1] + "\n" + ret.rstrip()
+                        lines.append(("bullet_list", rets))
                     elif "Raises:" in sep[0]:
                         # If Raises: in line, save all the exception lines listed
+                        rais = []
                         for rai in sep[1:]:
                             if "None" not in rai and rai.strip() != "":
                                 if first_exception:
@@ -400,24 +383,14 @@ with open(r'{file_name}', 'w', encoding='utf-8') as file:
                                 if ":" in rai:
                                     sep_rai = rai.strip().split(":", 1)
                                     if sep_rai[1] != "" and "-" not in sep_rai[0]:
-                                        lines.append(
-                                            (
-                                                "bullet",
-                                                f"{sep_rai[0]}. {sep_rai[1]}",
-                                            )
-                                        )
+                                        rais.append(f"{sep_rai[0]}. {sep_rai[1]}")
                                     else:
                                         sep_rai = rai.strip()
-                                        lines[-1] = (
-                                            lines[-1][0],
-                                            lines[-1][1] + "\n" + rai.rstrip(),
-                                        )
+                                        rais[-1] = rais[-1] + "\n" + rai.rstrip()
                                 else:
                                     sep_rai = rai.strip()
-                                    lines[-1] = (
-                                        lines[-1][0],
-                                        lines[-1][1] + "\n" + rai.rstrip(),
-                                    )
+                                    rais[-1] = rais[-1] + "\n" + rai.rstrip()
+                        lines.append(("bullet_list", rais))
                     elif (
                         first_parameter
                         and first_return

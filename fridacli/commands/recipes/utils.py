@@ -18,7 +18,7 @@ def create_file(path: str, lines: List[Tuple[str, str | List]]) -> None:
     """
     try:
         if "docx" in path:
-            logger.info(__name__, f"(create_document_files) Saving recommendations (docx) in: {path}")
+            logger.info(__name__, f"(create_file) Saving recommendations (docx) in: {path}")
             doc = Document()
 
             for format, text in lines:
@@ -31,15 +31,16 @@ def create_file(path: str, lines: List[Tuple[str, str | List]]) -> None:
                     p.add_run(text).bold = True
                 elif format == "text":
                     doc.add_paragraph(text)
-                elif format == "bullet":
-                    doc.add_paragraph(text, style="List Bullet")
+                elif format == "bullet_list":
+                    for line in text:
+                        doc.add_paragraph(line, style="List Bullet")
                 elif format == "num_list":
                     for line in text:
                         doc.add_paragraph(line, style="List Number")
 
             doc.save(path)
         else:
-            logger.info(__name__, f"(create_document_files) Saving recommendations (md): {path}")
+            logger.info(__name__, f"(create_file) Saving recommendations (md): {path}")
             mdFile = None
             bullets = []
             for format, text in lines:
@@ -47,26 +48,17 @@ def create_file(path: str, lines: List[Tuple[str, str | List]]) -> None:
                     mdFile = MdUtils(file_name=path)
                     mdFile.new_header(level=1, title=text, add_table_of_contents="n")
                 elif format == "subheader":
-                    if bullets:
-                        mdFile.new_list(bullets)
-                        bullets = []
                     mdFile.new_header(level=2, title=text, add_table_of_contents="n")
                 elif format == "bold":
-                    if bullets:
-                        mdFile.new_list(bullets)
-                        bullets = []
                     mdFile.new_line(text, bold_italics_code="b")
                 elif format == "text":
                     mdFile.new_line(text)
-                elif format == "bullet":
-                    bullets.append(text)
+                elif format == "bullet_list":
+                    mdFile.new_list(text)
                 elif format == "num_list":
                     mdFile.new_list(text, "1")
-            if bullets:
-                mdFile.new_list(bullets)
-                bullets = []
 
             mdFile.create_md_file()
-        logger.info(__name__, f"(create_document_files) Documentation saved succesfully.")
+        logger.info(__name__, f"(create_file) Documentation saved succesfully.")
     except Exception as e:
-        logger.error(__name__, f"(create_document_files) {e}")
+        logger.error(__name__, f"(create_file) {e}")

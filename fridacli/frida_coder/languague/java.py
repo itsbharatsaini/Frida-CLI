@@ -143,6 +143,7 @@ class Java(BaseLanguage):
         first_description = True
 
         try:
+            params, returns, exceptions = [], [], []
             for line in comments.splitlines():
                 if line.replace("*", "").strip() != "":
                     # Check if the current string refers to description, arguments, return values or exception
@@ -153,45 +154,18 @@ class Java(BaseLanguage):
 
                     if param_match:
                         if first_parameter:
-                            lines.append(("bold", "Arguments:"))
-                            lines.append(
-                                (
-                                    "bullet",
-                                    f"{param_match.group(1)}. {param_match.group(2)}",
-                                )
-                            )
                             first_parameter = False
-                        else:
-                            lines.append(
-                                (
-                                    "bullet",
-                                    f"{param_match.group(1)}. {param_match.group(2)}",
-                                )
-                            )
+                        params.append(f"{param_match.group(1)}. {param_match.group(2)}")
                     elif returns_match:
                         if first_return:
-                            lines.append(("bold", "Return:"))
-                            lines.append(("bullet", f"{returns_match.group(1)}"))
                             first_return = False
-                        else:
-                            lines.append(("bullet", f"{returns_match.group(1)}"))
+                        returns.append(f"{returns_match.group(1)}")
                     elif exception_match:
                         if first_exception:
-                            lines.append(("bold", "Exception:"))
-                            lines.append(
-                                (
-                                    "bullet",
-                                    f"{exception_match.group(1)}. {exception_match.group(2)}",
-                                )
-                            )
                             first_exception = False
-                        else:
-                            lines.append(
-                                (
-                                    "bullet",
-                                    f"{exception_match.group(1)}. {exception_match.group(2)}",
-                                )
-                            )
+                        exceptions.append(
+                            f"{exception_match.group(1)}. {exception_match.group(2)}"
+                        )
                     elif description_match:
                         if first_description:
                             lines.append(("bold", "Description:"))
@@ -203,6 +177,15 @@ class Java(BaseLanguage):
                                 "text",
                                 lines[-1][1] + "\n" + description_match.group(1),
                             )
+            if not first_parameter:
+                lines.append(("bold", "Arguments:"))
+                lines.append(("bullet_list", params))
+            if not first_return:
+                lines.append(("bold", "Return:"))
+                lines.append(("bullet_list", returns))
+            if not first_exception:
+                lines.append(("bold", "Exceptions:"))
+                lines.append(("bullet_list", exceptions))
         except Exception as e:
             logger.error(__name__, f"(extract_documentation) {e}")
             # If somethin went wrong, an empty list and the error is returned
