@@ -297,7 +297,7 @@ def document_file(
                     )
                     global_error = "Couldn't generate the documentation for the file."
                     if extension in SUPPORTED_DOC_EXTENSION:
-                        tree = LANGUAGES[extension][2].parse(
+                        tree = LANGUAGES[extension].parser.parse(
                             bytes(code, encoding="utf8")
                         )
                         functions, classes = LANGUAGES[extension].find_all_functions(tree.root_node)
@@ -493,4 +493,9 @@ async def exec_document(
         chatbot_agent.change_version(3)
 
     logger.info(__name__, f"(exec_document) The final resumes: {RESUMES}")
-    return RESUMES
+
+    # The RESUMES variable is cleaned
+    temp = RESUMES.copy()
+    RESUMES = []
+
+    return temp
