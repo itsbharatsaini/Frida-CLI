@@ -39,12 +39,12 @@ class ConfigurationView(Static):
                         Input(id="input_llmops_api_key"),
                         classes="configuration_line",
                     )
+                    yield Vertical(id="models_container")  # Container to hold model inputs
                     yield Horizontal(
                         Button("ADD MODEL", id="btn_add_model"),
                         classes="configuration_add_model",
                         id="add_model"
                     )
-                    yield Vertical(id="models_container")  # Container to hold model inputs
                     yield Button("Save configuration", id="btn_softtek_confirm")
             with TabPane("Python", id="python"):
                 with Static():
@@ -122,7 +122,13 @@ class ConfigurationView(Static):
 
         elif button_pressed.startswith("btn_remove_model_"):
             model_number = int(button_pressed.split("_")[-1])
-            self.remove_model_input(model_number)
+            models_container = self.query_one("#models_container", Vertical)
+            model_inputs = models_container.query(Input)
+            logger.info(__name__, f""" 
+                (on_button_pressed) Removing model {model_number}
+                Model count: {str(len(model_inputs))}        
+            """)
+            self.remove_model_input(model_number, models_container)
 
         elif button_pressed == "btn_softtek_confirm":
             keys = get_vars_as_dict()
@@ -165,26 +171,21 @@ class ConfigurationView(Static):
         container.mount(
             Horizontal(
                 Label(f"Model {model_number}", classes="configuration_label"),
-                Input(value=model_value, id=f"input_model_{model_number}"),
                 Button("Remove", id=f"btn_remove_model_{model_number}"),
+                Input(value=model_value, id=f"input_model_{model_number}"),
                 classes="configuration_line",
+                id = f"model_{model_number}"
             ),
-            before = self.parent.parent.query_one("#softtek", TabPane).query_one("#add_model", Horizontal)
         )
 
-    def remove_model_input(self, model_number):
-        models_container = self.query_one("#models_container", Vertical)
-        model_to_remove = self.query_one(f"#input_model_{model_number}", Input).parent
-        models_container.remove(model_to_remove)
+    def remove_model_input(self, model_number, models_container):
+        models_container.query_one(f"#model_{model_number}", Horizontal).remove()
         self.update_model_numbers()
 
     def update_model_numbers(self):
         models_container = self.query_one("#models_container", Vertical)
         model_inputs = models_container.query(Input)
         self.model_counter = len(model_inputs)
+        models_container.remove_children() # Delete children and restart component
         for i, input_field in enumerate(model_inputs):
-            label = input_field.parent.query_one(Label)
-            label.update(f"Model {i + 1}")
-            input_field.id = f"input_model_{i + 1}"
-            remove_button = input_field.parent.query_one(Button)
-            remove_button.id = f"btn_remove_model_{i + 1}"
+            self.add_model_input(models_container, i + 1, input_field.value)
