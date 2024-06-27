@@ -12,7 +12,7 @@ ModalScren {
 }
 
 MarkdownViewer{
-    width: 100%
+    width: 100%;
 }
 
 CodeView.-show-tree #cv_tree_view {
@@ -573,6 +573,42 @@ PathSelector{
 .chat_view_vertical {
     padding: 0 0 0 0;
     margin: 0 0 0 0;
+}
+
+.select_model_container {
+    margin-bottom: 1;
+    height: auto;
+    width: auto;
+    align: center middle;
+}
+
+.select_model_label {
+    height: 4;
+    content-align: center middle;
+}
+
+.select_model_selector {
+    height: auto;
+    width: 25;
+    content-align: center middle;
+}
+
+.chat_input_vertical {
+    margin-top: 1;
+    height: auto;
+    width: 100%;
+}
+
+.chat_input {
+    width: 100%;
+    overflow-x: scroll;
+    align-vertical: middle;
+}
+
+.chat_vertical_scroll {
+    overflow-x: auto;
+    overflow-y: scroll;
+    height: 70%;
 }
 
 DocumentResultResume {

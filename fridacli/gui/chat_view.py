@@ -1,7 +1,8 @@
 from .chat_responses.system_response import SystemUserResponse, SystemFridaResponse
 from textual.containers import VerticalScroll, Vertical, HorizontalScroll, Horizontal
+from fridacli.config import get_config_vars
 from .chat_responses.code_change_question import RunCodeConfirmation
-from textual.widgets import Static, Input, Button, LoadingIndicator
+from textual.widgets import Static, Input, Button, LoadingIndicator, Select, Label
 from textual.worker import Worker, WorkerState
 from fridacli.file_manager import FileManager
 from fridacli.frida_coder import FridaCoder
@@ -15,7 +16,6 @@ from fridacli.config import OS
 from .code_view import CodeView
 
 logger = Logger()
-
 
 class ChatView(Static):
     chatbot_agent = ChatbotAgent()
@@ -32,13 +32,40 @@ class ChatView(Static):
     def compose(self) -> ComposeResult:
         logger.info(__name__, "Composing ChatView")
 
+        keys = get_config_vars()
+        model_list = []
+
+        for count in range(int(keys["MODEL_COUNT"])):
+            model_list.append(keys[f"MODEL_{count+1}"])
+
         with Vertical(classes="chat_view_vertical"):
-            with VerticalScroll(id="chat_scroll"):
-                yield SystemFridaResponse(
-                    "Hey there! Welcome to Frida, your go-to code buddy. Let's make coding awesome together!"
+            with Static():
+                yield Horizontal(
+                    Label("Select the model to chat with:", classes="select_model_label"),
+                    Select(
+                        ((model, model) for model in model_list), 
+                        id="select_model", 
+                        value=f"{model_list[0]}", 
+                        classes="select_model_selector", 
+                        prompt="Select a model to chat with", 
+                        allow_blank=False
+                    ),
+                    classes="select_model_container"
                 )
-            yield Input(id="input_chat")
-            yield HorizontalScroll(id="cv_hs")
+            with Vertical():
+                with VerticalScroll(id="chat_scroll", classes="chat_vertical_scroll"):
+                    yield SystemFridaResponse(
+                        "Hey there! Welcome to Frida, your go-to code buddy. Let's make coding awesome together!"
+                    )
+                
+                yield Vertical(
+                    Input(id="input_chat", placeholder="Type your message here...", classes="chat_input"),
+                    id="input_vertical", 
+                    classes="chat_input_vertical",
+                )
+                yield HorizontalScroll(id="cv_hs", classes="cv_hs")
+            
+
 
     def mount_file_button(self, path, in_chat):
         """
