@@ -139,8 +139,12 @@ class CodeView(Static):
                 self.app.push_screen(DocGenerator(), self.doc_generator_callback)
 
             elif self.recipe_selected == "Migration":
-                self.app.push_screen(MigrationDocGenerator())
+                self.app.push_screen(MigrationDocGenerator(), self.migration_generator_callback)
 
     def doc_generator_callback(self, result):
         self.app.push_screen(DocumentResultResume(result))
+        self.query_one("#cv_tree_view", FilteredDirectoryTree).reload()
+
+
+    def migration_generator_callback(self, result):
         self.query_one("#cv_tree_view", FilteredDirectoryTree).reload()
