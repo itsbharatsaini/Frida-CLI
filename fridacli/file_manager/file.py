@@ -9,7 +9,6 @@ class File:
         self.__name = name
         self.__path = path
         self.__extension = self.__extract_extension(name)
-        logger.info(__name__, f"File: {self.__name}, {self.__extension}")
 
     @property
     def name(self):
@@ -25,7 +24,7 @@ class File:
 
     def __extract_extension(self, name: str) -> str | None:
         try:
-            return name.split(".")[-1]
+            return "." + name.split(".")[-1]
         except Exception as e:
             return None
 
@@ -45,7 +44,9 @@ class File:
         try:
             return os.path.join(self.__path, self.__name)
         except Exception as e:
-            logger.error(__name__, f"(get_file_path) Error getting file content: {str(e)}")
+            logger.error(
+                __name__, f"(get_file_path) Error getting file content: {str(e)}"
+            )
 
     def get_file_content(self) -> str:
         """
@@ -60,4 +61,6 @@ class File:
                 code = f.read()
                 return code
         except Exception as e:
-            logger.error(__name__, f"(get_file_content) Error getting file content: {str(e)}")
+            logger.error(
+                __name__, f"(get_file_content) Error getting file content: {str(e)}"
+            )
