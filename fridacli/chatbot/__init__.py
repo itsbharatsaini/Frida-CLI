@@ -155,7 +155,7 @@ class ChatbotAgent:
         """
         try:
             response = self.__chatbot.chat(message)
-            logger.info(__name__, f"(__exec_chat) Chat response: {response}")
+            logger.info(__name__, f"(__exec_chat) Prompt tokens: {response.usage.prompt_tokens}, Response tokens: {response.usage.completion_tokens}, Chat response: {response}")
             return response.message.content
         except Exception as e:
             if e == "Unauthorized":

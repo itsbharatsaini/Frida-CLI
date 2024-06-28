@@ -32,7 +32,7 @@ LANGUAGES = {
     ".java": Java(),
     ".js": "*",
 }
-RESUMES = []
+resumes = []
 
 
 def extract_documentation(
@@ -313,7 +313,7 @@ def document_file(
                         )
                         total = len(functions)
 
-                RESUMES.append(
+                resumes.append(
                     {
                         "file": file.name,
                         "global_error": global_error,
@@ -390,7 +390,7 @@ def document_file(
                 new_file.extend(code[end_line:])
                 new_code = "\n".join(new_file)
 
-                RESUMES.append(
+                resumes.append(
                     {
                         "file": file.name,
                         "global_error": None,
@@ -498,10 +498,10 @@ async def exec_document(
     if method == "Slow":
         chatbot_agent.change_version(3)
 
-    logger.info(__name__, f"(exec_document) The final resumes: {RESUMES}")
+    logger.info(__name__, f"(exec_document) The final resumes: {resumes}")
 
-    # The RESUMES variable is cleaned
-    temp = RESUMES.copy()
-    RESUMES = []
+    # The resumes variable is cleaned
+    temp = resumes.copy()
+    resumes.clear()
 
     return temp
