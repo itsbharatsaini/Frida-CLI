@@ -3,6 +3,7 @@ from fridacli.chatbot import ChatbotAgent
 from fridacli.frida_coder import FridaCoder
 from fridacli.file_manager import FileManager
 from fridacli.frida_coder.languague.java import Java
+from fridacli.file_manager.file import File
 from .predefined_phrases import generate_recommendation_for_migration
 from .utils import create_file
 import re
@@ -112,11 +113,9 @@ def doc_migration_file(
     current_version: str,
     target_version: str,
     doc_path: str,
-    file: str,
+    file: File,
     thread_semaphore: threading.Semaphore,
     chatbot_agent: ChatbotAgent,
-    file_manager: FileManager,
-    frida_coder: FridaCoder,
 ):
     """
     Document the migration of code in a file from a current version to a target version.
@@ -125,19 +124,16 @@ def doc_migration_file(
         current_version (str): The current version of the code.
         target_version (str): The target version to migrate the code to.
         doc_path (str): The path to document the migration.
-        file (str): The name of the file containing the code.
+        file (File): The file object.
         thread_semaphore (threading.Semaphore): A semaphore to control the access to shared resources by multiple threads.
         chatbot_agent (ChatbotAgent): An agent for communicating with a chatbot.
-        file_manager (FileManager): A manager for file operations.
-        frida_coder (FridaCoder): A coder for working with Frida code.
     Raises:
         Exception: If there is an error during the extraction process.
     """
     thread_semaphore.acquire()
     try:
-        _, extension = os.path.splitext(file)
-        full_path = file_manager.get_file_path(file)
-        code = frida_coder.get_code_from_path(full_path)
+        extension = file.extension
+        code = file.get_file_content()
 
         tree = LANGUAGES[extension].parser.parse(bytes(code, encoding="utf8"))
 
@@ -184,11 +180,15 @@ def doc_migration_file(
                     recommendations.extend(information["recommendations"])
         if len(recommendations) > 1:
             create_file(
-                os.path.join(doc_path, f"migration_{file.replace(extension, '.md')}"),
+                os.path.join(
+                    doc_path, f"migration_{file.name.replace(extension, '.md')}"
+                ),
                 recommendations,
             )
             create_file(
-                os.path.join(doc_path, f"migration_{file.replace(extension, '.docx')}"),
+                os.path.join(
+                    doc_path, f"migration_{file.name.replace(extension, '.docx')}"
+                ),
                 recommendations,
             )
     except Exception as e:
@@ -235,7 +235,7 @@ async def exec_migration_file(
     threads = []
     logger.info(__name__, f"size: {len(files)}")
     for file in files:
-        _, extension = os.path.splitext(file)
+        extension = file.extension
         # Verifies that the current file is from the expected language
         if extension in LANGUAGES.keys() and LANGUAGES[extension].name == language:
             logger.info(__name__, f"(exec_migration_file) I'll work on file {file}")

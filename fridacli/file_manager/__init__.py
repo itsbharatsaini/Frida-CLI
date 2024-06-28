@@ -1,6 +1,7 @@
 from collections import Counter
 from .graph import Tree
 import os
+from .file import File
 from fridacli.logger import Logger
 
 logger = Logger()
@@ -22,7 +23,7 @@ class FileManager:
             self.__folder_path = ""
             self.__folder_status = False
             self.__tree = None
-            self.__files = {}
+            self.__files = []
             self.__extension_counter = Counter()
             self._initialized = True
 
@@ -30,34 +31,11 @@ class FileManager:
         """
             Get the files in the project
         """
-        logger.info(__name__, f"(get_files) Getting files: {str(list(self.__files.keys()))}")
+        logger.info(__name__, f"(get_files) Getting files: {[file.name for file in self.__files]}")
         try:
-            return list(self.__files.keys())
+            return self.__files
         except Exception as e:
             logger.error(__name__, f"(get_files) Error getting files: {str(e)}")
-    
-    def get_file_path(self, name):
-        """
-            Get the file path of a file in the project
-        """
-        logger.info(__name__, f"(get_file_path) Getting file path name: {name}")
-        try:
-            return self.__files.get(name, -1)
-        except Exception as e:
-            logger.error(__name__, f"(get_file_path) Error getting file path: {str(e)}")
-        
-    def get_file_content(self, name):
-        """
-            Get the file content of a file in the project
-        """
-        logger.info(__name__, f"(get_file_content) Getting file content name: {name}")
-        try:
-            path = self.__files.get(name, -1)
-            with open(path, "r") as f:
-                code = f.read()
-                return code
-        except Exception as e:
-            logger.error(__name__, f"Error getting file content: {str(e)}")
 
     def __traverse(self, path, current_node):
         """
@@ -74,12 +52,10 @@ class FileManager:
                     current_node.add_children(child_node)
                     self.__traverse(item_path, child_node)
                 else:
-                    self.__files[item] = item_path
+                    self.__files.append(File(item, path))
 
-                    item_parts = item.split(".")
-                    if len(item_parts) == 2:
-                        extension = item_parts[1]
-                        self.__extension_counter[extension] += 1
+                    if self.__files[-1].has_extension():
+                        self.__extension_counter[self.__files[-1].extension] += 1
                         current_node.add_children(Tree(item_path))
         except Exception as e:
             logger.error(__name__, f"(__traverse) Error traversing: {str(e)}")
@@ -97,8 +73,9 @@ class FileManager:
 
         logger.info(__name__, f"(__build_directory_tree) Building directory tree path: {path}")
         root_node = Tree(path)
-        self.__files = {}
+        self.__files = []
         self.__traverse(path, root_node)
+        logger.info(__name__, f"(__build_directory_tree) Files: {[file.name for file in self.__files]}")
         return root_node
 
 

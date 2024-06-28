@@ -1,9 +1,7 @@
 import re
 import os
 import threading
-from typing import List, Tuple, Dict
-from docx import Document
-from mdutils.mdutils import MdUtils
+from typing import Dict
 from fridacli.logger import Logger
 from fridacli.chatbot import ChatbotAgent
 from fridacli.frida_coder import FridaCoder
@@ -16,6 +14,7 @@ from .utils import create_file
 from fridacli.frida_coder.languague.python import Python
 from fridacli.frida_coder.languague.csharp import CSharp
 from fridacli.frida_coder.languague.java import Java
+from fridacli.file_manager.file import File
 from fridacli.logger import Logger
 
 logger = Logger()
@@ -34,6 +33,7 @@ LANGUAGES = {
     ".js": "*",
 }
 RESUMES = []
+
 
 def extract_documentation(
     code: str,
@@ -61,7 +61,9 @@ def extract_documentation(
         if extension in SUPPORTED_DOC_EXTENSION:
             tree = LANGUAGES[extension].parser.parse(bytes(code, encoding="utf8"))
             return (
-                LANGUAGES[extension].extract_doc_single_function(tree.root_node, funct_definition)
+                LANGUAGES[extension].extract_doc_single_function(
+                    tree.root_node, funct_definition
+                )
                 if one_function
                 else LANGUAGES[extension].extract_doc_all_functions(tree.root_node)
             )
@@ -86,6 +88,7 @@ def get_code_block(
     Extracts the code block and documentation from the response.
 
     Args:
+        file_name (str): name of the file.
         text (str): The text containing code and maybe documentation.
         extension (str): The file extension of the code being extracted.
         one_function (bool): Whether to extract the documentation for one function or the whole code.
@@ -210,22 +213,19 @@ def document_file(
     method: str,
     doc_path: str,
     use_formatter: bool,
-    file: str,
+    file: File,
     thread_semaphore: threading.Semaphore,
     chatbot_agent: ChatbotAgent,
-    file_manager: FileManager,
     frida_coder: FridaCoder,
 ) -> None:
     thread_semaphore.acquire()
 
     try:
-        _, extension = os.path.splitext(file)
+        extension = file.extension
         if frida_coder.is_programming_language_extension(extension):
             logger.info(__name__, f"(document_file) Working on {file}")
 
-            full_path = file_manager.get_file_path(file)
-
-            code = frida_coder.get_code_from_path(full_path)
+            code = file.get_file_content()
             num_lines = code.count("\n")
 
             new_file = []
@@ -246,7 +246,11 @@ def document_file(
             ):
                 prompt = generate_full_document_prompt(code, extension)
                 response = chatbot_agent.chat(prompt, True)
-                comment = LANGUAGES[extension] if extension not in SUPPORTED_DOC_EXTENSION else LANGUAGES[extension].comment
+                comment = (
+                    LANGUAGES[extension]
+                    if extension not in SUPPORTED_DOC_EXTENSION
+                    else LANGUAGES[extension].comment
+                )
 
                 while (
                     comment not in response and "```" not in response
@@ -264,7 +268,7 @@ def document_file(
                         f"(document_file) Final response for the file {file}: {response}",
                     )
                     information, errors, count = get_code_block(
-                        file, response, extension, False
+                        file.name, response, extension, False
                     )
                     if information is not None:
                         new_code = information["code"]
@@ -276,7 +280,9 @@ def document_file(
                             tree = LANGUAGES[extension].parser.parse(
                                 bytes(code, encoding="utf8")
                             )
-                            functions, classes = LANGUAGES[extension].find_all_functions(tree.root_node)
+                            functions, classes = LANGUAGES[
+                                extension
+                            ].find_all_functions(tree.root_node)
                             total = len(functions)
                         elif extension in SUPPORTED_DOC_EXTENSION:
                             total, documented = count
@@ -288,7 +294,9 @@ def document_file(
                             tree = LANGUAGES[extension].parser.parse(
                                 bytes(code, encoding="utf8")
                             )
-                            functions, classes = LANGUAGES[extension].find_all_functions(tree.root_node)
+                            functions, classes = LANGUAGES[
+                                extension
+                            ].find_all_functions(tree.root_node)
                             total = len(functions)
                 else:
                     logger.info(
@@ -300,12 +308,14 @@ def document_file(
                         tree = LANGUAGES[extension].parser.parse(
                             bytes(code, encoding="utf8")
                         )
-                        functions, classes = LANGUAGES[extension].find_all_functions(tree.root_node)
+                        functions, classes = LANGUAGES[extension].find_all_functions(
+                            tree.root_node
+                        )
                         total = len(functions)
 
                 RESUMES.append(
                     {
-                        "file": file,
+                        "file": file.name,
                         "global_error": global_error,
                         "total_functions": total,
                         "documented_functions": documented,
@@ -314,11 +324,11 @@ def document_file(
                 )
 
             else:
-                tree = LANGUAGES[extension].parser.parse(
-                    bytes(code, encoding="utf8")
-                )
+                tree = LANGUAGES[extension].parser.parse(bytes(code, encoding="utf8"))
 
-                functions, classes = LANGUAGES[extension].find_all_functions(tree.root_node)
+                functions, classes = LANGUAGES[extension].find_all_functions(
+                    tree.root_node
+                )
                 total = len(functions)
                 documented = 0
                 all_errors = {}
@@ -334,9 +344,7 @@ def document_file(
                         __name__,
                         f"(document_file) Code for the function {funct_definition}: {funct_body}",
                     )
-                    prompt = generate_document_for_funct_prompt(
-                        funct_body, extension
-                    )
+                    prompt = generate_document_for_funct_prompt(funct_body, extension)
                     response = chatbot_agent.chat(prompt, True)
 
                     while (
@@ -351,16 +359,13 @@ def document_file(
                         i += 1
                     i = 1
 
-                    if (
-                        LANGUAGES[extension].comment in response
-                        and "```" in response
-                    ):
+                    if LANGUAGES[extension].comment in response and "```" in response:
                         logger.info(
                             __name__,
                             f"(document_file) Final response for the function {funct_definition}: {response}",
                         )
                         information, errors, _ = get_code_block(
-                            file, response, extension, True, funct_definition
+                            file.name, response, extension, True, funct_definition
                         )
                         if information is not None:
                             document_code = information["code"]
@@ -387,7 +392,7 @@ def document_file(
 
                 RESUMES.append(
                     {
-                        "file": file,
+                        "file": file.name,
                         "global_error": None,
                         "total_functions": total,
                         "documented_functions": documented,
@@ -401,7 +406,9 @@ def document_file(
                     __name__,
                     f"(document_file) Writing the documented code for the file {file}",
                 )
-                write_code_to_path(full_path, new_code, extension, use_formatter)
+                write_code_to_path(
+                    file.get_file_path(), new_code, extension, use_formatter
+                )
             else:
                 logger.error(
                     __name__,
@@ -413,9 +420,9 @@ def document_file(
                 for doctype, selected in formats.items():
                     if selected:
                         filename = (
-                            ("readme_" + file + ".md")
+                            ("readme_" + file.name + ".md")
                             if doctype == "md"
-                            else ("doc_" + file + ".docx")
+                            else ("doc_" + file.name + ".docx")
                         )
                         create_file(os.path.join(doc_path, filename), new_doc)
             else:
@@ -477,7 +484,6 @@ async def exec_document(
                 file,
                 thread_semaphore,
                 chatbot_agent,
-                file_manager,
                 frida_coder,
             ),
         )
