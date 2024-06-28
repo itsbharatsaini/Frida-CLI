@@ -15,7 +15,7 @@ async def document_files(formats, method, doc_path, use_formatter):
     return await exec_document(formats, method, doc_path, use_formatter, chatbot_agent, file_manager, frida_coder)
 
 async def migrate_files(language, current_version, target_version, doc_path):
-    return await exec_migration_file(language, current_version, target_version, doc_path, chatbot_agent, file_manager, frida_coder)
+    return await exec_migration_file(language, current_version, target_version, doc_path, chatbot_agent, file_manager)
 
 def generate_epics(text, path):
     #chatbot_agent.update_env_vars()

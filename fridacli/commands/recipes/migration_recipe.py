@@ -1,6 +1,5 @@
 from fridacli.logger import Logger
 from fridacli.chatbot import ChatbotAgent
-from fridacli.frida_coder import FridaCoder
 from fridacli.file_manager import FileManager
 from fridacli.frida_coder.languague.java import Java
 from fridacli.file_manager.file import File
@@ -204,7 +203,6 @@ async def exec_migration_file(
     doc_path: str,
     chatbot_agent: ChatbotAgent,
     file_manager: FileManager,
-    frida_coder: FridaCoder,
 ):
     """
     Executes migration files from current_version to target_version.
@@ -248,8 +246,6 @@ async def exec_migration_file(
                     file,
                     thread_semaphore,
                     chatbot_agent,
-                    file_manager,
-                    frida_coder,
                 ),
             )
             threads.append(thread)
