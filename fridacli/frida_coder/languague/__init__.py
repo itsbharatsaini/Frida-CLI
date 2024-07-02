@@ -19,7 +19,7 @@ class BaseLanguage(ABC):
         raise NotImplementedError("run method must be overridden")
     
     @abstractmethod
-    def find_all_functions(self, node):
+    def find_all_functions(self, code):
         raise NotImplementedError("find_all_functions method must be overriden")
     
     @abstractmethod
@@ -27,9 +27,9 @@ class BaseLanguage(ABC):
         raise NotImplementedError("extract_documentation method must be overriden")
     
     @abstractmethod
-    def extract_doc_all_functions(self, node):
+    def extract_doc_all_functions(self, code):
         raise NotImplementedError("extract_doc_all_functions method must be overriden")
     
     @abstractmethod
-    def extract_doc_single_function(self, node, funct_definition):
+    def extract_doc_single_function(self, code, funct_definition):
         raise NotImplementedError("extract_doc_one_function")

@@ -40,7 +40,21 @@ class CSharp(BaseLanguage):
 
     # Methods for code manipulation (static)
     @override
-    def find_all_functions(self, node: Tree):
+    def find_all_functions(self, code: str):
+        """
+        Finds and returns all the functions defined in the given code string.
+
+        Args:
+            code (str): The code string to search for functions.
+        """
+        try:
+            node = self.parser.parse(bytes(code, encoding="utf8"))
+            return self.__help_find_all_functions(node)
+        except Exception as e:
+            logger.error(__name__, f"(find_all_functions) {e}")
+            return [], []
+
+    def __help_find_all_functions(self, node: Tree):
         """
         Recursively finds all function and class definitions in a C# code tree.
 
@@ -155,14 +169,14 @@ class CSharp(BaseLanguage):
                                 definition += data.text.decode("utf8") + " "
                 # Call the function using the current node as the root
                 if n.children != []:
-                    f, c = self.find_all_functions(n)
+                    f, c = self.__help_find_all_functions(n)
                     if f != []:
                         functions.extend(f)
                     if c != []:
                         classes.extend(c)
         except Exception as e:
             # If something went wrong, only empty lists are returned
-            logger.error(__name__, f"(find_all_functions) {e}")
+            logger.error(__name__, f"(__help_find_all_functions) {e}")
             return [], []
         else:
             return functions, classes
@@ -245,12 +259,12 @@ class CSharp(BaseLanguage):
             return lines, None
 
     @override
-    def extract_doc_all_functions(self, node: Tree):
+    def extract_doc_all_functions(self, code: str):
         """
         Extracts documentation from all functions in a C# abstract syntax tree.
 
         Args:
-            node (Tree): The abstract syntax tree node representing the C# code.
+            code (str): The C# code.
 
         Returns:
             tuple: A tuple consisting of two lists. The first list contains the extracted documentation, organized as a list of tuples.
@@ -258,6 +272,7 @@ class CSharp(BaseLanguage):
         """
         docs, errors = [], {}
 
+        node = self.parser.parse(bytes(code, encoding="utf8"))
         functions, classes = self.find_all_functions(node)
         total = len(functions)
         documented = 0
@@ -306,12 +321,12 @@ class CSharp(BaseLanguage):
         return docs, errors, (total, documented)
 
     @override
-    def extract_doc_single_function(self, node: Tree, funct_definition: str):
+    def extract_doc_single_function(self, code: str, funct_definition: str):
         """
         Extracts the documentation from a C# function.
 
         Args:
-            node (Tree): The tree representing the C# function.
+            code (str): The C# function.
             funct_definition (str): The definition (name, args, return values) of the C# function.
 
         Returns:
@@ -322,6 +337,7 @@ class CSharp(BaseLanguage):
         docs = []
         error = None
 
+        node = self.parser.parse(bytes(code, encoding="utf8"))
         try:
             for n in node.children:
                 if n.type == "comment":
