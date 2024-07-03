@@ -1,9 +1,7 @@
 import re
 import os
 import threading
-from typing import List, Tuple, Dict
-from docx import Document
-from mdutils.mdutils import MdUtils
+from typing import Dict
 from fridacli.logger import Logger
 from fridacli.chatbot import ChatbotAgent
 from fridacli.frida_coder import FridaCoder
@@ -16,24 +14,29 @@ from .utils import create_file
 from fridacli.frida_coder.languague.python import Python
 from fridacli.frida_coder.languague.csharp import CSharp
 from fridacli.frida_coder.languague.java import Java
+from fridacli.frida_coder.languague.visualbasic import VisualBasic
 from fridacli.logger import Logger
 
 logger = Logger()
 
-CODE_FROM_ALL_EXTENSIONS = r"```(?:javascript|java|csharp|c#|C#|python)*(.*)```"
+CODE_FROM_ALL_EXTENSIONS = (
+    r"```(?:javascript|java|csharp|c#|C#|python|vb|vbnet)*(.*)```"
+)
 MAX_RETRIES = 2
 # Programming languages that can be fully documented without major issues
 SUPPORTED_DOC_EXTENSION = [".py", ".cs", ".java"]
-# The dictionary is structured as follows:
-# extension: [documentation symbols, function to extract all functions, language parser,
-#             function to extract documentation from one function, function to extract documentation from all functions]
+# The language object related to the extension
 LANGUAGES = {
     ".py": Python(),
     ".cs": CSharp(),
     ".java": Java(),
     ".js": "*",
+    ".cls": VisualBasic(),  # VB Class files
+    ".frm": VisualBasic(),  # VB Form files
+    ".bas": VisualBasic(),  # VB Module files
 }
 RESUMES = []
+
 
 def extract_documentation(
     code: str,
@@ -59,11 +62,10 @@ def extract_documentation(
     """
     try:
         if extension in SUPPORTED_DOC_EXTENSION:
-            tree = LANGUAGES[extension].parser.parse(bytes(code, encoding="utf8"))
             return (
-                LANGUAGES[extension].extract_doc_single_function(tree.root_node, funct_definition)
+                LANGUAGES[extension].extract_doc_single_function(code, funct_definition)
                 if one_function
-                else LANGUAGES[extension].extract_doc_all_functions(tree.root_node)
+                else LANGUAGES[extension].extract_doc_all_functions(code)
             )
         else:
             logger.error(
@@ -206,6 +208,7 @@ def write_code_to_path(
 
 
 def document_file(
+    extension: str,
     formats: Dict[str, bool],
     method: str,
     doc_path: str,
@@ -219,210 +222,202 @@ def document_file(
     thread_semaphore.acquire()
 
     try:
-        _, extension = os.path.splitext(file)
-        if frida_coder.is_programming_language_extension(extension):
-            logger.info(__name__, f"(document_file) Working on {file}")
+        logger.info(__name__, f"(document_file) Working on {file}")
 
-            full_path = file_manager.get_file_path(file)
+        full_path = file_manager.get_file_path(file)
 
-            code = frida_coder.get_code_from_path(full_path)
-            num_lines = code.count("\n")
+        code = frida_coder.get_code_from_path(full_path)
+        num_lines = code.count("\n")
 
-            new_file = []
-            new_doc = [("title", f"Documentation of the file '{file}'")]
-            new_code = None
+        new_file = []
+        new_doc = [("title", f"Documentation of the file '{file}'")]
+        new_code = None
 
-            global_error = None
-            total = 0
+        global_error = None
+        total = 0
+        documented = 0
+        all_errors = {}
+
+        i = 1
+
+        # prompt = generate_full_document_prompt(code, '.vb')
+        # response = chatbot_agent.chat(prompt, True)
+        # comment = (
+        #     LANGUAGES[extension]
+        #     if extension not in SUPPORTED_DOC_EXTENSION
+        #     else LANGUAGES[extension].comment
+        # )
+
+        # logger.info(__name__, f"Response for file {file}: {response}")
+
+        if (
+            method == "Slow"
+            or num_lines <= 300
+            or extension not in SUPPORTED_DOC_EXTENSION
+        ):
+            prompt = generate_full_document_prompt(code, extension)
+            response = chatbot_agent.chat(prompt, True)
+            comment = (
+                LANGUAGES[extension]
+                if extension not in SUPPORTED_DOC_EXTENSION
+                else LANGUAGES[extension].comment
+            )
+
+            while (
+                comment not in response and "```" not in response
+            ) and i <= MAX_RETRIES:
+                logger.info(
+                    __name__,
+                    f"(document_file) Retry # {i} for file {file}: {response}",
+                )
+                response = chatbot_agent.chat(prompt, True)
+                i += 1
+
+            if comment in response and "```" in response:
+                logger.info(
+                    __name__,
+                    f"(document_file) Final response for the file {file}: {response}",
+                )
+                information, errors, count = get_code_block(
+                    file, response, extension, False
+                )
+                if information is not None:
+                    new_code = information["code"]
+                    if extension in SUPPORTED_DOC_EXTENSION:
+                        all_errors = errors
+                    if "documentation" in information.keys():
+                        new_doc.extend(information["documentation"])
+                    if count is None and extension in SUPPORTED_DOC_EXTENSION:
+                        functions, classes = LANGUAGES[extension].find_all_functions(code)
+                        total = len(functions)
+                    elif extension in SUPPORTED_DOC_EXTENSION:
+                        total, documented = count
+                    else:
+                        total = -1
+                else:
+                    global_error = errors
+                    if extension in SUPPORTED_DOC_EXTENSION:
+                        functions, classes = LANGUAGES[extension].find_all_functions(code)
+                        total = len(functions)
+            else:
+                logger.info(
+                    __name__,
+                    f"(document_file) Couldn't get the expected response for the file {file}: {response}",
+                )
+                global_error = "Couldn't generate the documentation for the file."
+                if extension in SUPPORTED_DOC_EXTENSION:
+                    functions, classes = LANGUAGES[extension].find_all_functions(code)
+                    total = len(functions)
+
+            RESUMES.append(
+                {
+                    "file": file,
+                    "global_error": global_error,
+                    "total_functions": total,
+                    "documented_functions": documented,
+                    "function_errors": all_errors,
+                }
+            )
+
+        else:
+            functions, classes = LANGUAGES[extension].find_all_functions(code)
+            total = len(functions)
             documented = 0
             all_errors = {}
 
-            i = 1
+            start_line = functions[0]["range"][0]
+            end_line = functions[-1]["range"][-1]
 
-            if (
-                method == "Slow"
-                or num_lines <= 300
-                or extension not in SUPPORTED_DOC_EXTENSION
-            ):
-                prompt = generate_full_document_prompt(code, extension)
+            new_file.append(code[: start_line - 1])
+            for func in functions:
+                funct_definition = func["definition"]
+                funct_body = func["definition"] + "\n" + func["body"]
+                logger.info(
+                    __name__,
+                    f"(document_file) Code for the function {funct_definition}: {funct_body}",
+                )
+                prompt = generate_document_for_funct_prompt(funct_body, extension)
                 response = chatbot_agent.chat(prompt, True)
-                comment = LANGUAGES[extension] if extension not in SUPPORTED_DOC_EXTENSION else LANGUAGES[extension].comment
 
                 while (
-                    comment not in response and "```" not in response
+                    LANGUAGES[extension].comment not in response
+                    and "```" not in response
                 ) and i <= MAX_RETRIES:
                     logger.info(
                         __name__,
-                        f"(document_file) Retry # {i} for file {file}: {response}",
+                        f"(document_file) Retry # {i} for file {file} function {funct_definition} response: {response}",
                     )
                     response = chatbot_agent.chat(prompt, True)
                     i += 1
+                i = 1
 
-                if comment in response and "```" in response:
+                if LANGUAGES[extension].comment in response and "```" in response:
                     logger.info(
                         __name__,
-                        f"(document_file) Final response for the file {file}: {response}",
+                        f"(document_file) Final response for the function {funct_definition}: {response}",
                     )
-                    information, errors, count = get_code_block(
-                        file, response, extension, False
+                    information, errors, _ = get_code_block(
+                        file, response, extension, True, funct_definition
                     )
                     if information is not None:
-                        new_code = information["code"]
-                        if extension in SUPPORTED_DOC_EXTENSION:
-                            all_errors = errors
+                        document_code = information["code"]
+                        document_code = ("\n" + document_code).splitlines()
+                        new_file.extend(document_code)
                         if "documentation" in information.keys():
                             new_doc.extend(information["documentation"])
-                        if count is None and extension in SUPPORTED_DOC_EXTENSION:
-                            tree = LANGUAGES[extension].parser.parse(
-                                bytes(code, encoding="utf8")
-                            )
-                            functions, classes = LANGUAGES[extension].find_all_functions(tree.root_node)
-                            total = len(functions)
-                        elif extension in SUPPORTED_DOC_EXTENSION:
-                            total, documented = count
-                        else:
-                            total = -1
-                    else:
-                        global_error = errors
-                        if extension in SUPPORTED_DOC_EXTENSION:
-                            tree = LANGUAGES[extension].parser.parse(
-                                bytes(code, encoding="utf8")
-                            )
-                            functions, classes = LANGUAGES[extension].find_all_functions(tree.root_node)
-                            total = len(functions)
+                            documented += 1
+                    if errors is not None:
+                        all_errors.update(errors)
                 else:
-                    logger.info(
-                        __name__,
-                        f"(document_file) Couldn't get the expected response for the file {file}: {response}",
+                    new_lines = ("\n" + func["definition"] + func["body"]).splitlines()
+                    new_file.extend(new_lines)
+                    all_errors.update(
+                        {
+                            funct_definition: "Couldn't generate the documentation for the function."
+                        }
                     )
-                    global_error = "Couldn't generate the documentation for the file."
-                    if extension in SUPPORTED_DOC_EXTENSION:
-                        tree = LANGUAGES[extension][2].parse(
-                            bytes(code, encoding="utf8")
-                        )
-                        functions, classes = LANGUAGES[extension].find_all_functions(tree.root_node)
-                        total = len(functions)
 
-                RESUMES.append(
-                    {
-                        "file": file,
-                        "global_error": global_error,
-                        "total_functions": total,
-                        "documented_functions": documented,
-                        "function_errors": all_errors,
-                    }
-                )
+            new_file.extend(code[end_line:])
+            new_code = "\n".join(new_file)
 
-            else:
-                tree = LANGUAGES[extension].parser.parse(
-                    bytes(code, encoding="utf8")
-                )
+            RESUMES.append(
+                {
+                    "file": file,
+                    "global_error": None,
+                    "total_functions": total,
+                    "documented_functions": documented,
+                    "function_errors": all_errors,
+                }
+            )
 
-                functions, classes = LANGUAGES[extension].find_all_functions(tree.root_node)
-                total = len(functions)
-                documented = 0
-                all_errors = {}
+        # If there is new code to write
+        if new_code is not None:
+            logger.info(
+                __name__,
+                f"(document_file) Writing the documented code for the file {file}",
+            )
+            write_code_to_path(full_path, new_code, extension, use_formatter)
+        else:
+            logger.error(
+                __name__,
+                f"(document_file) Could not write new code for file {file}",
+            )
 
-                start_line = functions[0]["range"][0]
-                end_line = functions[-1]["range"][-1]
-
-                new_file.append(code[: start_line - 1])
-                for func in functions:
-                    funct_definition = func["definition"]
-                    funct_body = func["definition"] + "\n" + func["body"]
-                    logger.info(
-                        __name__,
-                        f"(document_file) Code for the function {funct_definition}: {funct_body}",
+        # If there is at least one new line of documentation
+        if len(new_doc) > 1:
+            for doctype, selected in formats.items():
+                if selected:
+                    filename = (
+                        ("readme_" + file + ".md")
+                        if doctype == "md"
+                        else ("doc_" + file + ".docx")
                     )
-                    prompt = generate_document_for_funct_prompt(
-                        funct_body, extension
-                    )
-                    response = chatbot_agent.chat(prompt, True)
-
-                    while (
-                        LANGUAGES[extension].comment not in response
-                        and "```" not in response
-                    ) and i <= MAX_RETRIES:
-                        logger.info(
-                            __name__,
-                            f"(document_file) Retry # {i} for file {file} function {funct_definition} response: {response}",
-                        )
-                        response = chatbot_agent.chat(prompt, True)
-                        i += 1
-                    i = 1
-
-                    if (
-                        LANGUAGES[extension].comment in response
-                        and "```" in response
-                    ):
-                        logger.info(
-                            __name__,
-                            f"(document_file) Final response for the function {funct_definition}: {response}",
-                        )
-                        information, errors, _ = get_code_block(
-                            file, response, extension, True, funct_definition
-                        )
-                        if information is not None:
-                            document_code = information["code"]
-                            document_code = ("\n" + document_code).splitlines()
-                            new_file.extend(document_code)
-                            if "documentation" in information.keys():
-                                new_doc.extend(information["documentation"])
-                                documented += 1
-                        if errors is not None:
-                            all_errors.update(errors)
-                    else:
-                        new_lines = (
-                            "\n" + func["definition"] + func["body"]
-                        ).splitlines()
-                        new_file.extend(new_lines)
-                        all_errors.update(
-                            {
-                                funct_definition: "Couldn't generate the documentation for the function."
-                            }
-                        )
-
-                new_file.extend(code[end_line:])
-                new_code = "\n".join(new_file)
-
-                RESUMES.append(
-                    {
-                        "file": file,
-                        "global_error": None,
-                        "total_functions": total,
-                        "documented_functions": documented,
-                        "function_errors": all_errors,
-                    }
-                )
-
-            # If there is new code to write
-            if new_code is not None:
-                logger.info(
-                    __name__,
-                    f"(document_file) Writing the documented code for the file {file}",
-                )
-                write_code_to_path(full_path, new_code, extension, use_formatter)
-            else:
-                logger.error(
-                    __name__,
-                    f"(document_file) Could not write new code for file {file}",
-                )
-
-            # If there is at least one new line of documentation
-            if len(new_doc) > 1:
-                for doctype, selected in formats.items():
-                    if selected:
-                        filename = (
-                            ("readme_" + file + ".md")
-                            if doctype == "md"
-                            else ("doc_" + file + ".docx")
-                        )
-                        create_file(os.path.join(doc_path, filename), new_doc)
-            else:
-                logger.error(
-                    __name__,
-                    f"(document_file) Could not write new documentation for file {file}",
-                )
+                    create_file(os.path.join(doc_path, filename), new_doc)
+        else:
+            logger.error(
+                __name__,
+                f"(document_file) Could not write new documentation for file {file}",
+            )
     except Exception as e:
         logger.error(__name__, f"(document_file) {e}")
     finally:
@@ -467,22 +462,25 @@ async def exec_document(
     )
 
     for file in files:
-        thread = threading.Thread(
-            target=document_file,
-            args=(
-                formats,
-                method,
-                doc_path,
-                use_formatter,
-                file,
-                thread_semaphore,
-                chatbot_agent,
-                file_manager,
-                frida_coder,
-            ),
-        )
-        threads.append(thread)
-        thread.start()
+        _, extension = os.path.splitext(file)
+        if frida_coder.is_programming_language_extension(extension):
+            thread = threading.Thread(
+                target=document_file,
+                args=(
+                    extension,
+                    formats,
+                    method,
+                    doc_path,
+                    use_formatter,
+                    file,
+                    thread_semaphore,
+                    chatbot_agent,
+                    file_manager,
+                    frida_coder,
+                ),
+            )
+            threads.append(thread)
+            thread.start()
 
     # Joining all the threads
     for thread in threads:
