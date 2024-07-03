@@ -29,6 +29,9 @@ SUPPORTED_PROGRAMMING_LANGUAGES = [
     ".pl",
     ".r",
     ".sh",
+    ".cls",
+    ".frm",
+    ".bas",
 ]
 
 if OS == "linux":
