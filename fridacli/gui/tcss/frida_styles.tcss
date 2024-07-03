@@ -586,6 +586,60 @@ DocumentResultResume {
     background: $surface;
 }
 
+NormalRepoGitPushView {
+    width: 50;
+    align: center middle;
+}
+
+NewRepoGitPushView {
+    width: 50;
+    align: center middle;
+}
+
+.push_to_git_vertical {
+    width: 50%;
+    height: auto;
+    border: thick $background 80%;
+    background: $surface;
+}
+
+.push_to_git_label {
+    margin-top: 1;
+    margin-bottom: 2;
+    text-align: center;
+}
+
+.push_to_git_label_branch {
+    margin-top: 1;
+    margin-bottom: 1;
+    width: 30%;
+    text-align: center;
+    align-vertical: middle;
+}
+
+.push_to_git_button {
+    margin-right: 1;
+}
+
+.push_to_git_input {
+    width: 65%;
+    align: center middle;
+}
+
+.push_to_git_horizontal {
+    width: 100%;
+    margin-bottom: 2;
+    height: auto;
+    content-align: center middle;
+}
+
+.push_to_git_horizontal_buttons {
+    width: 100%;
+    margin-top: 1;
+    height: auto;
+    align-horizontal: center;
+}
+
 /* Migration Doc Generator */
 
 MigrationDocGenerator {

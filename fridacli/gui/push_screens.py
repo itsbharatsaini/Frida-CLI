@@ -4,6 +4,7 @@ from textual.widgets import Label, Input, Button, DirectoryTree, LoadingIndicato
 from textual.containers import Vertical, Horizontal, VerticalScroll
 from fridacli.commands.recipes import generate_epics, document_files, migrate_files
 from fridacli.config import HOME_PATH, FRIDA_DIR_PATH, get_config_vars
+from git import Repo
 from textual.containers import Vertical, Horizontal
 from textual.screen import Screen, ModalScreen
 from textual.worker import Worker, WorkerState
@@ -12,6 +13,7 @@ from fridacli.logger import Logger
 from typing import Iterable
 from pathlib import Path
 import csv
+import git
 import os
 
 
@@ -24,6 +26,25 @@ PROGRAMMING_LANGUAGE = ["Java"]
 LANGUAGE_VERSIONS = {
     "Java": ["Java SE 8", "Java SE 9", "Java SE 10", "Java SE 11", "Java SE 12"]
 }
+
+def verify_repo(project_path: str) -> bool:
+    """
+    Verify if the project path is a git repository.
+    """
+    if not os.path.isdir(project_path):
+        logger.info(__name__, f"The path {project_path} does not exist or is not a directory.")
+        return False, False
+
+    return True, _is_git_repository(project_path)
+
+
+def _is_git_repository(project_path: str) -> bool:
+    try:
+        # Try to open an existing repo
+        repo = Repo(project_path)
+        return True
+    except git.exc.InvalidGitRepositoryError:
+        return False
 
 class FilteredDirectoryTree(DirectoryTree):
     def filter_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
@@ -84,10 +105,12 @@ class DocGenerator(Screen):
         yield Vertical(
             Label("Select the format(s) you need for your documentation:", classes="format_selection", shrink=True),
             Vertical(Checkbox("Word Document", id = "docx_check"), Checkbox("Markdown Readme", id = "md_check"), classes="vertical_documentation"),
-            Label("Select the path to save your documentation (the current directory is taken by default):", classes="format_selection"),
+            Label("Select the path to save your documentation (the current directory is taken by default):", classes="format_selection", shrink=True),
             Horizontal(Button("Select path", id="select_path_button"), Input(id="input_doc_path",  disabled=True, value=file_manager.get_folder_path()), classes="doc_generator_horizontal"),
             Label("Select if you want your code formatted after the documentation (only for Python code):", classes="format_selection", shrink=True),
             Checkbox("Yes, use the formatter", id="use_formater"),
+            Label("Select if you want your code to be pushed into a Git repository (currently only for local repositories):", classes="format_selection", shrink=True),
+            Checkbox("Yes, I want to push my code into a Git repository", id="push_to_repo"),
             Label("Select a method to generate the documentation:", classes="format_selection", shrink=True),
             Select(((line, line) for line in METHOD_LINES), id="select_method", value="Quick (ChatGPT-3.5)"),
             Horizontal(Button("Quit", variant="error", id="quit"), Button("Create Documentation", variant="success", id="generate_documentation"), classes="doc_generator_horizontal"),
@@ -117,11 +140,24 @@ class DocGenerator(Screen):
             md = self.query_one("#md_check", Checkbox).value
             doc_path = self.query_one("#input_doc_path", Input).value
             method = self.query_one("#select_method", Select)
+            push_to_repo = self.query_one("#push_to_repo", Checkbox).value
             logger.info(__name__, f"(on_button_pressed) docx: {str(docx)} md: {str(md)} doc_path: {str(doc_path)} method: {str(method.value)}")
             if (docx or md) and doc_path != "" and not method.is_blank():
                 use_formatter = self.query_one("#use_formater", Checkbox).value
-                self.app.push_screen(Loader("Working on your documentation!"))
-                self.run_worker(document_files({"docx": docx, "md": md}, method.value.split(" ")[0], doc_path, use_formatter), exclusive=False, thread=True)
+                if push_to_repo:
+                    # Loading current directory
+                    logger.info(__name__, f"(on_button_pressed) Selected to push to a git repository.")
+                    path = file_manager.get_folder_path()
+                    valid_path, is_git_repo = verify_repo(path)
+                    if not valid_path:
+                        self.notify(f"The path {path} does not exist or is not a directory.")
+                    if valid_path and is_git_repo:
+                        self.app.push_screen(NormalRepoGitPushView("Add the following data to push the documentation to the repository (we highly recommend using a different branch from main or master):"))
+                    else:
+                        self.app.push_screen(NewRepoGitPushView("The current directory is not a git repository. Do you want to initialize a local repository? (Your changes will be pushed into the main branch)"))
+                else:
+                    self.app.push_screen(Loader("Working on your documentation!"))
+                    self.run_worker(document_files({"docx": docx, "md": md}, method.value.split(" ")[0], doc_path, use_formatter), exclusive=False, thread=True)
             else:
                 self.notify(f"You must select at least one format and a method for the documentation.")
 
@@ -421,6 +457,58 @@ class ConfirmPushView(Screen):
         if button_pressed == "cancel":
             self.app.pop_screen()
         elif button_pressed == "confirm":
+            self.dismiss("")
+
+class NormalRepoGitPushView(Screen):
+    def __init__(self, text) -> None:
+        super().__init__()
+        self.text = text
+
+    def compose(self):
+        with Vertical(classes = "push_to_git_vertical"):
+            yield Label(str(self.text), id="push_repo_title", classes="push_to_git_label", shrink=True)
+            with Horizontal (id="branch_name_horizontal", classes="push_to_git_horizontal"):
+                yield Label("Branch name", classes="push_to_git_label_branch", shrink=True)
+                yield Input(id="repo_name", classes="push_to_git_input")
+            with Horizontal (id="commit_message_horizontal", classes="push_to_git_horizontal"):
+                yield Label("Commit message", classes="push_to_git_label_branch", shrink=True)
+                yield Input(id="commit_msg_input", classes="push_to_git_input")
+            with Horizontal(id="push_repo_btns", classes="push_to_git_horizontal_buttons"):
+                yield Button("Cancel", variant="error", id="cancel", classes="push_to_git_button")
+                yield Button("Confirm", variant="success", id="confirm", classes="push_to_git_button")
+    
+    def on_button_pressed(self, event: Button.Pressed):
+        """
+            Called when a button is pressed.
+        """
+        button_pressed =  event.button.id
+        logger.info(__name__, f"(on_button_pressed) Button pressed: {button_pressed}")
+        if event.button.id == "cancel":
+            self.app.pop_screen()
+        elif event.button.id == "confirm":
+            self.dismiss("")
+
+class NewRepoGitPushView(Screen):
+    def __init__(self, text) -> None:
+        super().__init__()
+        self.text = text
+
+    def compose(self):
+        with Vertical(classes = "push_to_git_vertical"):
+            yield Label(str(self.text), id="new_repo_title", classes="push_to_git_label", shrink=True)
+            with Horizontal(id="new_repo_btns", classes="push_to_git_horizontal_buttons"):
+                yield Button("Cancel", variant="error", id="cancel", classes="push_to_git_button")
+                yield Button("Confirm", variant="success", id="confirm", classes="push_to_git_button")
+
+    def on_button_pressed(self, event: Button.Pressed):
+        """
+            Called when a button is pressed.
+        """
+        button_pressed =  event.button.id
+        logger.info(__name__, f"(on_button_pressed) Button pressed: {button_pressed}")
+        if event.button.id == "cancel":
+            self.app.pop_screen()
+        elif event.button.id == "confirm":
             self.dismiss("")
 
 class DocumentResultResume(Screen):
