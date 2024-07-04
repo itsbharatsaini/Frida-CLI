@@ -168,8 +168,10 @@ class DocGenerator(Screen):
             self.dismiss(event.worker.result)
             # After documentation is generated, commit changes if needed
             if self.push_to_repo:
-                path = file_manager.get_folder_path()
-                commit_changes(path, self.commit_message, self.branch_name)
+                # Check from the results the total documented functions was greater thatn 0
+                if any(result["documented_functions"] > 0 for result in event.worker.result):
+                        path = file_manager.get_folder_path()
+                        commit_changes(path, self.commit_message, self.branch_name)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         logger.info(__name__, f"(on_button_pressed) Button pressed: {event.button.id}")
