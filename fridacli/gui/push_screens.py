@@ -45,6 +45,41 @@ def _is_git_repository(project_path: str) -> bool:
         return True
     except git.exc.InvalidGitRepositoryError:
         return False
+    
+def commit_changes(project_path, commit_message, branch_name):
+    if not os.path.isdir(project_path):
+        raise ValueError(f"The path {project_path} does not exist or is not a directory.")
+
+    try:
+        # Try to open an existing repo
+        repo = Repo(project_path)
+        is_repo = True
+    except git.exc.InvalidGitRepositoryError:
+        # Initialize a new repository if it's not already a git repository
+        repo = Repo.init(project_path)
+        is_repo = False
+
+    # Check the status of the repository
+    if repo.is_dirty() or repo.untracked_files:
+        # Stage all changes
+        repo.git.add(A=True)
+
+        # Commit changes
+        if is_repo:
+            # Check if branch exists
+            if branch_name in repo.heads:
+                repo.git.checkout(branch_name)
+            else:
+                repo.git.checkout(b=branch_name)
+            repo.git.commit(m=commit_message)
+        else:
+            # Initial commit for new repository
+            repo.git.commit(m=commit_message)
+
+        #print(f"Changes have been committed to {'existing' if is_repo else 'new'} repository in branch {branch_name}.")
+        return True
+    else:
+        return False
 
 class FilteredDirectoryTree(DirectoryTree):
     def filter_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
@@ -101,12 +136,21 @@ class PathSelector(ModalScreen):
             logger.info(__name__, f"File selected: {str(event.path)}")
 
 class DocGenerator(Screen):
+    docx = False
+    md = False
+    use_formatter = False
+    push_to_repo = False
+    method = ""
+    doc_path = ""
+    commit_message = ""
+    branch_name = ""
+
     def compose(self):
         yield Vertical(
             Label("Select the format(s) you need for your documentation:", classes="format_selection", shrink=True),
-            Vertical(Checkbox("Word Document", id = "docx_check"), Checkbox("Markdown Readme", id = "md_check"), classes="vertical_documentation"),
+            Vertical(Checkbox("Word Document", id="docx_check"), Checkbox("Markdown Readme", id="md_check"), classes="vertical_documentation"),
             Label("Select the path to save your documentation (the current directory is taken by default):", classes="format_selection", shrink=True),
-            Horizontal(Button("Select path", id="select_path_button"), Input(id="input_doc_path",  disabled=True, value=file_manager.get_folder_path()), classes="doc_generator_horizontal"),
+            Horizontal(Button("Select path", id="select_path_button"), Input(id="input_doc_path", disabled=True, value=file_manager.get_folder_path()), classes="doc_generator_horizontal"),
             Label("Select if you want your code formatted after the documentation (only for Python code):", classes="format_selection", shrink=True),
             Checkbox("Yes, use the formatter", id="use_formater"),
             Label("Select if you want your code to be pushed into a Git repository (currently only for local repositories):", classes="format_selection", shrink=True),
@@ -118,53 +162,56 @@ class DocGenerator(Screen):
         )
 
     def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
-        """
-            Called when the worker state changes.
-        """
         logger.info(__name__, f"(on_worker_state_changed) Worker state changed with event: {str(event)}")
         if WorkerState.SUCCESS == event.worker.state and event.worker.name == "document_files":
             self.app.pop_screen()
             self.dismiss(event.worker.result)
+            # After documentation is generated, commit changes if needed
+            if self.push_to_repo:
+                path = file_manager.get_folder_path()
+                commit_changes(path, self.commit_message, self.branch_name)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        """
-            Called when a button is pressed.
-        """
         logger.info(__name__, f"(on_button_pressed) Button pressed: {event.button.id}")
         if event.button.id == "quit":
             self.app.pop_screen()
         elif event.button.id == "select_path_button":
             self.app.push_screen(PathSelector(), self.select_doc_path_callback)
         elif event.button.id == "generate_documentation":
-            docx = self.query_one("#docx_check", Checkbox).value
-            md = self.query_one("#md_check", Checkbox).value
-            doc_path = self.query_one("#input_doc_path", Input).value
-            method = self.query_one("#select_method", Select)
-            push_to_repo = self.query_one("#push_to_repo", Checkbox).value
-            logger.info(__name__, f"(on_button_pressed) docx: {str(docx)} md: {str(md)} doc_path: {str(doc_path)} method: {str(method.value)}")
-            if (docx or md) and doc_path != "" and not method.is_blank():
+            self.docx = self.query_one("#docx_check", Checkbox).value
+            self.md = self.query_one("#md_check", Checkbox).value
+            self.doc_path = self.query_one("#input_doc_path", Input).value
+            self.method = self.query_one("#select_method", Select)
+            self.push_to_repo = self.query_one("#push_to_repo", Checkbox).value
+            logger.info(__name__, f"(on_button_pressed) docx: {str(self.docx)} md: {str(self.md)} doc_path: {str(self.doc_path)} method: {str(self.method.value)}")
+            if (self.docx or self.md) and self.doc_path != "" and not self.method.is_blank():
                 use_formatter = self.query_one("#use_formater", Checkbox).value
-                if push_to_repo:
-                    # Loading current directory
+                if self.push_to_repo:
                     logger.info(__name__, f"(on_button_pressed) Selected to push to a git repository.")
                     path = file_manager.get_folder_path()
                     valid_path, is_git_repo = verify_repo(path)
                     if not valid_path:
                         self.notify(f"The path {path} does not exist or is not a directory.")
                     if valid_path and is_git_repo:
-                        self.app.push_screen(NormalRepoGitPushView("Add the following data to push the documentation to the repository (we highly recommend using a different branch from main or master):"))
+                        text = "Add the following data to push the documentation to the repository (we highly recommend using a different branch from main or master):"
+                        self.app.push_screen(NormalRepoGitPushView(text), self.loading_screen_callback)
                     else:
-                        self.app.push_screen(NewRepoGitPushView("The current directory is not a git repository. Do you want to initialize a local repository? (Your changes will be pushed into the main branch)"))
+                        text = "The current directory is not a git repository. Do you want to initialize a local repository? (Your changes will be pushed into the main branch)"
+                        self.app.push_screen(NewRepoGitPushView(text), self.loading_screen_callback)
                 else:
                     self.app.push_screen(Loader("Working on your documentation!"))
-                    self.run_worker(document_files({"docx": docx, "md": md}, method.value.split(" ")[0], doc_path, use_formatter), exclusive=False, thread=True)
+                    self.run_worker(document_files({"docx": self.docx, "md": self.md}, self.method.value.split(" ")[0], self.doc_path, use_formatter), exclusive=False, thread=True)
             else:
                 self.notify(f"You must select at least one format and a method for the documentation.")
 
+    def loading_screen_callback(self, result):
+        logger.info(__name__, f"(loading_screen_callback) Result: {str(result)}")
+        self.commit_message = result["commit_message"]
+        self.branch_name = result["branch_name"]
+        self.app.push_screen(Loader("Working on your documentation!"))
+        self.run_worker(document_files({"docx": self.docx, "md": self.md}, self.method.value.split(" ")[0], self.doc_path, self.use_formatter), exclusive=False, thread=True, name="document_files")
+
     def select_doc_path_callback(self, path):
-        """
-            Callback for the path selection modal.
-        """
         logger.info(__name__, f"(select_doc_path_callback) Path selected: {str(path)}")
         if path != "":
             self.query_one("#input_doc_path", Input).value = path
@@ -486,7 +533,14 @@ class NormalRepoGitPushView(Screen):
         if event.button.id == "cancel":
             self.app.pop_screen()
         elif event.button.id == "confirm":
-            self.dismiss("")
+            if self.query_one("#repo_name", Input).value == "":
+                self.notify("You must enter a branch name.")
+            elif self.query_one("#commit_msg_input", Input).value == "":
+                self.notify("You must enter a commit message.")
+            else:
+                commit_message = self.query_one("#commit_msg_input", Input).value
+                branch_name = self.query_one("#repo_name", Input).value
+                self.dismiss({"commit_message": commit_message, "branch_name": branch_name})
 
 class NewRepoGitPushView(Screen):
     def __init__(self, text) -> None:
@@ -509,8 +563,10 @@ class NewRepoGitPushView(Screen):
         if event.button.id == "cancel":
             self.app.pop_screen()
         elif event.button.id == "confirm":
-            self.dismiss("")
-
+            commit_message = "Initial commit for new repository"
+            branch_name = "main"
+            self.dismiss({"commit_message": commit_message, "branch_name": branch_name})
+        
 class DocumentResultResume(Screen):
     def __init__(self, result) -> None:
         self.result = result
