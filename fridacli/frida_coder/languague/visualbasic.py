@@ -35,6 +35,27 @@ class VisualBasic(BaseLanguage):
     # Methods for code manipulation (static)
     @override
     def find_all_functions(self, code: str):
+        """
+        Finds and returns all the functions defined in the given code string.
+
+        Args:
+            code (str): The code string to search for functions.
+        
+        Returns:
+            tuple: A list of dictionaries representing function definitions, each with the following keys:
+                    - "name" (str): The name of the function.
+                    - "definition" (str): The definition of the function.
+                    - "body" (str): The body of the function.
+                    - "range" (tuple[int, int]): The start and end byte range of the function.
+                    - "comments" (str): The comments associated with the function definition.
+                    - "comments_range" (tuple[int, int]): The start and end byte range of the comments.
+                A list of dictionaries representing class definitions, each with the following keys:
+                    - "name" (str): The name of the class.
+                    - "definition" (str): The definition of the class.
+        
+        Raises:
+            Exception: If an error occurs during processing.
+        """
         functions = []
         comment = False
         start_comment = -1
@@ -102,6 +123,16 @@ class VisualBasic(BaseLanguage):
             return functions, None
 
     def extract_documentation(self, comments: str, is_function: bool):
+        """
+        Extracts documentation from Python-style comments.
+
+        Args:
+            comments (str): The string containing the Python-style comments.
+            is_function (bool): To distinguish between functions and subroutines.
+
+        Returns:
+            Tuple[List, str | None]: A tuple containing the extracted documentation as a list of formatted lines and an optional error message.
+        """
         lines = []
         parameters = []
         read_param = False
@@ -181,6 +212,16 @@ class VisualBasic(BaseLanguage):
 
     @override
     def extract_doc_all_functions(self, code: str):
+        """
+        Extracts documentation from all functions in a Python code.
+
+        Args:
+            code (str): The Python code.
+
+        Returns:
+            tuple: A tuple consisting of two lists. The first list contains the extracted documentation, organized as a list of tuples.
+                The second list contains any encountered errors while extracting the documentation from the functions.
+        """
         docs, errors = [], {}
 
         functions, classes = self.find_all_functions(code)
@@ -234,6 +275,18 @@ class VisualBasic(BaseLanguage):
     def extract_doc_single_function(
         self, code: str, funct_definition: str, is_function: bool
     ):
+        """
+        Extracts the documentation from a Python function.
+
+        Args:
+            node (Tree): The tree representing the Python function.
+            funct_definition (str): The definition (name, args, return value) of the Python function.
+            is_function (bool): To distinguish between functions and subroutines.
+            
+        Returns:
+            tuple: A list containing the extracted documentation as tuples.
+                A dictionary containing the error message if a problem occurred during extraction, otherwise None.
+        """
         comments = ""
         error = None
         docs = []
