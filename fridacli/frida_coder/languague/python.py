@@ -208,7 +208,21 @@ with open(r'{file_name}', 'w', encoding='utf-8') as file:
 
     # Methods for code manipulation (static)
     @override
-    def find_all_functions(self, node: Tree):
+    def find_all_functions(self, code: str):
+        """
+        Finds and returns all the functions defined in the given code string.
+
+        Args:
+            code (str): The code string to search for functions.
+        """
+        try:
+            node = self.parser.parse(bytes(code, encoding="utf8"))
+            return self.__help_find_all_functions(node)
+        except Exception as e:
+            logger.error(__name__, f"(find_all_functions) {e}")
+            return [], []
+
+    def __help_find_all_functions(self, node: Tree):
         """
         Recursively finds all function and class definitions in a Python code tree.
 
@@ -293,7 +307,7 @@ with open(r'{file_name}', 'w', encoding='utf-8') as file:
                             )
                 # Call the function using the current node as the root
                 if n.children != []:
-                    f, c = self.find_all_functions(n)
+                    f, c = self.__help_find_all_functions(n)
                     if f != []:
                         functions.extend(f)
                     if c != []:
@@ -411,12 +425,12 @@ with open(r'{file_name}', 'w', encoding='utf-8') as file:
             return lines, None
 
     @override
-    def extract_doc_all_functions(self, node: Tree):
+    def extract_doc_all_functions(self, code: str):
         """
         Extracts documentation from all functions in a Python abstract syntax tree.
 
         Args:
-            node (Tree): The abstract syntax tree node representing the Python code.
+            code (str): The Python code.
 
         Returns:
             tuple: A tuple consisting of two lists. The first list contains the extracted documentation, organized as a list of tuples.
@@ -424,6 +438,7 @@ with open(r'{file_name}', 'w', encoding='utf-8') as file:
         """
         docs, errors = [], {}
 
+        node = self.parser.parse(bytes(code, encoding="utf8"))
         functions, classes = self.find_all_functions(node)
         total = len(functions)
         documented = 0
@@ -472,12 +487,12 @@ with open(r'{file_name}', 'w', encoding='utf-8') as file:
         return docs, errors, (total, documented)
 
     @override
-    def extract_doc_single_function(self, node: Tree, funct_definition: str):
+    def extract_doc_single_function(self, code: str, funct_definition: str):
         """
         Extracts the documentation from a Python function.
 
         Args:
-            node (Tree): The tree representing the Python function.
+            code (str): The Python function.
             funct_definition (str): The definition (name, args, return values) of the Python function.
 
         Returns:
@@ -487,6 +502,8 @@ with open(r'{file_name}', 'w', encoding='utf-8') as file:
         docs = []
         comments = ""
         error = None
+
+        node = self.parser.parse(bytes(code, encoding="utf8"))
 
         try:
             for n in node.children:

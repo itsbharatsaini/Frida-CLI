@@ -53,9 +53,31 @@ programming_languages = {
     * @throws {ErrorName} Description of the exception.
     */""",
     ],
+    ".vb": [
+        "Visual Basic",
+        """'===============================================
+    ' Function: NameOfFunction
+    ' Description: Description of the function.
+    ' Parameters:
+    '   paramName - Description (DataType)
+    ' Returns: DataType - Description of the return.
+    ' Error Handling:
+    ' Description of the error handling.
+    '===============================================""",
+        """'===============================================
+    ' Soubrutine: NameOfFunction
+    ' Description: Description of the function.
+    ' Parameters:
+    '   paramName - Description of the parameter (DataType)
+    ' Error Handling:
+    ' Description of the error handling.
+    '===============================================""",
+    ],
 }
 
-special_consideration = '\n\nALWAYS write the documentation block after the function definition.\n\nDO NOT forget to document the constructors.'
+special_consideration_vb = f"\n\nALWAYS use this documentation style for the subroutines:{programming_languages['.vb'][2]}"
+special_consideration_python = "\n\nALWAYS write the documentation block after the function definition.\n\nDO NOT forget to document the constructors."
+
 
 # Used to generate documentation for a full code file
 def generate_full_document_prompt(code, extension):
@@ -66,13 +88,13 @@ def generate_full_document_prompt(code, extension):
     Create a comprehensive documentation for each function.
     You MUST responde with a code block that contains both the generated documentation and the given code.
     
-    Each function must be documented with:
+    Each function {'and subroutine ' if extension == '.vb' else ''}must be documented with:
     - Purpose of the function with a detailed description of what the function does.
     - Descriptions of input parameters if any.
     - Return values if any.
     - Exceptions handled in the function if any.
 
-    ALWAYS use this documentation style for the functions: {programming_languages[extension][1]}{special_consideration if extension == '.py' else ''}
+    ALWAYS use this documentation style for the functions: {programming_languages[extension][1]}{special_consideration_vb if extension == '.vb' else ''}{special_consideration_python if extension == '.py' else ''}
 
     RETURN ONLY ONE CODE BLOCK.
 

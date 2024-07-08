@@ -14,25 +14,31 @@ from .utils import create_file
 from fridacli.frida_coder.languague.python import Python
 from fridacli.frida_coder.languague.csharp import CSharp
 from fridacli.frida_coder.languague.java import Java
+from fridacli.frida_coder.languague.visualbasic import VisualBasic
 from fridacli.file_manager.file import File
 from fridacli.logger import Logger
 
 logger = Logger()
 
-CODE_FROM_ALL_EXTENSIONS = r"```(?:javascript|java|csharp|c#|C#|python)*(.*)```"
+CODE_FROM_ALL_EXTENSIONS = (
+    r"```(?:javascript|java|csharp|c#|C#|python|vb|vbnet)*(.*)```"
+)
 MAX_RETRIES = 2
+VB_ESTENSIONS = [".cls", ".frm", ".bas"]
 # Programming languages that can be fully documented without major issues
-SUPPORTED_DOC_EXTENSION = [".py", ".cs", ".java"]
-# The dictionary is structured as follows:
-# extension: [documentation symbols, function to extract all functions, language parser,
-#             function to extract documentation from one function, function to extract documentation from all functions]
+SUPPORTED_DOC_EXTENSION = [".py", ".cs", ".java"] + VB_ESTENSIONS
+# The language object related to the extension
 LANGUAGES = {
     ".py": Python(),
     ".cs": CSharp(),
     ".java": Java(),
     ".js": "*",
+    ".cls": VisualBasic(),  # VB Class files
+    ".frm": VisualBasic(),  # VB Form files
+    ".bas": VisualBasic(),  # VB Module files
 }
 resumes = []
+
 
 
 def extract_documentation(
@@ -40,6 +46,7 @@ def extract_documentation(
     extension: str,
     one_function: bool,
     funct_definition: str | None,
+    is_function: bool | None = None,
 ):
     """
     Extracts documentation from a provided code snippet (whole code or one function) based on the given file extension.
@@ -49,6 +56,7 @@ def extract_documentation(
         extension (str): The file extension of the code snippet.
         one_function (bool): Flag indicating whether to extract documentation for a single function or for the whole code snippet.
         funct_definition (str, optional): The definition (name, args, return values) of the function to extract documentation for if one_function is True.
+        is_function (bool, optional): Only for visual basic language.
 
     Returns:
         List[Tuple[str, str]] | None: The extracted documentation for the specified function or for the whole code snippet, if generated.
@@ -59,14 +67,16 @@ def extract_documentation(
     """
     try:
         if extension in SUPPORTED_DOC_EXTENSION:
-            tree = LANGUAGES[extension].parser.parse(bytes(code, encoding="utf8"))
-            return (
+            if one_function and is_function is not None:
                 LANGUAGES[extension].extract_doc_single_function(
-                    tree.root_node, funct_definition
+                    code, funct_definition, is_function
                 )
-                if one_function
-                else LANGUAGES[extension].extract_doc_all_functions(tree.root_node)
-            )
+            elif one_function:
+                return LANGUAGES[extension].extract_doc_single_function(
+                    code, funct_definition
+                )
+            else:
+                return LANGUAGES[extension].extract_doc_all_functions(code)
         else:
             logger.error(
                 __name__,
@@ -83,6 +93,7 @@ def get_code_block(
     extension: str,
     one_function: bool,
     funct_definition: str | None = None,
+    is_function: bool | None = None,
 ):
     """
     Extracts the code block and documentation from the response.
@@ -93,6 +104,7 @@ def get_code_block(
         extension (str): The file extension of the code being extracted.
         one_function (bool): Whether to extract the documentation for one function or the whole code.
         funct_definition (str, optional): The definition (name, params, return values) of the specific function to extract code for. Defaults to None.
+        is_function (bool, optional): Only for visual basic language.
 
     Returns:
         Dict[str, str | List[Tuple[str, str]]]: A dictionary containing the extracted code and documentation, if applicable.
@@ -137,6 +149,7 @@ def get_code_block(
                         extension,
                         one_function,
                         funct_definition,
+                        is_function,
                     )
                     count = None
                 else:
@@ -145,6 +158,7 @@ def get_code_block(
                         extension,
                         one_function,
                         funct_definition,
+                        is_function,
                     )
 
                 # If documentation was returned
@@ -209,6 +223,7 @@ def write_code_to_path(
 
 
 def document_file(
+    extension: str,
     formats: Dict[str, bool],
     method: str,
     doc_path: str,
@@ -216,7 +231,6 @@ def document_file(
     file: File,
     thread_semaphore: threading.Semaphore,
     chatbot_agent: ChatbotAgent,
-    frida_coder: FridaCoder,
 ) -> None:
     thread_semaphore.acquire()
 
@@ -241,7 +255,7 @@ def document_file(
             or num_lines <= 300
             or extension not in SUPPORTED_DOC_EXTENSION
         ):
-            prompt = generate_full_document_prompt(code, extension)
+            prompt = generate_full_document_prompt(code,  extension if extension not in VB_ESTENSIONS else ".vb")
             response = chatbot_agent.chat(prompt, True)
             comment = (
                 LANGUAGES[extension]
@@ -274,11 +288,8 @@ def document_file(
                     if "documentation" in information.keys():
                         new_doc.extend(information["documentation"])
                     if count is None and extension in SUPPORTED_DOC_EXTENSION:
-                        tree = LANGUAGES[extension].parser.parse(
-                            bytes(code, encoding="utf8")
-                        )
                         functions, classes = LANGUAGES[extension].find_all_functions(
-                            tree.root_node
+                            code
                         )
                         total = len(functions)
                     elif extension in SUPPORTED_DOC_EXTENSION:
@@ -288,11 +299,8 @@ def document_file(
                 else:
                     global_error = errors
                     if extension in SUPPORTED_DOC_EXTENSION:
-                        tree = LANGUAGES[extension].parser.parse(
-                            bytes(code, encoding="utf8")
-                        )
                         functions, classes = LANGUAGES[extension].find_all_functions(
-                            tree.root_node
+                            code
                         )
                         total = len(functions)
             else:
@@ -302,15 +310,10 @@ def document_file(
                 )
                 global_error = "Couldn't generate the documentation for the file."
                 if extension in SUPPORTED_DOC_EXTENSION:
-                    tree = LANGUAGES[extension].parser.parse(
-                        bytes(code, encoding="utf8")
-                    )
-                    functions, classes = LANGUAGES[extension].find_all_functions(
-                        tree.root_node
-                    )
+                    functions, classes = LANGUAGES[extension].find_all_functions(code)
                     total = len(functions)
 
-            resumes.append(
+            RESUMES.append(
                 {
                     "file": file.name,
                     "global_error": global_error,
@@ -321,9 +324,7 @@ def document_file(
             )
 
         else:
-            tree = LANGUAGES[extension].parser.parse(bytes(code, encoding="utf8"))
-
-            functions, classes = LANGUAGES[extension].find_all_functions(tree.root_node)
+            functions, classes = LANGUAGES[extension].find_all_functions(code)
             total = len(functions)
             documented = 0
             all_errors = {}
@@ -335,11 +336,16 @@ def document_file(
             for func in functions:
                 funct_definition = func["definition"]
                 funct_body = func["definition"] + "\n" + func["body"]
+                is_function = (
+                    None if extension not in VB_ESTENSIONS else func["is_function"]
+                )
                 logger.info(
                     __name__,
                     f"(document_file) Code for the function {funct_definition}: {funct_body}",
                 )
-                prompt = generate_document_for_funct_prompt(funct_body, extension)
+                prompt = generate_document_for_funct_prompt(
+                    funct_body, extension if extension not in VB_ESTENSIONS else ".vb"
+                )
                 response = chatbot_agent.chat(prompt, True)
 
                 while (
@@ -360,7 +366,7 @@ def document_file(
                         f"(document_file) Final response for the function {funct_definition}: {response}",
                     )
                     information, errors, _ = get_code_block(
-                        file.name, response, extension, True, funct_definition
+                        file.name, response, extension, True, funct_definition, is_function
                     )
                     if information is not None:
                         document_code = information["code"]
@@ -477,7 +483,6 @@ async def exec_document(
                     file,
                     thread_semaphore,
                     chatbot_agent,
-                    frida_coder,
                 ),
             )
             threads.append(thread)

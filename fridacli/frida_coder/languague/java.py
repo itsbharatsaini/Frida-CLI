@@ -39,7 +39,21 @@ class Java(BaseLanguage):
 
     # Methods for code manipulation (static)
     @override
-    def find_all_functions(self, node: Tree):
+    def find_all_functions(self, code: str):
+        """
+        Finds and returns all the functions defined in the given code string.
+
+        Args:
+            code (str): The code string to search for functions.
+        """
+        try:
+            node = self.parser.parse(bytes(code, encoding="utf8"))
+            return self.__help_find_all_functions(node)
+        except Exception as e:
+            logger.error(__name__, f"(find_all_functions) {e}")
+            return [], []
+
+    def __help_find_all_functions(self, node: Tree):
         """
         Recursively finds all function and class definitions in a Java code tree.
 
@@ -113,14 +127,14 @@ class Java(BaseLanguage):
                             definition += " "
                 # Call the function using the current node as the root
                 if n.children != []:
-                    f, c = self.find_all_functions(n)
+                    f, c = self.__find_all_functions(n)
                     if f != []:
                         functions.extend(f)
                     if c != []:
                         classes.extend(c)
         except Exception as e:
             # If something went wrong, only empty lists are returned
-            logger.error(__name__, f"(find_all_functions) {e}")
+            logger.error(__name__, f"(__help_find_all_functions) {e}")
             return [], []
         else:
             return functions, classes
@@ -195,7 +209,7 @@ class Java(BaseLanguage):
             return lines, None
 
     @override
-    def extract_doc_all_functions(self, node: Tree):
+    def extract_doc_all_functions(self, code: str):
         """
         Extracts documentation from all functions in a Java abstract syntax tree.
 
@@ -208,6 +222,7 @@ class Java(BaseLanguage):
         """
         docs, errors = [], {}
 
+        node = self.parser.parse(bytes(code, encoding="utf8"))
         functions, classes = self.find_all_functions(node)
         total = len(functions)
         documented = 0
@@ -256,7 +271,7 @@ class Java(BaseLanguage):
         return docs, errors, (total, documented)
 
     @override
-    def extract_doc_single_function(self, node: Tree, funct_definition: str):
+    def extract_doc_single_function(self, code: str, funct_definition: str):
         """
         Extracts the documentation from a Java function.
 
@@ -271,6 +286,8 @@ class Java(BaseLanguage):
         comments = ""
         error = None
         docs = []
+
+        node = self.parser.parse(bytes(code, encoding="utf8"))
 
         try:
             for n in node.children:
