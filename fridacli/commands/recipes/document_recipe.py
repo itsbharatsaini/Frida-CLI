@@ -223,7 +223,6 @@ def write_code_to_path(
 
 
 def document_file(
-    extension: str,
     formats: Dict[str, bool],
     method: str,
     doc_path: str,
@@ -313,7 +312,7 @@ def document_file(
                     functions, classes = LANGUAGES[extension].find_all_functions(code)
                     total = len(functions)
 
-            RESUMES.append(
+            resumes.append(
                 {
                     "file": file.name,
                     "global_error": global_error,
