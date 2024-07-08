@@ -243,8 +243,7 @@ class MigrationDocGenerator(Screen):
         logger.info(__name__, f"(on_worker_state_changed) Worker state changed with event: {str(event)}")
         if WorkerState.SUCCESS == event.worker.state and event.worker.name == "migrate_files":
             self.app.pop_screen()
-            self.app.pop_screen()
-            #self.dismiss("OK")
+            self.dismiss("OK")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "generate_migration_doc":

@@ -1,5 +1,6 @@
 import re
 import textdistance as td
+from fridacli.file_manager.file import File
 from softtek_llm.models import SofttekOpenAI
 from softtek_llm.memory import WindowMemory
 from softtek_llm.chatbots.chatbot import Chatbot
@@ -122,7 +123,8 @@ class ChatbotAgent:
         message_words = message.split(" ")
         located_files = []
 
-        all_files = self.__file_manager.get_files()
+        all_files = [file.name for file in self.__file_manager.get_files()]
+        
 
         for word in message_words:
             if self.is_file_format(word):
@@ -153,7 +155,7 @@ class ChatbotAgent:
         """
         try:
             response = self.__chatbot.chat(message)
-            logger.info(__name__, f"(__exec_chat) Chat response: {response}")
+            logger.info(__name__, f"(__exec_chat) Prompt tokens: {response.usage.prompt_tokens}, Response tokens: {response.usage.completion_tokens}, Chat response: {response}")
             return response.message.content
         except Exception as e:
             if e == "Unauthorized":

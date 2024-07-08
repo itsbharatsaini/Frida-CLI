@@ -15,6 +15,7 @@ from fridacli.frida_coder.languague.python import Python
 from fridacli.frida_coder.languague.csharp import CSharp
 from fridacli.frida_coder.languague.java import Java
 from fridacli.frida_coder.languague.visualbasic import VisualBasic
+from fridacli.file_manager.file import File
 from fridacli.logger import Logger
 
 logger = Logger()
@@ -36,7 +37,8 @@ LANGUAGES = {
     ".frm": VisualBasic(),  # VB Form files
     ".bas": VisualBasic(),  # VB Module files
 }
-RESUMES = []
+resumes = []
+
 
 
 def extract_documentation(
@@ -97,6 +99,7 @@ def get_code_block(
     Extracts the code block and documentation from the response.
 
     Args:
+        file_name (str): name of the file.
         text (str): The text containing code and maybe documentation.
         extension (str): The file extension of the code being extracted.
         one_function (bool): Whether to extract the documentation for one function or the whole code.
@@ -225,20 +228,15 @@ def document_file(
     method: str,
     doc_path: str,
     use_formatter: bool,
-    file: str,
+    file: File,
     thread_semaphore: threading.Semaphore,
     chatbot_agent: ChatbotAgent,
-    file_manager: FileManager,
-    frida_coder: FridaCoder,
 ) -> None:
     thread_semaphore.acquire()
 
     try:
-        logger.info(__name__, f"(document_file) Working on {file}")
-
-        full_path = file_manager.get_file_path(file)
-
-        code = frida_coder.get_code_from_path(full_path)
+        extension = file.extension
+        code = file.get_file_content()
         num_lines = code.count("\n")
 
         new_file = []
@@ -281,7 +279,7 @@ def document_file(
                     f"(document_file) Final response for the file {file}: {response}",
                 )
                 information, errors, count = get_code_block(
-                    file, response, extension, False
+                    file.name, response, extension, False
                 )
                 if information is not None:
                     new_code = information["code"]
@@ -317,7 +315,7 @@ def document_file(
 
             RESUMES.append(
                 {
-                    "file": file,
+                    "file": file.name,
                     "global_error": global_error,
                     "total_functions": total,
                     "documented_functions": documented,
@@ -368,7 +366,7 @@ def document_file(
                         f"(document_file) Final response for the function {funct_definition}: {response}",
                     )
                     information, errors, _ = get_code_block(
-                        file, response, extension, True, funct_definition, is_function
+                        file.name, response, extension, True, funct_definition, is_function
                     )
                     if information is not None:
                         document_code = information["code"]
@@ -391,9 +389,9 @@ def document_file(
             new_file.extend(code[end_line:])
             new_code = "\n".join(new_file)
 
-            RESUMES.append(
+            resumes.append(
                 {
-                    "file": file,
+                    "file": file.name,
                     "global_error": None,
                     "total_functions": total,
                     "documented_functions": documented,
@@ -407,7 +405,7 @@ def document_file(
                 __name__,
                 f"(document_file) Writing the documented code for the file {file}",
             )
-            write_code_to_path(full_path, new_code, extension, use_formatter)
+            write_code_to_path(file.get_file_path(), new_code, extension, use_formatter)
         else:
             logger.error(
                 __name__,
@@ -419,9 +417,9 @@ def document_file(
             for doctype, selected in formats.items():
                 if selected:
                     filename = (
-                        ("readme_" + file + ".md")
+                        ("readme_" + file.name + ".md")
                         if doctype == "md"
-                        else ("doc_" + file + ".docx")
+                        else ("doc_" + file.name + ".docx")
                     )
                     create_file(os.path.join(doc_path, filename), new_doc)
         else:
@@ -473,12 +471,11 @@ async def exec_document(
     )
 
     for file in files:
-        _, extension = os.path.splitext(file)
-        if frida_coder.is_programming_language_extension(extension):
+        if frida_coder.is_programming_language_extension(file.extension):
+            logger.info(__name__, f"(document_file) Documenting the file: {file.name}")
             thread = threading.Thread(
                 target=document_file,
                 args=(
-                    extension,
                     formats,
                     method,
                     doc_path,
@@ -486,12 +483,14 @@ async def exec_document(
                     file,
                     thread_semaphore,
                     chatbot_agent,
-                    file_manager,
-                    frida_coder,
                 ),
             )
             threads.append(thread)
             thread.start()
+        else:
+            logger.info(
+                __name__, f"(document_file) Won't be documenting the file: {file.name}"
+            )
 
     # Joining all the threads
     for thread in threads:
@@ -501,5 +500,10 @@ async def exec_document(
     if method == "Slow":
         chatbot_agent.change_version(3)
 
-    logger.info(__name__, f"(exec_document) The final resumes: {RESUMES}")
-    return RESUMES
+    logger.info(__name__, f"(exec_document) The final resumes: {resumes}")
+
+    # The resumes variable is cleaned
+    temp = resumes.copy()
+    resumes.clear()
+
+    return temp
