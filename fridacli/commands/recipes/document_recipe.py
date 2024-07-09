@@ -10,7 +10,7 @@ from .predefined_phrases import (
     generate_document_for_funct_prompt,
     generate_full_document_prompt,
 )
-from .utils import create_file
+from .utils import create_file, write_code_to_path
 from fridacli.frida_coder.languague.python import Python
 from fridacli.frida_coder.languague.csharp import CSharp
 from fridacli.frida_coder.languague.java import Java
@@ -38,7 +38,6 @@ LANGUAGES = {
     ".bas": VisualBasic(),  # VB Module files
 }
 resumes = []
-
 
 
 def extract_documentation(
@@ -195,33 +194,6 @@ def get_code_block(
         return None, e, None
 
 
-def write_code_to_path(
-    path: str, code: str, extension: str, use_formatter: bool
-) -> None:
-    """
-    Writes code to a file located at the given path.
-
-    Args:
-        path (str): The path to the file.
-        code (str): The code to be written to the file.
-        extension (str): The file extension to determine the file type.
-        use_formatter (bool): Flag to indicate whether to use a code formatter on the file.
-
-    Raises:
-        Exception: If an error occurs while writing the code to the file.
-    """
-    try:
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(code)
-
-        if use_formatter:
-            if extension == ".py":
-                os.system(f"python -m black {path} -q")
-
-    except Exception as e:
-        logger.error(__name__, f"(write_code_to_path) {e}")
-
-
 def document_file(
     formats: Dict[str, bool],
     method: str,
@@ -254,7 +226,9 @@ def document_file(
             or num_lines <= 300
             or extension not in SUPPORTED_DOC_EXTENSION
         ):
-            prompt = generate_full_document_prompt(code,  extension if extension not in VB_ESTENSIONS else ".vb")
+            prompt = generate_full_document_prompt(
+                code, extension if extension not in VB_ESTENSIONS else ".vb"
+            )
             response = chatbot_agent.chat(prompt, True)
             comment = (
                 LANGUAGES[extension]
@@ -365,7 +339,12 @@ def document_file(
                         f"(document_file) Final response for the function {funct_definition}: {response}",
                     )
                     information, errors, _ = get_code_block(
-                        file.name, response, extension, True, funct_definition, is_function
+                        file.name,
+                        response,
+                        extension,
+                        True,
+                        funct_definition,
+                        is_function,
                     )
                     if information is not None:
                         document_code = information["code"]

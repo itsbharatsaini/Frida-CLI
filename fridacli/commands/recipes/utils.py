@@ -2,8 +2,36 @@ from docx import Document
 from mdutils.mdutils import MdUtils
 from typing import List, Tuple
 from fridacli.logger import Logger
+import os
 
 logger = Logger()
+
+def write_code_to_path(
+    path: str, code: str, extension: str, use_formatter: bool
+) -> None:
+    """
+    Writes code to a file located at the given path.
+
+    Args:
+        path (str): The path to the file.
+        code (str): The code to be written to the file.
+        extension (str): The file extension to determine the file type.
+        use_formatter (bool): Flag to indicate whether to use a code formatter on the file.
+
+    Raises:
+        Exception: If an error occurs while writing the code to the file.
+    """
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(code)
+
+        if use_formatter:
+            if extension == ".py":
+                os.system(f"python -m black {path} -q")
+
+    except Exception as e:
+        logger.error(__name__, f"(write_code_to_path) {e}")
+
 
 def create_file(path: str, lines: List[Tuple[str, str | List]]) -> None:
     """
