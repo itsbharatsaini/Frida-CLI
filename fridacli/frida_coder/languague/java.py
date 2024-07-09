@@ -47,8 +47,8 @@ class Java(BaseLanguage):
             code (str): The code string to search for functions.
         """
         try:
-            node = self.parser.parse(bytes(code, encoding="utf8"))
-            return self.__help_find_all_functions(node)
+            tree = self.parser.parse(bytes(code, encoding="utf8"))
+            return self.__help_find_all_functions(tree.root_node)
         except Exception as e:
             logger.error(__name__, f"(find_all_functions) {e}")
             return [], []
@@ -127,7 +127,7 @@ class Java(BaseLanguage):
                             definition += " "
                 # Call the function using the current node as the root
                 if n.children != []:
-                    f, c = self.__find_all_functions(n)
+                    f, c = self.__help_find_all_functions(n)
                     if f != []:
                         functions.extend(f)
                     if c != []:

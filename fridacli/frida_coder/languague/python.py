@@ -216,8 +216,8 @@ with open(r'{file_name}', 'w', encoding='utf-8') as file:
             code (str): The code string to search for functions.
         """
         try:
-            node = self.parser.parse(bytes(code, encoding="utf8"))
-            return self.__help_find_all_functions(node)
+            tree = self.parser.parse(bytes(code, encoding="utf8"))
+            return self.__help_find_all_functions(tree.root_node)
         except Exception as e:
             logger.error(__name__, f"(find_all_functions) {e}")
             return [], []
