@@ -167,7 +167,11 @@ def generate_recommendation_for_migration(
     
     You have to return both:
     - The function migrated to the target version: {target_version}
-    - List of enumerated of recommendations to do the migration
+    - Enumerated list of recommendations to do the migration
+
+    Only update the function, and add the necessary imports if any.
+
+    Do not add additional classes, functions or comments.
 
     Each recommendations MUST follow this syntax: '1. **Name**: description.'
 

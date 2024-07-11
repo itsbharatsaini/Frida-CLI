@@ -4,7 +4,7 @@ from fridacli.file_manager import FileManager
 from fridacli.frida_coder.languague.java import Java
 from fridacli.file_manager.file import File
 from .predefined_phrases import generate_recommendation_for_migration
-from .utils import create_file
+from .utils import create_file, write_code_to_path
 import re
 import os
 import threading
@@ -94,14 +94,13 @@ def extract_information(text: str, funct_definition: str):
                 f"(extract_information) Couldn't extract recommendations and/or code from the response for the function {funct_definition}.",
             )
         else:
-            if code_matches:
-                information["code"] = code_matches[0]
-            if rec_matches:
-                recommendations = extract_recommendations(
-                    rec_matches[0], funct_definition
-                )
-                if recommendations != []:
-                    information["recommendations"] = recommendations
+            information["code"] = code_matches[0]
+            logger.info(
+                __name__, f"(extract_information) Code extracted: {code_matches[0]}"
+            )
+            recommendations = extract_recommendations(rec_matches[0], funct_definition)
+            if recommendations != []:
+                information["recommendations"] = recommendations
 
         return information
     except Exception as e:
@@ -133,11 +132,10 @@ def doc_migration_file(
     try:
         extension = file.extension
         code = file.get_file_content()
+        new_code = ""
 
-        tree = LANGUAGES[extension].parser.parse(bytes(code, encoding="utf8"))
-
-        functions, classes = LANGUAGES[extension].find_all_functions(tree.root_node)
-        i = 1
+        functions, classes = LANGUAGES[extension].find_all_functions(code)
+        retry = 1
         recommendations = [
             (
                 "title",
@@ -145,7 +143,9 @@ def doc_migration_file(
             )
         ]
 
-        for func in functions:
+        new_code = code[: functions[0]["range"][0]]
+
+        for i, func in enumerate(functions):
             funct_definition = func["definition"].replace("\n", "").replace("    ", "")
             funct_body = func["definition"] + "\n" + func["body"]
             logger.info(
@@ -160,23 +160,54 @@ def doc_migration_file(
             while (
                 ("```" not in response)
                 and ("<recommendations>" not in response)
-                and i <= MAX_RETRIES
+                and retry <= MAX_RETRIES
             ):
                 logger.info(
                     __name__,
-                    f"(doc_migration_file) Retry # {i} for file {file} function {funct_definition} response: {response}",
+                    f"(doc_migration_file) Retry # {retry} for file {file} function {funct_definition} response: {response}",
                 )
                 response = chatbot_agent.chat(prompt, True)
-                i += 1
-            i = 1
+                retry += 1
+            retry = 1
             logger.info(
                 __name__,
                 f"(doc_migration_file) Final response for function {funct_definition}: {response}",
             )
             if ("```" in response) and ("<recommendations>" in response):
                 information = extract_information(response, funct_definition)
+                new_code += information["code"]
+                if i < (len(functions) - 1):
+                    new_code += code[func["range"][1] : functions[i + 1]["range"][0]]
                 if "recommendations" in information.keys():
                     recommendations.extend(information["recommendations"])
+            else:
+                logger.error(
+                    __name__,
+                    f"(doc_migration_file) Couldn't generate tips for file {file}.",
+                )
+                new_code += (
+                    funct_body + code[func["range"][1] : functions[i + 1]["range"][0]]
+                )
+        new_code += code[functions[-1]["range"][1] :]
+
+        # If there is new code to write
+        if new_code != "":
+            logger.info(
+                __name__,
+                f"(document_file) Writing the documented code for the file {file}",
+            )
+            write_code_to_path(
+                os.path.join(file.path, "testing" + file.extension),
+                new_code,
+                extension,
+                False,
+            )
+        else:
+            logger.error(
+                __name__,
+                f"(document_file) Could not write new code for file {file}",
+            )
+
         if len(recommendations) > 1:
             create_file(
                 os.path.join(
@@ -189,6 +220,11 @@ def doc_migration_file(
                     doc_path, f"migration_{file.name.replace(extension, '.docx')}"
                 ),
                 recommendations,
+            )
+        else:
+            logger.error(
+                __name__,
+                f"(doc_migration_file) Couldn't generate tips for file {file}.",
             )
     except Exception as e:
         logger.error(__name__, f"(doc_migration_file) Error in file: {file}: {e}")
