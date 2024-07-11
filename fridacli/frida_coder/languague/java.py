@@ -103,9 +103,12 @@ class Java(BaseLanguage):
                         else:
                             comments = ""
                 # Extract information from a method
-                if n.type == "method_declaration":
+                if (
+                    n.type == "method_declaration"
+                    or n.type == "constructor_declaration"
+                ):
                     for data in n.children:
-                        if data.type == "block":
+                        if data.type == "block" or data.type == "constructor_body":
                             body = data.text.decode("utf8")
                             functions.append(
                                 {
