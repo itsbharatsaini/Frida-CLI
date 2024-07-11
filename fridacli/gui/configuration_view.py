@@ -1,4 +1,5 @@
-from textual.widgets import Static, TabbedContent, TabPane, Input, Label, Button, DirectoryTree
+from git import InvalidGitRepositoryError, Repo
+from textual.widgets import Static, TabbedContent, TabPane, Input, Label, Button, DirectoryTree, Select
 from fridacli.commands.subcommands.files_commands import open_subcommand, update_log_path
 from fridacli.config import get_config_vars, write_config_to_file, get_vars_as_dict, HOME_PATH
 from fridacli.gui.code_view import FilteredDirectoryTree
@@ -15,7 +16,13 @@ chatbot = ChatbotAgent()
 
 logger = Logger()
 
-
+def check_git_repository(path):
+    try:
+        repo = Repo(path)
+        branches = [head.name for head in repo.heads]
+        return True, branches
+    except InvalidGitRepositoryError:
+        return False, ["Not a repository"]
 
 class ConfigurationView(Static):
     def compose(self):
@@ -103,11 +110,15 @@ class ConfigurationView(Static):
             keys["PROJECT_PATH"] = project_path
             write_config_to_file(keys)
             open_subcommand(keys["PROJECT_PATH"])
-            self.parent.parent.query_one("#cv_tree_view", FilteredDirectoryTree).remove()
-            self.parent.parent.query_one("#code_view_left", Vertical).mount(
-                FilteredDirectoryTree(str(keys["PROJECT_PATH"]), id="cv_tree_view")
-            )
-            #code_view.refresh(repaint=True)
+            # self.parent.parent.query_one("#cv_tree_view", FilteredDirectoryTree).remove()
+            # self.parent.parent.query_one("#code_view_left", Vertical).mount(
+            #     FilteredDirectoryTree(str(keys["PROJECT_PATH"]), id="cv_tree_view")
+            # )
+            self.parent.parent.query_one("#cv_tree_view", FilteredDirectoryTree).path = project_path
+            self.parent.parent.query_one("#cv_tree_view", FilteredDirectoryTree).refresh(repaint=True)
+            is_git, branches = check_git_repository(project_path)
+            self.parent.parent.query_one("#cv_select_branch", Select).set_options(((branch, branch) for branch in branches))
+            self.parent.parent.query_one("#cv_select_branch", Select).disabled = not is_git
             self.notify("The configuration were saved")
         if button_pressed == "btn_project_open_logs":
             if OS == "win":
