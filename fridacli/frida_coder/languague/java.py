@@ -38,6 +38,20 @@ class Java(BaseLanguage):
         pass
 
     # Methods for code manipulation (static)
+    def extract_imports(self, code: str):
+        imports = []
+        end_position = -1
+        try:
+            tree = self.parser.parse(bytes(code, encoding="utf8")).root_node
+            for node in tree.children:
+                if node.type == "import_declaration":
+                    imports.append(node.text.decode("utf8"))
+                    end_position = node.end_byte            
+        except Exception as e:
+            logger.error(__name__, f"(extract_imports) {e}")
+        finally:
+            return imports, end_position
+
     @override
     def find_all_functions(self, code: str):
         """

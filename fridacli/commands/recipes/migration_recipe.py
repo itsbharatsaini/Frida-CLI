@@ -134,6 +134,9 @@ def doc_migration_file(
         code = file.get_file_content()
         new_code = ""
 
+        code_imports, imports_end_position = LANGUAGES[extension].extract_imports(code)
+        new_imports = []
+
         functions, classes = LANGUAGES[extension].find_all_functions(code)
         retry = 1
         recommendations = [
@@ -175,7 +178,16 @@ def doc_migration_file(
             )
             if ("```" in response) and ("<recommendations>" in response):
                 information = extract_information(response, funct_definition)
-                new_code += information["code"]
+                imports, end_position = LANGUAGES[extension].extract_imports(
+                    information["code"]
+                )
+                if imports != []:
+                    for line in imports:
+                        if line not in code_imports:
+                            new_imports.append(line)
+                    new_code += information["code"][end_position:]
+                else:
+                    new_code += information["code"]
                 if i < (len(functions) - 1):
                     new_code += code[func["range"][1] : functions[i + 1]["range"][0]]
                 if "recommendations" in information.keys():
@@ -190,6 +202,10 @@ def doc_migration_file(
                 )
         new_code += code[functions[-1]["range"][1] :]
 
+        if new_imports != []:
+            imports = "\n".join(new_imports)
+            new_code = new_code[:imports_end_position] + "\n" + imports + new_code[imports_end_position:]
+
         # If there is new code to write
         if new_code != "":
             logger.info(
@@ -197,7 +213,7 @@ def doc_migration_file(
                 f"(document_file) Writing the documented code for the file {file}",
             )
             write_code_to_path(
-                os.path.join(file.path, "testing" + file.extension),
+                os.path.join(file.path, "migrated_" + file.name),
                 new_code,
                 extension,
                 False,
@@ -209,12 +225,6 @@ def doc_migration_file(
             )
 
         if len(recommendations) > 1:
-            create_file(
-                os.path.join(
-                    doc_path, f"migration_{file.name.replace(extension, '.md')}"
-                ),
-                recommendations,
-            )
             create_file(
                 os.path.join(
                     doc_path, f"migration_{file.name.replace(extension, '.docx')}"
