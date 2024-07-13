@@ -38,6 +38,28 @@ class Java(BaseLanguage):
         pass
 
     # Methods for code manipulation (static)
+    @override
+    def has_error(self, code, is_constructor: bool):
+        try:
+            tree = self.parser.parse(bytes(code, encoding="utf8"))
+            return self.__help_has_error(tree.root_node, is_constructor)
+        except Exception as e:
+            logger.error(__name__, f"(has_error) {e}")
+            return True
+
+    def __help_has_error(self, node: Tree, is_constructor: bool):
+        try:
+            if node.has_error:
+                if node.type == "method_declaration" and is_constructor:
+                    return False
+                return False
+            for child in node.children:
+                return self.__help_has_error(child, is_constructor)
+            return False
+        except Exception as e:
+            logger.error(__name__, f"(__help_has_error) {e}")
+            return True
+
     def extract_imports(self, code: str):
         imports = []
         end_position = -1
@@ -46,7 +68,7 @@ class Java(BaseLanguage):
             for node in tree.children:
                 if node.type == "import_declaration":
                     imports.append(node.text.decode("utf8"))
-                    end_position = node.end_byte            
+                    end_position = node.end_byte
         except Exception as e:
             logger.error(__name__, f"(extract_imports) {e}")
         finally:
@@ -127,6 +149,7 @@ class Java(BaseLanguage):
                             functions.append(
                                 {
                                     "name": name,
+                                    "is_constructor": data.type == "constructor_body",
                                     "definition": definition,
                                     "body": body,
                                     "range": (n.range.start_byte, n.range.end_byte),

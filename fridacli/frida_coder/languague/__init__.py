@@ -19,6 +19,10 @@ class BaseLanguage(ABC):
         raise NotImplementedError("run method must be overridden")
     
     @abstractmethod
+    def has_error(self, code):
+        raise NotImplementedError("has_error method must be overridden")
+    
+    @abstractmethod
     def find_all_functions(self, code):
         raise NotImplementedError("find_all_functions method must be overriden")
     

@@ -208,6 +208,10 @@ with open(r'{file_name}', 'w', encoding='utf-8') as file:
 
     # Methods for code manipulation (static)
     @override
+    def has_error(self, code):
+        pass
+    
+    @override
     def find_all_functions(self, code: str):
         """
         Finds and returns all the functions defined in the given code string.
