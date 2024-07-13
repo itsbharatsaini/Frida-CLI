@@ -25,6 +25,25 @@ CodeView{
    width: 65%;
 }
 
+.cv-directory-tree {
+    height: auto;
+    max-height: 80%;
+    width: 100%;
+    overflow: auto auto;
+    scrollbar-gutter: stable;
+}
+
+.cv-recipe-buttons-horizontal {
+    height: auto;
+    width: 100%;
+}
+
+.cv-select-branch {
+    height: auto;
+    width: 100%;
+    padding-top: 1;
+}
+
 SystemFridaResponse{
     height: auto;
 }
