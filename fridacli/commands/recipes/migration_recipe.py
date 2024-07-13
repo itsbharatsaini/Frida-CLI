@@ -151,6 +151,7 @@ def doc_migration_file(
         for i, func in enumerate(functions):
             funct_definition = func["definition"].replace("\n", "").replace("    ", "")
             funct_body = func["definition"] + "\n" + func["body"]
+            is_constructor = func["is_constructor"]
             logger.info(
                 __name__,
                 f"(doc_migration_file) Code for the function {funct_definition}: {funct_body}",
@@ -178,18 +179,30 @@ def doc_migration_file(
             )
             if ("```" in response) and ("<recommendations>" in response):
                 information = extract_information(response, funct_definition)
-                imports, end_position = LANGUAGES[extension].extract_imports(
-                    information["code"]
-                )
-                if imports != []:
-                    for line in imports:
-                        if line not in code_imports:
-                            new_imports.append(line)
-                    new_code += information["code"][end_position:]
+                if LANGUAGES[extension].has_error(information["code"], is_constructor):
+                    logger.error(
+                        __name__,
+                        f"(doc_migration_file) The code returned from the chat contained errors for function: {funct_definition}.",
+                    )
+                    new_code += (
+                        funct_body
+                        + code[func["range"][1] : functions[i + 1]["range"][0]]
+                    )
                 else:
-                    new_code += information["code"]
-                if i < (len(functions) - 1):
-                    new_code += code[func["range"][1] : functions[i + 1]["range"][0]]
+                    imports, end_position = LANGUAGES[extension].extract_imports(
+                        information["code"]
+                    )
+                    if imports != []:
+                        for line in imports:
+                            if line not in code_imports:
+                                new_imports.append(line)
+                        new_code += information["code"][end_position:]
+                    else:
+                        new_code += information["code"]
+                    if i < (len(functions) - 1):
+                        new_code += code[
+                            func["range"][1] : functions[i + 1]["range"][0]
+                        ]
                 if "recommendations" in information.keys():
                     recommendations.extend(information["recommendations"])
             else:
@@ -204,7 +217,12 @@ def doc_migration_file(
 
         if new_imports != []:
             imports = "\n".join(new_imports)
-            new_code = new_code[:imports_end_position] + "\n" + imports + new_code[imports_end_position:]
+            new_code = (
+                new_code[:imports_end_position]
+                + "\n"
+                + imports
+                + new_code[imports_end_position:]
+            )
 
         # If there is new code to write
         if new_code != "":
