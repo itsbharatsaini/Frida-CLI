@@ -40,7 +40,6 @@ class Java(BaseLanguage):
     # Methods for code manipulation (static)
     @override
     def has_error(self, code: str, is_constructor: bool):
-    def has_error(self, code: str, is_constructor: bool):
         try:
             node = self.parser.parse(bytes(code, encoding="utf8")).root_node
             error = False
