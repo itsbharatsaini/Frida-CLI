@@ -40,9 +40,35 @@ class CSharp(BaseLanguage):
 
     # Methods for code manipulation (static)
     @override
-    def has_error(self, code):
-        pass
-    
+    def has_error(self, code: str, is_constructor: bool):
+        try:
+            node = self.parser.parse(bytes(code, encoding="utf8")).root_node
+            error = False
+            for child in node.children:
+                # If the error is a global_statement and the function is a constructor, then it is not an error
+                if child.has_error and not (
+                    child.type == "global_statement" and is_constructor
+                ):
+                    error = True
+                    break
+                # If it is a global_statement and the function is a constructor,
+                # if the code block contains errors, then it is an error
+                elif (
+                    child.has_error
+                    and child.type == "global_statement"
+                    and is_constructor
+                ):
+                    for cchild in child.children:
+                        if cchild.type == "block" and cchild.has_error:
+                            error = True
+                            break
+                    if error:
+                        break
+            return error
+        except Exception as e:
+            logger.error(__name__, f"(has_error) {e}")
+            return True
+
     @override
     def find_all_functions(self, code: str):
         """
