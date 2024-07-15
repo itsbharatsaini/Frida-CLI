@@ -208,9 +208,19 @@ with open(r'{file_name}', 'w', encoding='utf-8') as file:
 
     # Methods for code manipulation (static)
     @override
-    def has_error(self, code):
-        pass
-    
+    def has_error(self, code: str):
+        try:
+            node = self.parser.parse(bytes(code, encoding="utf8")).root_node
+            error = False
+            for child in node.children:
+                if child.has_error:
+                    error = True
+                    break
+            return error
+        except Exception as e:
+            logger.error(__name__, f"(has_error) {e}")
+            return True
+
     @override
     def find_all_functions(self, code: str):
         """
