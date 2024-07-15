@@ -39,25 +39,33 @@ class Java(BaseLanguage):
 
     # Methods for code manipulation (static)
     @override
-    def has_error(self, code, is_constructor: bool):
+    def has_error(self, code: str, is_constructor: bool):
         try:
-            tree = self.parser.parse(bytes(code, encoding="utf8"))
-            return self.__help_has_error(tree.root_node, is_constructor)
+            node = self.parser.parse(bytes(code, encoding="utf8")).root_node
+            error = False
+            for child in node.children:
+                # If the error is a global_statement and the function is a constructor, then it is not an error
+                if child.has_error and not (
+                    child.type == "method_declaration" and is_constructor
+                ):
+                    error = True
+                    break
+                # If it is a global_statement and the function is a constructor,
+                # if the code block contains errors, then it is an error
+                elif (
+                    child.has_error
+                    and child.type == "method_declaration"
+                    and is_constructor
+                ):
+                    for cchild in child.children:
+                        if cchild.type == "block" and cchild.has_error:
+                            error = True
+                            break
+                    if error:
+                        break
+            return error
         except Exception as e:
             logger.error(__name__, f"(has_error) {e}")
-            return True
-
-    def __help_has_error(self, node: Tree, is_constructor: bool):
-        try:
-            if node.has_error:
-                if node.type == "method_declaration" and is_constructor:
-                    return False
-                return False
-            for child in node.children:
-                return self.__help_has_error(child, is_constructor)
-            return False
-        except Exception as e:
-            logger.error(__name__, f"(__help_has_error) {e}")
             return True
 
     def extract_imports(self, code: str):
