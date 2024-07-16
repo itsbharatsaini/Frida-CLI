@@ -1,3 +1,4 @@
+from git import InvalidGitRepositoryError, Repo
 from textual.containers import VerticalScroll, Vertical, Horizontal
 from textual.widgets import DirectoryTree, Static, Select, Button
 from fridacli.config import get_vars_as_dict
@@ -22,6 +23,15 @@ logger = Logger()
 LINES = ["Generate Documentation", "Migration"]
 
 
+def check_git_repository(path):
+    try:
+        repo = Repo(path)
+        branches = [head.name for head in repo.heads]
+        return True, branches
+    except InvalidGitRepositoryError:
+        return False, ["Not a repository"]
+
+
 class FilteredDirectoryTree(DirectoryTree):
     def filter_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
         """
@@ -36,6 +46,7 @@ class CodeView(Static):
     CSS_PATH = "fridacli/gui/tcss/frida_styles.tcss"
     recipe_selected = ""
     file_button_open = ""
+    path = ""
 
     def watch_show_tree(self, show_tree: bool) -> None:
         """Called when show_tree is modified."""
@@ -43,15 +54,26 @@ class CodeView(Static):
 
     def compose(self):
         logger.info(__name__, "(compose) Composing CodeView")
-        path = get_vars_as_dict()["PROJECT_PATH"]
-        logger.info(__name__, f"(compose) Project path: {path}")
-
+        self.path = get_vars_as_dict()["PROJECT_PATH"]
+        logger.info(__name__, f"(compose) Project path: {self.path}")
+        is_git, branches = check_git_repository(self.path)
         with Horizontal():
             with Vertical(id="code_view_left"):
-                with Horizontal(id="code_view_buttons"):
-                    yield Select((line, line) for line in LINES)
+                with Horizontal(id="code_view_buttons", classes="cv-recipe-buttons-horizontal"):
+                    yield Select(
+                        id="cv_select_recipe", options=((line, line) for line in LINES)
+                    )
                     yield Button("Execute", id="btn_recipe")
-                yield FilteredDirectoryTree(os.path.abspath(path), id="cv_tree_view")
+                yield FilteredDirectoryTree(
+                    os.path.abspath(self.path), id="cv_tree_view", classes="cv-directory-tree"
+                )
+                yield Select(
+                    id="cv_select_branch",
+                    options=((branch, branch) for branch in branches),
+                    disabled=not is_git,
+                    value=branches[0],
+                    classes="cv-select-branch",
+                )
             with VerticalScroll(id="cv_code_scroll"):
                 yield Static(id="cv_code", expand=False)
 
@@ -129,7 +151,18 @@ class CodeView(Static):
         self.show_tree = not self.show_tree
 
     def on_select_changed(self, event: Select.Changed) -> None:
-        self.recipe_selected = str(event.value)
+        selection = str(event.select.id)
+        if selection == "cv_select_branch":
+            # Access the repo and checkout the selected branch
+            try:
+                repo = Repo(self.path)
+                repo.git.checkout(event.value)
+                self.query_one("#cv_tree_view", FilteredDirectoryTree).reload()
+            except Exception as e:
+                logger.error(__name__, f"Error changing branch: {e}")
+                self.query_one("#cv_tree_view", FilteredDirectoryTree).reload()
+        elif selection == "cv_select_recipe":
+            self.recipe_selected = str(event.value)
 
     def on_button_pressed(self, event: Button.Pressed):
         button_pressed = str(event.button.id)
@@ -139,12 +172,23 @@ class CodeView(Static):
                 self.app.push_screen(DocGenerator(), self.doc_generator_callback)
 
             elif self.recipe_selected == "Migration":
-                self.app.push_screen(MigrationDocGenerator(), self.migration_generator_callback)
+                self.app.push_screen(
+                    MigrationDocGenerator(), self.migration_generator_callback
+                )
 
     def doc_generator_callback(self, result):
         self.app.push_screen(DocumentResultResume(result))
         self.query_one("#cv_tree_view", FilteredDirectoryTree).reload()
-
+        is_git, branches = check_git_repository(self.path)
+        self.parent.parent.query_one("#cv_select_branch", Select).set_options(
+            ((branch, branch) for branch in branches)
+        )
+        self.parent.parent.query_one("#cv_select_branch", Select).disabled = not is_git
 
     def migration_generator_callback(self, result):
         self.query_one("#cv_tree_view", FilteredDirectoryTree).reload()
+        is_git, branches = check_git_repository(self.path)
+        self.parent.parent.query_one("#cv_select_branch", Select).set_options(
+            ((branch, branch) for branch in branches)
+        )
+        self.parent.parent.query_one("#cv_select_branch", Select).disabled = not is_git
