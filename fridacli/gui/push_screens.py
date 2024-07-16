@@ -529,8 +529,8 @@ class ConfirmPushWithChangesView(Screen):
             yield Label(str(self.text), id="push_with_changes_label", classes="push_to_git_label_with_changes", shrink=True)
             with Horizontal(id="push_changes_btns", classes="push_to_git_horizontal_buttons"):
                 yield Button("Cancel", variant="error", id="cancel_push_changes", classes="push_to_git_button")
-                # TODO: Delete changes in the repository and continue with the push
-                yield Button("Confirm", variant="success", id="confirm_push_changes", classes="push_to_git_button")
+                yield Button("Delete & commit", variant="success", id="confirm_stage_changes", classes="push_to_git_button")
+                yield Button("Stage & commit", variant="success", id="confirm_push_changes", classes="push_to_git_button")
 
     def on_button_pressed(self, event: Button.Pressed):
         """
@@ -539,9 +539,11 @@ class ConfirmPushWithChangesView(Screen):
         button_pressed =  event.button.id
         logger.info(__name__, f"(on_button_pressed) Button pressed: {button_pressed}")
         if button_pressed == "cancel_push_changes":
-            self.dismiss({"confirmation": False})
+            self.dismiss({"confirmation": False, "delete_changes": False})
+        elif button_pressed == "confirm_stage_changes":
+            self.dismiss({"confirmation": True, "delete_changes": True})
         elif button_pressed == "confirm_push_changes":
-            self.dismiss({"confirmation": True})
+            self.dismiss({"confirmation": True, "delete_changes": False})
 
 class NormalRepoGitPushView(Screen):
     def __init__(self, text) -> None:
@@ -577,7 +579,7 @@ class NormalRepoGitPushView(Screen):
                 self.notify("You must enter a commit message.")
             else:
                 if check_for_changes(file_manager.get_folder_path()):
-                    text = "You have unstaged changes in your repository. Do you want to commit them? (Your previous changes will be merged with the new ones in the same commit)"
+                    text = "You have unstaged changes in your repository. Select one of the following options:\n\n 'Delete & commit' will delete/stash the local changes and continue with the commit.\n 'Stage & commit' will stage the changes and continue with the commit."
                     self.app.push_screen(ConfirmPushWithChangesView(text), self.push_screen_callback)
                     
                 else:
@@ -586,11 +588,22 @@ class NormalRepoGitPushView(Screen):
                     self.dismiss({"commit_message": commit_message, "branch_name": branch_name})
 
     def push_screen_callback(self, result):
-        # TODO: Delete changes in the repository if user wants to and continue with the push
         logger.info(__name__, f"(push_screen_callback) Result: {str(result)}")
-        if result["confirmation"]:
+        if result["confirmation"] and not result["delete_changes"]:
             commit_message = self.query_one("#commit_msg_input", Input).value
             branch_name = self.query_one("#repo_name", Input).value
+            self.dismiss({"commit_message": commit_message, "branch_name": branch_name})
+        elif result["confirmation"] and result["delete_changes"]:
+            commit_message = self.query_one("#commit_msg_input", Input).value
+            branch_name = self.query_one("#repo_name", Input).value
+            path = file_manager.get_folder_path()
+            repo = Repo(path)
+
+            # Reset the branch to the latest commit
+            repo.git.reset(hard=True)
+
+            # Delete any untracked files
+            repo.git.clean('-f', '-d')
             self.dismiss({"commit_message": commit_message, "branch_name": branch_name})
         else:
             self.app.pop_screen()

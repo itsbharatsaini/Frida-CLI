@@ -677,10 +677,6 @@ ConfirmPushWithChangesView {
     text-align: center;
 }
 
-.push_to_git_horizontal_test {
-    content-align-horizontal: center;
-}
-
 /* Migration Doc Generator */
 
 MigrationDocGenerator {
