@@ -110,10 +110,6 @@ class ConfigurationView(Static):
             keys["PROJECT_PATH"] = project_path
             write_config_to_file(keys)
             open_subcommand(keys["PROJECT_PATH"])
-            # self.parent.parent.query_one("#cv_tree_view", FilteredDirectoryTree).remove()
-            # self.parent.parent.query_one("#code_view_left", Vertical).mount(
-            #     FilteredDirectoryTree(str(keys["PROJECT_PATH"]), id="cv_tree_view")
-            # )
             self.parent.parent.query_one("#cv_tree_view", FilteredDirectoryTree).path = project_path
             self.parent.parent.query_one("#cv_tree_view", FilteredDirectoryTree).refresh(repaint=True)
             is_git, branches = check_git_repository(project_path)

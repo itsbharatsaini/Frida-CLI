@@ -74,6 +74,8 @@ class CodeView(Static):
                     value=branches[0],
                     classes="cv-select-branch",
                 )
+            with VerticalScroll(id="cv_code_scroll"):
+                yield Static(id="cv_code", expand=False)
 
     def on_mount(self) -> None:
         logger.info(__name__, "(on_mount) Mounting CodeView")
@@ -152,9 +154,13 @@ class CodeView(Static):
         selection = str(event.select.id)
         if selection == "cv_select_branch":
             # Access the repo and checkout the selected branch
-            repo = Repo(self.path)
-            repo.git.checkout(event.value)
-            self.query_one("#cv_tree_view", FilteredDirectoryTree).reload()
+            try:
+                repo = Repo(self.path)
+                repo.git.checkout(event.value)
+                self.query_one("#cv_tree_view", FilteredDirectoryTree).reload()
+            except Exception as e:
+                logger.error(__name__, f"Error changing branch: {e}")
+                self.query_one("#cv_tree_view", FilteredDirectoryTree).reload()
         elif selection == "cv_select_recipe":
             self.recipe_selected = str(event.value)
 

@@ -659,6 +659,28 @@ NewRepoGitPushView {
     align-horizontal: center;
 }
 
+ConfirmPushWithChangesView {
+    width: 50;
+    align: center middle;
+}
+
+.push_to_git_vertical_with_changes {
+    width: 50%;
+    height: auto;
+    border: thick $background 80%;
+    background: $surface;
+}
+
+.push_to_git_label_with_changes {
+    margin-top: 1;
+    margin-bottom: 2;
+    text-align: center;
+}
+
+.push_to_git_horizontal_test {
+    content-align-horizontal: center;
+}
+
 /* Migration Doc Generator */
 
 MigrationDocGenerator {

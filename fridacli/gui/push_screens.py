@@ -4,7 +4,7 @@ from textual.widgets import Label, Input, Button, DirectoryTree, LoadingIndicato
 from textual.containers import Vertical, Horizontal, VerticalScroll
 from fridacli.commands.recipes import generate_epics, document_files, migrate_files
 from fridacli.config import HOME_PATH, FRIDA_DIR_PATH, get_config_vars
-from git import Repo
+from git import InvalidGitRepositoryError, Repo
 from textual.containers import Vertical, Horizontal
 from textual.screen import Screen, ModalScreen
 from textual.worker import Worker, WorkerState
@@ -43,7 +43,20 @@ def _is_git_repository(project_path: str) -> bool:
         # Try to open an existing repo
         repo = Repo(project_path)
         return True
-    except git.exc.InvalidGitRepositoryError:
+    except InvalidGitRepositoryError:
+        return False
+    
+def check_for_changes(project_path):
+    if not os.path.isdir(project_path):
+        raise ValueError(f"The path {project_path} does not exist or is not a directory.")
+
+    try:
+        repo = Repo(project_path)
+        if repo.is_dirty() or repo.untracked_files:
+            return True
+        else:
+            return False
+    except InvalidGitRepositoryError:
         return False
     
 def commit_changes(project_path, commit_message, branch_name):
@@ -76,7 +89,6 @@ def commit_changes(project_path, commit_message, branch_name):
             # Initial commit for new repository
             repo.git.commit(m=commit_message)
 
-        #print(f"Changes have been committed to {'existing' if is_repo else 'new'} repository in branch {branch_name}.")
         return True
     else:
         return False
@@ -508,10 +520,34 @@ class ConfirmPushView(Screen):
         elif button_pressed == "confirm":
             self.dismiss("")
 
+class ConfirmPushWithChangesView(Screen):
+    def __init__(self, text) -> None:
+        super().__init__()
+        self.text = text
+    def compose(self):
+        with Vertical(classes = "push_to_git_vertical_with_changes"):
+            yield Label(str(self.text), id="push_with_changes_label", classes="push_to_git_label_with_changes", shrink=True)
+            with Horizontal(id="push_changes_btns", classes="push_to_git_horizontal_buttons"):
+                yield Button("Cancel", variant="error", id="cancel_push_changes", classes="push_to_git_button")
+                # TODO: Delete changes in the repository and continue with the push
+                yield Button("Confirm", variant="success", id="confirm_push_changes", classes="push_to_git_button")
+
+    def on_button_pressed(self, event: Button.Pressed):
+        """
+            Called when a button is pressed.
+        """
+        button_pressed =  event.button.id
+        logger.info(__name__, f"(on_button_pressed) Button pressed: {button_pressed}")
+        if button_pressed == "cancel_push_changes":
+            self.dismiss({"confirmation": False})
+        elif button_pressed == "confirm_push_changes":
+            self.dismiss({"confirmation": True})
+
 class NormalRepoGitPushView(Screen):
     def __init__(self, text) -> None:
         super().__init__()
         self.text = text
+        self.confirmation = False
 
     def compose(self):
         with Vertical(classes = "push_to_git_vertical"):
@@ -540,9 +576,24 @@ class NormalRepoGitPushView(Screen):
             elif self.query_one("#commit_msg_input", Input).value == "":
                 self.notify("You must enter a commit message.")
             else:
-                commit_message = self.query_one("#commit_msg_input", Input).value
-                branch_name = self.query_one("#repo_name", Input).value
-                self.dismiss({"commit_message": commit_message, "branch_name": branch_name})
+                if check_for_changes(file_manager.get_folder_path()):
+                    text = "You have unstaged changes in your repository. Do you want to commit them? (Your previous changes will be merged with the new ones in the same commit)"
+                    self.app.push_screen(ConfirmPushWithChangesView(text), self.push_screen_callback)
+                    
+                else:
+                    commit_message = self.query_one("#commit_msg_input", Input).value
+                    branch_name = self.query_one("#repo_name", Input).value
+                    self.dismiss({"commit_message": commit_message, "branch_name": branch_name})
+
+    def push_screen_callback(self, result):
+        # TODO: Delete changes in the repository if user wants to and continue with the push
+        logger.info(__name__, f"(push_screen_callback) Result: {str(result)}")
+        if result["confirmation"]:
+            commit_message = self.query_one("#commit_msg_input", Input).value
+            branch_name = self.query_one("#repo_name", Input).value
+            self.dismiss({"commit_message": commit_message, "branch_name": branch_name})
+        else:
+            self.app.pop_screen()
 
 class NewRepoGitPushView(Screen):
     def __init__(self, text) -> None:
